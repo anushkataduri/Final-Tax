@@ -1,0 +1,16 @@
+Flyway migrations, one file per module change, numbered globally and
+prefixed by module for readability, e.g.:
+
+V001__create_customer_tables.sql
+V002__create_employee_tables.sql
+V003__create_catalog_tables.sql
+V004__create_lead_tables.sql
+V005__create_application_tracking_tables.sql
+V006__create_gst_tables.sql
+V007__create_itr_tables.sql
+V008__create_loan_tables.sql
+V009__create_document_tables.sql
+V010__create_payment_tables.sql
+V011__create_messaging_tables.sql
+V012__create_notification_tables.sql
+V013__create_audit_tables.sql

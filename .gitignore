@@ -1,0 +1,17 @@
+target/
+*.class
+*.log
+.idea/
+*.iml
+.DS_Store
+.env
+
+# Eclipse / STS
+.settings/
+.classpath
+.factorypath
+.project
+.sts4-cache/
+
+# VS Code
+.vscode/
