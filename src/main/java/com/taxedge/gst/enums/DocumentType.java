@@ -1,0 +1,17 @@
+package com.taxedge.gst.enums;
+
+public enum DocumentType {
+
+    PAN_CARD,
+
+    AADHAAR_CARD,
+
+    BUSINESS_REGISTRATION_PROOF,
+
+    PRINCIPAL_PLACE_ADDRESS_PROOF,
+
+    BANK_PASSBOOK_OR_CANCELLED_CHEQUE,
+
+    PASSPORT_SIZE_PHOTOGRAPH,
+
+}

@@ -1,0 +1,11 @@
+package com.taxedge.gst.enums;
+
+public enum ReasonForRegistration {
+
+    CROSSED_TURN_OVER_THRESHOLD,
+    VOLUNTARY_REGISTRATION,
+    INTER_STATE_SUPPLY,
+    ECOMMERCE_OPERATOR_SELLER,
+    CASUAL_TAXABLE_PERSON,
+    INPUT_SERVICE_DISTRIBUTOR
+}

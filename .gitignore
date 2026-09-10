@@ -15,3 +15,9 @@ target/
 
 # VS Code
 .vscode/
+
+# Secrets & Service Keys
+src/main/resources/serviceAccountKey.json
+*.json.key
+*.zip
+

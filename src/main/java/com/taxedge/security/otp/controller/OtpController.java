@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.taxedge.customer.repository.CustomerRepository;
 import com.taxedge.security.otp.entity.Otp;
 import com.taxedge.security.otp.service.OtpService;
 
@@ -20,6 +21,9 @@ public class OtpController {
 	@Autowired
     private final OtpService otpService;
 
+	@Autowired
+    private final CustomerRepository customerRepository;
+
     @PostMapping("/generate")
     public ResponseEntity<String> generateOtp(@RequestBody Otp otp) {
         String result = otpService.generateOtp(otp);
@@ -27,13 +31,21 @@ public class OtpController {
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<String> verifyOtp(@RequestBody Otp otp) {
+    public ResponseEntity<?> verifyOtp(@RequestBody Otp otp) {
         boolean isValid = otpService.verifyOtp(otp);
 
         if (isValid) {
-            return ResponseEntity.ok("OTP verified successfully");
+            boolean isExisting = customerRepository.findByMobileNumber(otp.getMobileNumber()).isPresent();
+            return ResponseEntity.ok(java.util.Map.of(
+                "success", true,
+                "isExistingUser", isExisting,
+                "message", "OTP verified successfully"
+            ));
         } else {
-            return ResponseEntity.status(400).body("Invalid OTP");
+            return ResponseEntity.status(400).body(java.util.Map.of(
+                "success", false,
+                "message", "Invalid OTP"
+            ));
         }
     }
 }

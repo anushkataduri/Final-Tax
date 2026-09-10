@@ -2,11 +2,9 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/taxedge
     username: postgres
-    password: Srini123
+    password: ${DB_PASSWORD:Srini123}
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-logging:
-  level:
-    com.taxedge: DEBUG
