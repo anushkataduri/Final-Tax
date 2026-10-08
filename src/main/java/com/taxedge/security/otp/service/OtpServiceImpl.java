@@ -2,19 +2,19 @@ package com.taxedge.security.otp.service;
 
 import java.security.SecureRandom;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.taxedge.security.otp.entity.Otp;
 import com.taxedge.security.otp.repository.OtpRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OtpServiceImpl implements OtpService {
 
-	@Autowired
     private final OtpRepository otpRepository;
 
     private final SecureRandom secureRandom = new SecureRandom();
@@ -23,11 +23,20 @@ public class OtpServiceImpl implements OtpService {
     public String generateOtp(Otp otp) {
         int code = 100000 + secureRandom.nextInt(900000);
         String otpCode = String.valueOf(code);
-        otp.setOtpCode(otpCode);
 
-        otpRepository.save(otp);
+        Otp otpEntity = otpRepository.findTopByMobileNumberOrderByIdDesc(otp.getMobileNumber());
+        if (otpEntity != null) {
+            otpEntity.setOtpCode(otpCode);
+        } else {
+            otpEntity = Otp.builder()
+                    .mobileNumber(otp.getMobileNumber())
+                    .otpCode(otpCode)
+                    .build();
+        }
 
-        System.out.println("OTP for " + otp.getMobileNumber() + " is: " + otpCode);
+        otpRepository.save(otpEntity);
+
+        log.info("OTP for {} is: {}", otp.getMobileNumber(), otpCode);
 
         return "OTP sent successfully";
     }
@@ -35,19 +44,15 @@ public class OtpServiceImpl implements OtpService {
     @Override
     public boolean verifyOtp(Otp otp) {
         if (otp.getMobileNumber() == null || otp.getOtpCode() == null) {
-            throw new IllegalArgumentException("Mobile number and OTP code must be provided");
+            return false;
         }
 
         Otp savedOtp = otpRepository.findTopByMobileNumberOrderByIdDesc(otp.getMobileNumber());
 
         if (savedOtp == null) {
-            throw new RuntimeException("OTP not found");
+            return false;
         }
 
-        if (!savedOtp.getOtpCode().equals(otp.getOtpCode())) {
-            throw new RuntimeException("Invalid OTP");
-        }
-
-        return true;
+        return otp.getOtpCode().equals(savedOtp.getOtpCode());
     }
 }

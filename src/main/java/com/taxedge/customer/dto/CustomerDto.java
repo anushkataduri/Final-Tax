@@ -7,6 +7,7 @@ import com.taxedge.customer.enums.CustomerType;
 import com.taxedge.customer.enums.Gender;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -15,6 +16,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class CustomerDto {
     
     private String custId;
@@ -33,6 +35,7 @@ public class CustomerDto {
     private String pincode;
     private String state;
     private String address;
+    @com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
     private String password;
     private LocalDateTime createdAt;
     private String pushToken;

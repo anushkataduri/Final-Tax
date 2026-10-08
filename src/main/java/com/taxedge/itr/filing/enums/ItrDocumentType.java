@@ -1,0 +1,6 @@
+package com.taxedge.itr.filing.enums;
+
+public enum ItrDocumentType {
+
+	FORM_16_PART_A_PART_B, FORM_26AS, AIS_TIS, BANK_ACCOUNT_STATEMENT, SALARY_PAYSLIPS
+}

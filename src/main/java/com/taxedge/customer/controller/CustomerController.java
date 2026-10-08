@@ -1,12 +1,13 @@
 package com.taxedge.customer.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,10 +22,10 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/customer")
+@RequiredArgsConstructor
 public class CustomerController {
 	
-	@Autowired
-	private CustomerService customerService;
+	private final CustomerService customerService;
 
     @PostMapping("/register")
     public ResponseEntity<CustomerJwt> registerCustomer(@RequestBody CustomerDto customerDto) {
@@ -51,4 +52,18 @@ public class CustomerController {
         boolean exists = customerService.existsByMobileNumber(mobileNumber);
         return ResponseEntity.ok(java.util.Map.of("exists", exists, "mobileNumber", mobileNumber));
     }
+    
+    
+    @PutMapping("/update")
+    public ResponseEntity<String> updateCustomer(@RequestBody CustomerDto customerDto) {
+        return ResponseEntity.ok(customerService.updateCustomer(customerDto));
+    }
+    
+    
+    @GetMapping("/details/{custId}")
+    public ResponseEntity<CustomerDto> getDetails(@PathVariable String custId) {
+        return ResponseEntity.ok(customerService.getDetails(custId));
+    }
+    
+    
 }

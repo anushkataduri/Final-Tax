@@ -1,0 +1,28 @@
+package com.taxedge.gst.amendment.mapper;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+
+import com.taxedge.gst.amendment.dto.ContactAmendmentViewDto;
+import com.taxedge.gst.amendment.entity.ContactAmendmentEntity;
+
+@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+public interface ContactAmendmentMapper {
+
+    @Mapping(target = "customerId", source = "customer.custId")
+    @Mapping(target = "businessGstId", source = "gstNumber")
+    ContactAmendmentViewDto toDto(ContactAmendmentEntity entity);
+
+    @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "gstNumber", expression = "java(dto.getGstNumber() != null && !dto.getGstNumber().isEmpty() ? dto.getGstNumber() : dto.getBusinessGstId())")
+    ContactAmendmentEntity toEntity(ContactAmendmentViewDto dto);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "gstNumber", ignore = true)
+    void updateEntity(ContactAmendmentViewDto dto, @MappingTarget ContactAmendmentEntity entity);
+}

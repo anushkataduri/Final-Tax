@@ -1,0 +1,27 @@
+package com.taxedge.gst.amendment.dto;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import com.taxedge.gst.registration.enums.NatureOfPremises;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class AdditionalPlaceAmendmentViewDto {
+    private Long id;
+    private String address;
+    private String city;
+    private String pinCode;
+    private NatureOfPremises natureOfPremises;
+    private byte[] imageData;
+    private String businessGstId;
+    private String gstNumber;
+    private String customerId;
+}

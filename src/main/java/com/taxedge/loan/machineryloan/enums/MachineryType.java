@@ -1,0 +1,11 @@
+package com.taxedge.loan.machineryloan.enums;
+
+public enum MachineryType {
+    CNC_AUTOMATION_MACHINERY,
+    MEDICAL_EQUIPMENT,
+    PRINTING_PACKAGING_MACHINERY,
+    CONSTRUCTION_MACHINERY,
+    FOOD_PROCESSING_MACHINERY,
+    TEXTILE_MACHINERY,
+    OTHER
+}

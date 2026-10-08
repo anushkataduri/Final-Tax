@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,6 +29,12 @@ public class RefreshToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+   
+    @Version
+    @Column(name = "version", nullable = false, columnDefinition = "bigint default 0")
+    @Builder.Default
+    private Long version = 0L;
 
     @Column(name = "token_hash", nullable = false, unique = true, length = 255)
     private String tokenHash;
