@@ -1,0 +1,1 @@
+export { VerifiedSplashScreen } from "./VerifiedSplashScreen";

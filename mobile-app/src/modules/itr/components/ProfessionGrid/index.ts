@@ -1,0 +1,1 @@
+export { ProfessionGrid } from "./ProfessionGrid";

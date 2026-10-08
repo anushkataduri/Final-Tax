@@ -1,0 +1,1 @@
+export { TdsHeroCard } from "./TdsHeroCard";

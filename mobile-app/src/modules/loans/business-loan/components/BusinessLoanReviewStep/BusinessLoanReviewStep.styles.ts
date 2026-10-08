@@ -1,0 +1,183 @@
+import { StyleSheet } from "react-native";
+import { BrandColors, Typography, Spacing, BorderRadius } from "../../../../../shared/theme";
+
+export const styles = StyleSheet.create({
+  container: {
+    paddingBottom: Spacing.md,
+  },
+  sectionTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginBottom: 2,
+  },
+  sectionSubtitle: {
+    fontSize: Typography.fontSize.xs,
+    color: "#64748B",
+    marginBottom: 10,
+    lineHeight: 16,
+  },
+  summaryCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.md,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginBottom: 10,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  iconBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconBoxBlue: {
+    backgroundColor: "#E0F2FE",
+  },
+  iconBoxOrange: {
+    backgroundColor: BrandColors.PRIMARY_LIGHT_ORANGE || "#FEF0E6",
+  },
+  iconBoxPurple: {
+    backgroundColor: "#F3E8FF",
+  },
+  iconBoxRed: {
+    backgroundColor: "#FEE2E2",
+  },
+  iconBoxGreen: {
+    backgroundColor: "#DCFCE7",
+  },
+  docHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  cardTitle: {
+    fontSize: Typography.fontSize.xs + 1,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  verifiedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  verifiedText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#166534",
+  },
+  editAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  editText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: BrandColors.PRIMARY_ORANGE_DARK || "#EA580C",
+  },
+  docCountText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#166534",
+    marginRight: 6,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 5,
+  },
+  label: {
+    fontSize: Typography.fontSize.xs,
+    color: "#64748B",
+    flex: 1,
+  },
+  value: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: "600",
+    color: "#0F172A",
+    textAlign: "right",
+    flex: 1.5,
+  },
+  docsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 4,
+  },
+  docBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#DCFCE7",
+    borderWidth: 1,
+    borderColor: "#86EFAC",
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+  },
+  docBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#166534",
+  },
+  noDocsText: {
+    fontSize: Typography.fontSize.xs,
+    color: "#94A3B8",
+    fontStyle: "italic",
+    paddingVertical: 3,
+  },
+  consentContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.md,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginTop: 4,
+    marginBottom: 10,
+    gap: 10,
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  checkboxActive: {
+    backgroundColor: BrandColors.PRIMARY_ORANGE || "#EA580C",
+    borderColor: BrandColors.PRIMARY_ORANGE || "#EA580C",
+  },
+  consentText: {
+    flex: 1,
+    fontSize: Typography.fontSize.xs,
+    color: "#475569",
+    lineHeight: 16,
+  },
+});

@@ -1,23 +1,16 @@
-target/
-*.class
-*.log
-.idea/
-*.iml
-.DS_Store
+# Environment files
 .env
+.env*.local
 
-# Eclipse / STS
-.settings/
-.classpath
-.factorypath
-.project
-.sts4-cache/
+# Secrets and keys
+*.key
+*.pem
+serviceAccountKey.json
+serviceAccountKey.json.json
+google-services.json
 
-# VS Code
+# IDE and OS
+.idea/
 .vscode/
-
-# Secrets & Service Keys
-src/main/resources/serviceAccountKey.json
-*.json.key
-*.zip
-
+.DS_Store
+Thumbs.db

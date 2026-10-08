@@ -1,0 +1,1 @@
+export { RegimeComparisonTable } from "./RegimeComparisonTable";
