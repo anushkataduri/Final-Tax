@@ -123,8 +123,11 @@ export class ApiClient {
         let clean = saved.trim();
         if (clean.includes(":8081")) {
           clean = clean.replace(":8081", `:${SERVER_PORT}`);
-          await AsyncStorage.setItem(STORAGE_KEY_SERVER_URL, clean);
         }
+        if (clean.includes("192.168.88.28")) {
+          clean = clean.replace("192.168.88.28", SERVER_IP);
+        }
+        await AsyncStorage.setItem(STORAGE_KEY_SERVER_URL, clean);
         this.setBaseUrl(clean);
       }
     } catch (loadErr) {

@@ -1,4 +1,5 @@
 import { apiClient } from "../../../core/api/apiClient";
+import { ApiError } from "../../../core/api/apiError";
 import { tokenManager } from "../../../core/authentication/tokenManager";
 import type { DevUser, RegistrationData } from "../types/auth.types";
 import { buildRegisterPayload } from "./customerRegistrationPayload";
@@ -412,6 +413,10 @@ export const authApi = {
       logger.debug("[API] Customer details fetched successfully", { custId });
       return { success: true as const, data: res };
     } catch (error) {
+      if (error instanceof ApiError && error.statusCode === 404) {
+        logger.warn("[API] Customer details not found on backend (404)", { custId });
+        return { success: false as const, message: "Customer not found" };
+      }
       logger.error("[API] Error fetching customer details", error, { custId });
       return { success: false as const, message: getErrorMessage(error) || "Failed to fetch customer details" };
     }

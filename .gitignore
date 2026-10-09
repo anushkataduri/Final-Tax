@@ -7,7 +7,7 @@
 *.pem
 serviceAccountKey.json
 serviceAccountKey.json.json
-google-services.json
+!mobile-app/google-services.json
 
 # IDE and OS
 .idea/
