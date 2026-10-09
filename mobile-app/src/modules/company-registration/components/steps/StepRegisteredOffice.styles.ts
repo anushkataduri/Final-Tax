@@ -8,7 +8,7 @@ export const styles = StyleSheet.create({
   heading: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#083B75',
+    color: '#263238',
     marginBottom: 4,
   },
   subheading: {
@@ -20,13 +20,13 @@ export const styles = StyleSheet.create({
   sectionHeading: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#263238',
     marginBottom: 12,
     marginTop: 4,
   },
   sectionDivider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E7EDF2',
     marginVertical: 16,
   },
   fieldGroup: {
@@ -35,18 +35,18 @@ export const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#263238',
     marginBottom: 6,
   },
   input: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#E7EDF2',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#0F172A',
+    color: '#263238',
   },
   row: {
     flexDirection: 'row',
@@ -65,23 +65,24 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#E7EDF2',
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
   chipSelected: {
-    borderColor: '#083B75',
-    backgroundColor: '#083B75',
+    borderColor: '#FF8A00',
+    backgroundColor: '#FFF8F0',
+    borderWidth: 1.5,
   },
   chipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#334155',
+    color: '#263238',
   },
   chipTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: '#FF8A00',
+    fontWeight: '700',
   },
   infoBoxContainer: {
     flexDirection: 'row',
@@ -108,7 +109,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#E7EDF2',
     borderStyle: 'dashed',
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -138,7 +139,7 @@ export const styles = StyleSheet.create({
   },
   uploadEmptyText: {
     fontSize: 13,
-    color: '#083B75',
+    color: '#FF8A00',
     fontWeight: '500',
     flex: 1,
   },

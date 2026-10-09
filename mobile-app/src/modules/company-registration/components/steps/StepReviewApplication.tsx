@@ -6,7 +6,7 @@ import { styles } from './StepReviewApplication.styles';
 export const StepReviewApplication: React.FC = () => {
   const draft = useCompanyRegistrationStore((state) => state.draft);
   const setStep = useCompanyRegistrationStore((state) => state.setStep);
-  const { company, directors, linkedRegistrations } = draft;
+  const { company, directors } = draft;
 
   const primaryDirector = directors[0] || {};
 
@@ -123,24 +123,6 @@ export const StepReviewApplication: React.FC = () => {
         <View style={styles.dataRow}><Text style={styles.dataLabel}>Office Utility Bill</Text><Text style={styles.dataValue}>{draft.documents?.find(d => d.id === 'doc-utility')?.fileName || ''}</Text></View>
         <View style={styles.dataRow}><Text style={styles.dataLabel}>Ownership / Lease Document</Text><Text style={styles.dataValue}>{company.ownershipDocName || ''}</Text></View>
         <View style={styles.dataRow}><Text style={styles.dataLabel}>Owner NOC</Text><Text style={styles.dataValue}>{company.ownerNocName || ''}</Text></View>
-      </View>
-
-      {/* 8. Linked Registrations */}
-      <View style={styles.sectionCard}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Linked Registrations</Text>
-          <TouchableOpacity onPress={() => setStep(6)} activeOpacity={0.7}>
-            <Text style={styles.editBtn}>Edit</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.dataRow}><Text style={styles.dataLabel}>Company PAN Card Issuance</Text><Text style={styles.dataValue}>{linkedRegistrations.pan ? 'Selected' : ''}</Text></View>
-        <View style={styles.dataRow}><Text style={styles.dataLabel}>Company TAN Allotment</Text><Text style={styles.dataValue}>{linkedRegistrations.tan ? 'Selected' : ''}</Text></View>
-        <View style={styles.dataRow}><Text style={styles.dataLabel}>GSTIN Registration</Text><Text style={styles.dataValue}>{linkedRegistrations.gst ? 'Selected' : ''}</Text></View>
-        <View style={styles.dataRow}><Text style={styles.dataLabel}>EPFO Registration</Text><Text style={styles.dataValue}>{linkedRegistrations.epfo ? 'Selected' : ''}</Text></View>
-        <View style={styles.dataRow}><Text style={styles.dataLabel}>ESIC Registration</Text><Text style={styles.dataValue}>{linkedRegistrations.esic ? 'Selected' : ''}</Text></View>
-        <View style={styles.dataRow}><Text style={styles.dataLabel}>Professional Tax Registration</Text><Text style={styles.dataValue}>{linkedRegistrations.professionalTax ? 'Selected' : ''}</Text></View>
-        <View style={styles.dataRow}><Text style={styles.dataLabel}>Corporate Bank Account Opening</Text><Text style={styles.dataValue}>{linkedRegistrations.bankAccount ? 'Selected' : ''}</Text></View>
-        <View style={styles.dataRow}><Text style={styles.dataLabel}>Account Number</Text><Text style={styles.dataValue}>{company.accountNumber || ''}</Text></View>
       </View>
     </View>
   );

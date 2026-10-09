@@ -68,10 +68,19 @@ export const validateRegistrationStep = (
     const { valid, fieldErrors } = companySchema.validateStep(4, draft.company);
     const combinedErrors: Record<string, string> = { ...fieldErrors };
     const totalSubscribed = draft.directors.reduce((sum, d) => sum + (Number(d.numberOfShares) || 0), 0);
+    const faceValue = Number(draft.company.faceValuePerShare) || 10;
+    const authCapital = Number(draft.company.authorizedCapital) || 0;
+    const totalAuthShares = faceValue > 0 ? Math.floor(authCapital / faceValue) : 0;
     const isOpc = draft.company.companyType === 'One Person Company (OPC)';
-    if (!isOpc && draft.company.numberOfShares > 0 && totalSubscribed !== draft.company.numberOfShares) {
-      combinedErrors.shareholdingTotal = 'Total subscribed shares by directors must equal the total number of shares of the company.';
+
+    if (!isOpc) {
+      if (totalSubscribed <= 0) {
+        combinedErrors.shareholdingTotal = 'Please allocate shares to at least one promoter/shareholder.';
+      } else if (totalAuthShares > 0 && totalSubscribed > totalAuthShares) {
+        combinedErrors.shareholdingTotal = 'Total subscribed shares cannot exceed total authorised shares of the company.';
+      }
     }
+
     if (!valid || Object.keys(combinedErrors).length > 0) {
       return { valid: false, fieldErrors: combinedErrors };
     }

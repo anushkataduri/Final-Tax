@@ -1,5 +1,4 @@
 import type { DirectorInfo } from '../types/director.types';
-import { PAN_REGEX, AADHAAR_REGEX, EMAIL_REGEX, PHONE_REGEX, PINCODE_REGEX } from '../../../shared/validators/indianTaxValidators';
 
 export const DOB_REGEX = /^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-(19|20)\d\d$/;
 
@@ -25,6 +24,47 @@ export function formatDobInput(text: string): string {
   return `${cleaned.slice(0, 2)}-${cleaned.slice(2, 4)}-${cleaned.slice(4, 8)}`;
 }
 
+export function validateDirectorPan(pan?: string): string | null {
+  const trimmed = pan?.trim().toUpperCase() || '';
+  if (!trimmed) return 'PAN number is required.';
+  if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(trimmed)) {
+    return 'Enter a valid 10-character PAN, for example ABCDE1234F.';
+  }
+  return null;
+}
+
+export function validateDirectorEmail(email?: string): string | null {
+  const trimmed = email?.trim() || '';
+  if (!trimmed) return 'Email address is required.';
+  if (trimmed.length > 254) return 'Email address must not exceed 254 characters.';
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmed) || trimmed.includes(' ')) {
+    return 'Enter a valid email address.';
+  }
+  return null;
+}
+
+export function validateDirectorMobile(mobile?: string): string | null {
+  const trimmed = mobile?.trim() || '';
+  if (!trimmed) return 'Mobile number is required.';
+  if (trimmed.length < 10 && /^\d+$/.test(trimmed)) {
+    return 'Mobile number must contain exactly 10 digits.';
+  }
+  if (!/^[6-9][0-9]{9}$/.test(trimmed)) {
+    return 'Enter a valid 10-digit Indian mobile number.';
+  }
+  return null;
+}
+
+export function validateDirectorDob(dob?: string): string | null {
+  const trimmed = dob?.trim() || '';
+  if (!trimmed) return 'Date of Birth is required.';
+  if (!isValidDob(trimmed)) {
+    return 'Please enter a valid date of birth in DD-MM-YYYY format.';
+  }
+  return null;
+}
+
 export const directorSchema = {
   validateDirector(director: Partial<DirectorInfo>, index = 0): { valid: boolean; errors: string[]; fieldErrors: Record<string, string> } {
     const errors: string[] = [];
@@ -33,112 +73,39 @@ export const directorSchema = {
     const prefix = `dir_${dirId}_`;
 
     if (!director.name?.trim()) {
-      fieldErrors[`${prefix}name`] = 'Director name is required.';
+      fieldErrors[`${prefix}name`] = 'Full Name as in PAN is required.';
       errors.push(fieldErrors[`${prefix}name`]);
     }
-    if (!director.pan?.trim() || !PAN_REGEX.test(director.pan.trim().toUpperCase())) {
-      fieldErrors[`${prefix}pan`] = 'Please enter a valid 10-character PAN.';
-      errors.push(fieldErrors[`${prefix}pan`]);
+
+    const panErr = validateDirectorPan(director.pan);
+    if (panErr) {
+      fieldErrors[`${prefix}pan`] = panErr;
+      errors.push(panErr);
     }
-    if (director.aadhaar && !AADHAAR_REGEX.test(director.aadhaar.trim().replace(/\s/g, ''))) {
-      fieldErrors[`${prefix}aadhaar`] = 'Please enter a valid 12-digit Aadhaar.';
-      errors.push(fieldErrors[`${prefix}aadhaar`]);
+
+    const dobErr = validateDirectorDob(director.dob);
+    if (dobErr) {
+      fieldErrors[`${prefix}dob`] = dobErr;
+      errors.push(dobErr);
     }
-    if (!director.dob?.trim()) {
-      fieldErrors[`${prefix}dob`] = 'Date of Birth is required.';
-      errors.push(fieldErrors[`${prefix}dob`]);
-    } else if (!isValidDob(director.dob.trim())) {
-      fieldErrors[`${prefix}dob`] = 'Please enter a valid date of birth in DD-MM-YYYY format.';
-      errors.push(fieldErrors[`${prefix}dob`]);
+
+    const emailErr = validateDirectorEmail(director.email);
+    if (emailErr) {
+      fieldErrors[`${prefix}email`] = emailErr;
+      errors.push(emailErr);
     }
-    if (!director.fatherName?.trim()) {
-      fieldErrors[`${prefix}fatherName`] = "Father's name is required.";
-      errors.push(fieldErrors[`${prefix}fatherName`]);
+
+    const mobileErr = validateDirectorMobile(director.phone);
+    if (mobileErr) {
+      fieldErrors[`${prefix}phone`] = mobileErr;
+      errors.push(mobileErr);
     }
-    if (!director.gender?.trim()) {
-      fieldErrors[`${prefix}gender`] = 'Gender is required.';
-      errors.push(fieldErrors[`${prefix}gender`]);
-    }
-    if (!director.nationality?.trim()) {
-      fieldErrors[`${prefix}nationality`] = 'Nationality is required.';
-      errors.push(fieldErrors[`${prefix}nationality`]);
-    }
+
     if (!director.designation?.trim()) {
       fieldErrors[`${prefix}designation`] = 'Designation is required.';
       errors.push(fieldErrors[`${prefix}designation`]);
-    }
-    if (!director.category?.trim()) {
-      fieldErrors[`${prefix}category`] = 'Category is required.';
-      errors.push(fieldErrors[`${prefix}category`]);
-    }
-    if (!director.email?.trim() || !EMAIL_REGEX.test(director.email.trim())) {
-      fieldErrors[`${prefix}email`] = 'Please enter a valid Email address.';
-      errors.push(fieldErrors[`${prefix}email`]);
-    }
-    if (!director.phone?.trim()) {
-      fieldErrors[`${prefix}phone`] = 'Please enter a valid phone number.';
-      errors.push(fieldErrors[`${prefix}phone`]);
-    } else if (!PHONE_REGEX.test(director.phone.trim())) {
-      fieldErrors[`${prefix}phone`] = 'Please enter a valid phone number.';
-      errors.push(fieldErrors[`${prefix}phone`]);
-    }
-
-    if (director.hasDin && !director.din?.trim()) {
-      fieldErrors[`${prefix}din`] = `DIN is required as 'Has DIN' is checked.`;
-      errors.push(fieldErrors[`${prefix}din`]);
-    }
-
-    const addr = director.addressLine1?.trim() || director.residentialAddress?.trim();
-    if (!addr) {
-      fieldErrors[`${prefix}addressLine1`] = `Address Line 1 is required.`;
-      errors.push(fieldErrors[`${prefix}addressLine1`]);
-    }
-    if (!director.city?.trim()) {
-      fieldErrors[`${prefix}city`] = `City is required.`;
-      errors.push(fieldErrors[`${prefix}city`]);
-    }
-    if (!director.district?.trim()) {
-      fieldErrors[`${prefix}district`] = `District is required.`;
-      errors.push(fieldErrors[`${prefix}district`]);
-    }
-    if (!director.state?.trim()) {
-      fieldErrors[`${prefix}state`] = `State is required.`;
-      errors.push(fieldErrors[`${prefix}state`]);
-    }
-    if (!director.pinCode?.trim() || !PINCODE_REGEX.test(director.pinCode.trim())) {
-      fieldErrors[`${prefix}pinCode`] = `Please enter a valid 6-digit PIN code.`;
-      errors.push(fieldErrors[`${prefix}pinCode`]);
-    }
-
-    if (!director.sameAsPermanentAddress) {
-      if (!director.presentAddressLine1?.trim()) {
-        fieldErrors[`${prefix}presentAddressLine1`] = `Present Address Line 1 is required.`;
-        errors.push(fieldErrors[`${prefix}presentAddressLine1`]);
-      }
-      if (!director.presentCity?.trim()) {
-        fieldErrors[`${prefix}presentCity`] = `Present City is required.`;
-        errors.push(fieldErrors[`${prefix}presentCity`]);
-      }
-      if (!director.presentDistrict?.trim()) {
-        fieldErrors[`${prefix}presentDistrict`] = `Present District is required.`;
-        errors.push(fieldErrors[`${prefix}presentDistrict`]);
-      }
-      if (!director.presentState?.trim()) {
-        fieldErrors[`${prefix}presentState`] = `Present State is required.`;
-        errors.push(fieldErrors[`${prefix}presentState`]);
-      }
-      if (!director.presentPincode?.trim() || !PINCODE_REGEX.test(director.presentPincode.trim())) {
-        fieldErrors[`${prefix}presentPincode`] = `Please enter a valid 6-digit Present PIN code.`;
-        errors.push(fieldErrors[`${prefix}presentPincode`]);
-      }
-    }
-
-    if (!director.numberOfShares || director.numberOfShares <= 0) {
-      fieldErrors[`${prefix}numberOfShares`] = `Number of Subscribed Shares is required.`;
-      errors.push(fieldErrors[`${prefix}numberOfShares`]);
     }
 
     return { valid: errors.length === 0, errors, fieldErrors };
   },
 };
-

@@ -1,6 +1,6 @@
 import React from "react";
-import { CompanyRegistrationLandingScreen } from "@/modules/company-registration/screens/CompanyRegistrationLandingScreen/CompanyRegistrationLandingScreen";
+import { CompanyRegistrationScreen } from "@/modules/company-registration/screens/CompanyRegistrationScreen/CompanyRegistrationScreen";
 
 export default function CompanyRegistrationRoute() {
-  return <CompanyRegistrationLandingScreen />;
+  return <CompanyRegistrationScreen />;
 }
