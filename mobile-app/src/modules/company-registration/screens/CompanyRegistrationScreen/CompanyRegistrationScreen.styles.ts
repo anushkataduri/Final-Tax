@@ -52,12 +52,20 @@ export const styles = StyleSheet.create({
     color: '#475569',
   },
   nextBtn: {
-    flex: 2,
-    backgroundColor: '#F97316',
-    borderRadius: 10,
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#FF5500',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  gradientBtn: {
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 12,
   },
   nextBtnText: {
     fontSize: 15,

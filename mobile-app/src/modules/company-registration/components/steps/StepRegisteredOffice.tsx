@@ -1,122 +1,44 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import * as DocumentPicker from 'expo-document-picker';
-import * as ImagePicker from 'expo-image-picker';
-import { DocumentUploadBottomSheet } from '@/shared/components/DocumentUploadBottomSheet';
-import { DocumentCard as TdsDocumentCard, type DocumentChecklistItem as TdsChecklistItem } from '@/shared/components/documents';
-import { DocumentPreviewModal, type PreviewDocumentItem } from '@/shared/components/documents/DocumentPreviewModal';
+import React from 'react';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
+import { validatePinCode, validateCompanyEmail, validateCompanyMobile } from '../../validation/companySchema';
 import { CompanySectionCard } from '../CompanySectionCard/CompanySectionCard';
 import { styles } from './StepRegisteredOffice.styles';
-import { getErrorMessage } from "@/core/error-handling/errorMessage";
-
-type DocType = 'proof' | 'ownership' | 'noc';
 
 export const StepRegisteredOffice: React.FC = () => {
   const company = useCompanyRegistrationStore((state) => state.draft.company);
   const updateDetails = useCompanyRegistrationStore((state) => state.updateCompanyDetails);
   const fieldErrors = useCompanyRegistrationStore((state) => state.fieldErrors);
+  const setFieldErrors = useCompanyRegistrationStore((state) => state.setFieldErrors);
 
-  const [activeDocType, setActiveDocType] = useState<DocType | null>(null);
-  const [previewItem, setPreviewItem] = useState<PreviewDocumentItem | null>(null);
-
-  const isNocRequired = company.premisesOwnership === 'Rented' || company.premisesOwnership === 'Leased';
-
-  const getDocTitle = (type: DocType | null) => {
-    switch (type) {
-      case 'proof': return 'Office Address Proof / Utility Bill';
-      case 'ownership': return 'Ownership / Rent / Lease Document';
-      case 'noc': return 'Owner NOC';
-      default: return 'Document';
+  const clearError = (key: string) => {
+    if (fieldErrors[key]) {
+      const next = { ...fieldErrors };
+      delete next[key];
+      setFieldErrors(next);
     }
   };
 
-  const handleDocumentSelected = (fileName: string, fileUri?: string) => {
-    if (!activeDocType) return;
-    if (activeDocType === 'proof') updateDetails({ officeAddressProofName: fileName, officeAddressProofUri: fileUri });
-    if (activeDocType === 'ownership') updateDetails({ ownershipDocName: fileName, ownershipDocUri: fileUri });
-    if (activeDocType === 'noc') updateDetails({ ownerNocName: fileName, ownerNocUri: fileUri });
-    setActiveDocType(null);
+  const handleOwnershipChange = (status: 'Rented' | 'Owned' | 'Leased') => {
+    clearError('premisesOwnership');
+    updateDetails({ premisesOwnership: status });
   };
 
-  const handlePickFiles = async () => {
-    try {
-      const res = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/jpeg', 'image/png'], copyToCacheDirectory: true });
-      if (!res.canceled && res.assets && res.assets.length > 0) handleDocumentSelected(res.assets[0].name, res.assets[0].uri);
-    } catch (e) { Alert.alert('Upload Error', getErrorMessage(e) || 'Failed to select document.'); }
+  const handlePincodeChange = (val: string) => {
+    const digits = val.replace(/[^0-9]/g, '').slice(0, 6);
+    updateDetails({ registeredPincode: digits });
+    if (!validatePinCode(digits)) clearError('registeredPincode');
   };
 
-  const handlePickGallery = async () => {
-    try {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) return Alert.alert('Permission Required', 'Please allow gallery access.');
-      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
-      if (!res.canceled && res.assets && res.assets.length > 0) handleDocumentSelected(res.assets[0].fileName || `doc_${Date.now()}.jpg`, res.assets[0].uri);
-    } catch (e) { Alert.alert('Upload Error', getErrorMessage(e) || 'Failed to select image.'); }
+  const handleEmailChange = (val: string) => {
+    updateDetails({ companyEmail: val });
+    if (!validateCompanyEmail(val)) clearError('companyEmail');
   };
 
-  const handleTakePhoto = async () => {
-    try {
-      const perm = await ImagePicker.requestCameraPermissionsAsync();
-      if (!perm.granted) return Alert.alert('Permission Required', 'Please allow camera access.');
-      const res = await ImagePicker.launchCameraAsync({ quality: 0.8 });
-      if (!res.canceled && res.assets && res.assets.length > 0) handleDocumentSelected(res.assets[0].fileName || `photo_${Date.now()}.jpg`, res.assets[0].uri);
-    } catch (e) { Alert.alert('Upload Error', getErrorMessage(e) || 'Failed to take photo.'); }
-  };
-
-  const handleRemoveDoc = (type: DocType) => {
-    if (type === 'proof') updateDetails({ officeAddressProofName: '', officeAddressProofUri: '' });
-    if (type === 'ownership') updateDetails({ ownershipDocName: '', ownershipDocUri: '' });
-    if (type === 'noc') updateDetails({ ownerNocName: '', ownerNocUri: '' });
-  };
-
-  const renderDocCard = (
-    label: string,
-    type: DocType,
-    fileName: string | undefined,
-    fileUri: string | undefined,
-    helperText: string | undefined,
-    isRequired = true,
-    errorMsg?: string
-  ) => {
-    const item: TdsChecklistItem = {
-      id: type,
-      title: label.replace('*', '').trim(),
-      subtitle: helperText || (isRequired ? 'Mandatory document' : 'Optional document'),
-      status: fileName ? 'uploaded' : 'not_uploaded',
-      isMandatory: isRequired,
-      fileName,
-      fileUri: fileUri || (fileName ? `file://${fileName}` : undefined),
-      fileSize: fileName ? '2.4 MB' : undefined,
-    };
-
-    return (
-      <View style={styles.fieldGroup}>
-        <TdsDocumentCard
-          item={item}
-          onUploadPress={() => setActiveDocType(type)}
-          onChange={() => setActiveDocType(type)}
-          onDelete={() => handleRemoveDoc(type)}
-          onView={() => {
-            if (fileName) {
-              setPreviewItem({
-                id: type,
-                name: label.replace('*', '').trim(),
-                subtitle: helperText || (isRequired ? 'Mandatory document' : 'Optional document'),
-                tier: isRequired ? 'REQUIRED' : 'NOT_REQUIRED',
-                required: isRequired,
-                docGroup: 'common',
-                fileUri: fileUri || `file://${fileName}`,
-                fileName,
-                fileSize: '2.4 MB',
-              });
-            }
-          }}
-        />
-        {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
-      </View>
-    );
+  const handleMobileChange = (val: string) => {
+    const digits = val.replace(/[^0-9]/g, '').slice(0, 10);
+    updateDetails({ companyMobile: digits });
+    if (!validateCompanyMobile(digits)) clearError('companyMobile');
   };
 
   return (
@@ -127,8 +49,9 @@ export const StepRegisteredOffice: React.FC = () => {
           <Text style={styles.label}>Building / Premises Address Line *</Text>
           <TextInput
             style={[styles.input, !!fieldErrors.registeredAddressLine && styles.inputError]}
-            value={company.registeredAddressLine}
-            onChangeText={(val) => updateDetails({ registeredAddressLine: val })}
+            value={company.registeredAddressLine || ''}
+            onChangeText={(val) => { updateDetails({ registeredAddressLine: val }); if (val.trim()) clearError('registeredAddressLine'); }}
+            onBlur={() => { if (!company.registeredAddressLine?.trim()) setFieldErrors({ ...fieldErrors, registeredAddressLine: 'Address line is required.' }); }}
             placeholder="Enter registered address"
             placeholderTextColor="#94A3B8"
           />
@@ -140,8 +63,9 @@ export const StepRegisteredOffice: React.FC = () => {
             <Text style={styles.label}>City *</Text>
             <TextInput
               style={[styles.input, !!fieldErrors.registeredCity && styles.inputError]}
-              value={company.registeredCity}
-              onChangeText={(val) => updateDetails({ registeredCity: val })}
+              value={company.registeredCity || ''}
+              onChangeText={(val) => { updateDetails({ registeredCity: val }); if (val.trim()) clearError('registeredCity'); }}
+              onBlur={() => { if (!company.registeredCity?.trim()) setFieldErrors({ ...fieldErrors, registeredCity: 'City is required.' }); }}
               placeholder="Enter city"
               placeholderTextColor="#94A3B8"
             />
@@ -152,7 +76,8 @@ export const StepRegisteredOffice: React.FC = () => {
             <TextInput
               style={[styles.input, !!fieldErrors.registeredDistrict && styles.inputError]}
               value={company.registeredDistrict || ''}
-              onChangeText={(val) => updateDetails({ registeredDistrict: val })}
+              onChangeText={(val) => { updateDetails({ registeredDistrict: val }); if (val.trim()) clearError('registeredDistrict'); }}
+              onBlur={() => { if (!company.registeredDistrict?.trim()) setFieldErrors({ ...fieldErrors, registeredDistrict: 'District is required.' }); }}
               placeholder="Enter district"
               placeholderTextColor="#94A3B8"
             />
@@ -165,8 +90,9 @@ export const StepRegisteredOffice: React.FC = () => {
             <Text style={styles.label}>State *</Text>
             <TextInput
               style={[styles.input, !!fieldErrors.registeredState && styles.inputError]}
-              value={company.registeredState}
-              onChangeText={(val) => updateDetails({ registeredState: val })}
+              value={company.registeredState || ''}
+              onChangeText={(val) => { updateDetails({ registeredState: val }); if (val.trim()) clearError('registeredState'); }}
+              onBlur={() => { if (!company.registeredState?.trim()) setFieldErrors({ ...fieldErrors, registeredState: 'State is required.' }); }}
               placeholder="Enter state"
               placeholderTextColor="#94A3B8"
             />
@@ -176,10 +102,15 @@ export const StepRegisteredOffice: React.FC = () => {
             <Text style={styles.label}>PIN Code *</Text>
             <TextInput
               style={[styles.input, !!fieldErrors.registeredPincode && styles.inputError]}
-              value={company.registeredPincode}
-              onChangeText={(val) => updateDetails({ registeredPincode: val })}
-              placeholder="Enter PIN code"
+              value={company.registeredPincode || ''}
+              onChangeText={handlePincodeChange}
+              onBlur={() => {
+                const err = validatePinCode(company.registeredPincode);
+                if (err) setFieldErrors({ ...fieldErrors, registeredPincode: err });
+              }}
+              placeholder="Enter 6-digit PIN code"
               keyboardType="numeric"
+              maxLength={6}
               placeholderTextColor="#94A3B8"
             />
             {!!fieldErrors.registeredPincode && <Text style={styles.errorText}>{fieldErrors.registeredPincode}</Text>}
@@ -195,19 +126,13 @@ export const StepRegisteredOffice: React.FC = () => {
             {(['Rented', 'Owned', 'Leased'] as const).map((status) => {
               const isSelected = company.premisesOwnership === status;
               return (
-                <TouchableOpacity key={status} style={[styles.chip, isSelected && styles.chipSelected]} onPress={() => updateDetails({ premisesOwnership: status })}>
+                <TouchableOpacity key={status} style={[styles.chip, isSelected && styles.chipSelected]} onPress={() => handleOwnershipChange(status)} activeOpacity={0.8}>
                   <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{status}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
           {!!fieldErrors.premisesOwnership && <Text style={styles.errorText}>{fieldErrors.premisesOwnership}</Text>}
-          <View style={styles.infoBoxContainer}>
-            <Ionicons name="information-circle-outline" size={18} color="#0369A1" style={styles.infoIcon} />
-            <Text style={styles.infoNote}>
-              Proof of address (Electricity Bill / Rent Agreement) is mandatory. If premises are rented, leased, or owned by a Director or third party, a No Objection Certificate (NOC) from the owner is strictly required.
-            </Text>
-          </View>
         </View>
       </CompanySectionCard>
 
@@ -218,11 +143,16 @@ export const StepRegisteredOffice: React.FC = () => {
             <Text style={styles.label}>Company Email *</Text>
             <TextInput
               style={[styles.input, !!fieldErrors.companyEmail && styles.inputError]}
-              value={company.companyEmail}
-              onChangeText={(val) => updateDetails({ companyEmail: val })}
+              value={company.companyEmail || ''}
+              onChangeText={handleEmailChange}
+              onBlur={() => {
+                const err = validateCompanyEmail(company.companyEmail);
+                if (err) setFieldErrors({ ...fieldErrors, companyEmail: err });
+              }}
               placeholder="Enter company email"
               keyboardType="email-address"
               autoCapitalize="none"
+              maxLength={254}
               placeholderTextColor="#94A3B8"
             />
             {!!fieldErrors.companyEmail && <Text style={styles.errorText}>{fieldErrors.companyEmail}</Text>}
@@ -231,26 +161,23 @@ export const StepRegisteredOffice: React.FC = () => {
             <Text style={styles.label}>Mobile *</Text>
             <TextInput
               style={[styles.input, !!fieldErrors.companyMobile && styles.inputError]}
-              value={company.companyMobile}
-              onChangeText={(val) => updateDetails({ companyMobile: val })}
-              placeholder="Enter company mobile"
+              value={company.companyMobile || ''}
+              onChangeText={handleMobileChange}
+              onBlur={() => {
+                const err = validateCompanyMobile(company.companyMobile);
+                if (err) setFieldErrors({ ...fieldErrors, companyMobile: err });
+              }}
+              placeholder="Enter 10-digit mobile"
               keyboardType="phone-pad"
+              maxLength={10}
               placeholderTextColor="#94A3B8"
             />
             {!!fieldErrors.companyMobile && <Text style={styles.errorText}>{fieldErrors.companyMobile}</Text>}
           </View>
         </View>
       </CompanySectionCard>
-
-      {/* CARD D — OFFICE DOCUMENTS */}
-      <CompanySectionCard title="Office Documents">
-        {renderDocCard('Office Address Proof / Utility Bill', 'proof', company.officeAddressProofName, company.officeAddressProofUri, 'Utility bill should be recent (not older than 2 months).', true, fieldErrors.officeAddressProof)}
-        {renderDocCard('Ownership / Rent / Lease Document', 'ownership', company.ownershipDocName, company.ownershipDocUri, undefined, true, fieldErrors.ownershipDoc)}
-        {renderDocCard('Owner NOC', 'noc', company.ownerNocName, company.ownerNocUri, 'Required only for rented/leased/third-party premises.', isNocRequired, fieldErrors.ownerNoc)}
-      </CompanySectionCard>
-
-      <DocumentUploadBottomSheet visible={!!activeDocType} documentTitle={getDocTitle(activeDocType)} onClose={() => setActiveDocType(null)} onCancel={() => setActiveDocType(null)} onPickFiles={handlePickFiles} onPickGallery={handlePickGallery} onTakePhoto={handleTakePhoto} />
-      <DocumentPreviewModal visible={!!previewItem} document={previewItem} onClose={() => setPreviewItem(null)} onChangeFile={(doc) => { setPreviewItem(null); setActiveDocType(doc.id as DocType); }} />
     </View>
   );
 };
+
+export default StepRegisteredOffice;

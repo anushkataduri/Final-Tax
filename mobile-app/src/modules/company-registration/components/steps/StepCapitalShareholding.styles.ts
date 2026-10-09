@@ -8,7 +8,7 @@ export const styles = StyleSheet.create({
   heading: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#083B75',
+    color: '#263238',
     marginBottom: 4,
   },
   subheading: {
@@ -20,7 +20,7 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#263238',
     marginTop: 8,
     marginBottom: 12,
   },
@@ -30,18 +30,29 @@ export const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#263238',
     marginBottom: 6,
   },
   input: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#E7EDF2',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: '#0F172A',
+    color: '#263238',
+  },
+  readOnlyInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E7EDF2',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#263238',
   },
   row: {
     flexDirection: 'row',
@@ -54,7 +65,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E7EDF2',
     padding: 14,
     marginBottom: 10,
   },
@@ -69,7 +80,7 @@ export const styles = StyleSheet.create({
   shareName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#263238',
   },
   shareDetailText: {
     fontSize: 12,
@@ -80,8 +91,8 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   shareBadge: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
+    backgroundColor: '#FFF8F0',
+    borderColor: '#FFD8BF',
     borderWidth: 1,
     borderRadius: 6,
     paddingHorizontal: 10,
@@ -90,10 +101,35 @@ export const styles = StyleSheet.create({
   shareBadgeText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#083B75',
+    color: '#FF8A00',
+  },
+  shareInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F8FAFC',
+  },
+  shareInputLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  smallInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E7EDF2',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 13,
+    color: '#263238',
   },
   totalsCard: {
-    backgroundColor: '#083B75',
+    backgroundColor: '#FF8A00',
     borderRadius: 10,
     padding: 14,
     marginTop: 6,
@@ -107,7 +143,7 @@ export const styles = StyleSheet.create({
   },
   totalsLabel: {
     fontSize: 13,
-    color: '#93C5FD',
+    color: '#FFF0DB',
     fontWeight: '500',
   },
   totalsValue: {
@@ -142,7 +178,7 @@ export const styles = StyleSheet.create({
   emptyCard: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E7EDF2',
     borderRadius: 10,
     padding: 24,
     alignItems: 'center',

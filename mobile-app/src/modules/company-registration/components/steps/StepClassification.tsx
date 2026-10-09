@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
-import type { CompanyClass, CompanyCategory, CompanySubCategory } from '../../types/company.types';
+import type { CompanyCategory, CompanySubCategory } from '../../types/company.types';
 import { CompanySectionCard } from '../CompanySectionCard/CompanySectionCard';
 import { styles } from './StepClassification.styles';
 
@@ -10,12 +10,6 @@ export const StepClassification: React.FC = () => {
   const company = useCompanyRegistrationStore((state) => state.draft.company);
   const updateDetails = useCompanyRegistrationStore((state) => state.updateCompanyDetails);
   const fieldErrors = useCompanyRegistrationStore((state) => state.fieldErrors);
-
-  const getAvailableClasses = (): CompanyClass[] => {
-    if (company.companyType === 'Public Limited') return ['Public'];
-    if (company.companyType === 'Section 8 (NGO)') return ['Private', 'Public'];
-    return ['Private'];
-  };
 
   const getAvailableCategories = (): CompanyCategory[] => {
     if (company.companyType === 'One Person Company (OPC)') return ['Company limited by Shares'];
@@ -28,35 +22,22 @@ export const StepClassification: React.FC = () => {
     return ['Indian Non-Government Company', 'State Government Company', 'Central Government Company'];
   };
 
-  const classes = getAvailableClasses();
   const categories = getAvailableCategories();
   const subCategories = getAvailableSubCategories();
+
+  const handleCategorySelect = (cat: CompanyCategory) => {
+    updateDetails({ companyCategory: cat });
+    const validSubs = getAvailableSubCategories();
+    if (company.companySubCategory && !validSubs.includes(company.companySubCategory)) {
+      updateDetails({ companyCategory: cat, companySubCategory: validSubs[0] });
+    }
+  };
 
   return (
     <CompanySectionCard
       title="Company Classification"
       description="Specify MCA statutory classification details for incorporation filing."
     >
-      {/* Class of Company */}
-      <View style={styles.fieldGroup}>
-        <Text style={styles.label}>Class of Company *</Text>
-        <View style={styles.optionRow}>
-          {classes.map((cls) => {
-            const selected = company.companyClass === cls;
-            return (
-              <TouchableOpacity
-                key={cls}
-                style={[styles.optionChip, selected && styles.optionChipSelected]}
-                onPress={() => updateDetails({ companyClass: cls })}
-              >
-                <Text style={[styles.optionChipText, selected && styles.optionChipTextSelected]}>{cls}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        {!!fieldErrors.companyClass && <Text style={styles.errorText}>{fieldErrors.companyClass}</Text>}
-      </View>
-
       {/* Category of Company */}
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Category of Company *</Text>
@@ -67,7 +48,8 @@ export const StepClassification: React.FC = () => {
               <TouchableOpacity
                 key={cat}
                 style={[styles.optionChip, selected && styles.optionChipSelected]}
-                onPress={() => updateDetails({ companyCategory: cat })}
+                onPress={() => handleCategorySelect(cat)}
+                activeOpacity={0.8}
               >
                 <Text style={[styles.optionChipText, selected && styles.optionChipTextSelected]}>{cat}</Text>
               </TouchableOpacity>
@@ -77,7 +59,7 @@ export const StepClassification: React.FC = () => {
         {!!fieldErrors.companyCategory && <Text style={styles.errorText}>{fieldErrors.companyCategory}</Text>}
       </View>
 
-      {/* Sub-Category */}
+      {/* Sub-Category of Company */}
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Sub-Category of Company *</Text>
         <View style={styles.optionRow}>
@@ -88,6 +70,7 @@ export const StepClassification: React.FC = () => {
                 key={subCat}
                 style={[styles.optionChip, selected && styles.optionChipSelected]}
                 onPress={() => updateDetails({ companySubCategory: subCat })}
+                activeOpacity={0.8}
               >
                 <Text style={[styles.optionChipText, selected && styles.optionChipTextSelected]}>{subCat}</Text>
               </TouchableOpacity>
@@ -104,3 +87,5 @@ export const StepClassification: React.FC = () => {
     </CompanySectionCard>
   );
 };
+
+export default StepClassification;

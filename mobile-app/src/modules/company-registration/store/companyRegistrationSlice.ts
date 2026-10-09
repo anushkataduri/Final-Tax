@@ -24,6 +24,7 @@ interface CompanyRegistrationState {
   updateDocumentStatus: (documentId: string, status: DocumentStatus, fileUri?: string, fileName?: string) => void;
   setStep: (step: number) => void;
   processPayment: (paymentMethod: string) => void;
+  submitRegistrationSuccess: (appId: string, statusText?: string) => void;
   resetRegistration: () => void;
 }
 
@@ -282,6 +283,29 @@ export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set
       return {
         draft: { ...state.draft, paymentStatus: 'Paid', status: 'Submitted', receipt },
       };
+    }),
+  submitRegistrationSuccess: (appId, statusText) =>
+    set((state) => {
+      const realId = appId || state.draft.id || `APP-${Date.now().toString().slice(-6)}`;
+      const dateStr = new Date().toISOString().split('T')[0];
+      const mappedApp: Application = {
+        id: realId,
+        serviceId: 'company-registration',
+        serviceName: 'Company Registration',
+        category: 'BUSINESS',
+        status: (statusText as any) || 'Under Verification',
+        progress: 100,
+        assignedExecutive: 'TaxEdge Compliance Team',
+        paymentAmount: state.draft.feeBreakdown.totalAmount,
+        paymentStatus: 'Pending',
+        createdAt: dateStr,
+        formData: { companyType: state.draft.company.companyType, proposedName: state.draft.company.proposedName1 },
+        documents: state.draft.documents.map(d => ({ name: d.name, status: d.status as any, fileUri: d.fileUri })),
+        timeline: state.draft.trackingStages?.map((stg) => ({ title: stg.title, description: stg.description, status: stg.status as any, date: stg.updatedAt || 'Today' })) || [],
+        chatHistory: [],
+      };
+      useApplicationStore.getState().addApplication(mappedApp);
+      return { draft: { ...state.draft, id: realId, status: 'Submitted', createdAt: dateStr, currentStep: 7 } };
     }),
   resetRegistration: () => set({ draft: initialDraft, fieldErrors: {} }),
 }));

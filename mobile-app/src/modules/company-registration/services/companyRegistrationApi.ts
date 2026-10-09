@@ -5,7 +5,8 @@ export const companyRegistrationApi = {
   submitApplication: async (draft: CompanyRegistrationDraft) => {
     return apiClient.post<{ applicationId: string; cin?: string; status: string }>(
       "/company-registration/apply",
-      draft
+      draft,
+      { timeoutMs: 3000 }
     );
   },
   checkNameAvailability: async (proposedName: string) => {
@@ -16,7 +17,8 @@ export const companyRegistrationApi = {
   },
   fetchStatus: async (applicationId: string) => {
     return apiClient.get<{ status: string; currentStage: string }>(
-      `/company-registration/status/${applicationId}`
+      `/company-registration/status/${applicationId}`,
+      { timeoutMs: 3000 }
     );
   },
 };

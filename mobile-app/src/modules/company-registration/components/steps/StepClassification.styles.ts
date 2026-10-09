@@ -21,7 +21,7 @@ export const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#263238',
     marginBottom: 8,
   },
   optionRow: {
@@ -34,21 +34,22 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#E7EDF2',
     backgroundColor: '#FFFFFF',
   },
   optionChipSelected: {
-    borderColor: '#083B75',
-    backgroundColor: '#083B75',
+    borderColor: '#FF8A00',
+    backgroundColor: '#FFF8F0',
+    borderWidth: 1.5,
   },
   optionChipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#334155',
+    color: '#263238',
   },
   optionChipTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: '#FF8A00',
+    fontWeight: '700',
   },
   infoCard: {
     flexDirection: 'row',
