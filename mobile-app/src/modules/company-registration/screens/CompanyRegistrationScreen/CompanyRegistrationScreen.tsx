@@ -173,14 +173,20 @@ export const CompanyRegistrationScreen: React.FC = () => {
       />
 
       {/* Main Scroll Content with Keyboard Handling */}
-      <KeyboardAwareScrollView
+      <KeyboardAvoidingView
         style={{ flex: 1 }}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
-        {renderStepContent()}
-      </KeyboardAwareScrollView>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets={true}
+          showsVerticalScrollIndicator={false}
+        >
+          {renderStepContent()}
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Sticky Bottom Footer Navigation */}
       {currentStep < 7 && (
