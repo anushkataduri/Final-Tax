@@ -10,6 +10,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -54,7 +55,8 @@ public class TaxNoticeAssistance {
 	@Column(name = "message")
 	private String message;
 
+	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "notice_document", columnDefinition = "bytea")
+	@Column(name = "notice_document", columnDefinition = "LONGBLOB")
 	private byte[] noticeDocument;
 }
