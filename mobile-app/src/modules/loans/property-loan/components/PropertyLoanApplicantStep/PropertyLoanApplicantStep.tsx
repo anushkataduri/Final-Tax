@@ -1,15 +1,7 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  Platform,
-} from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
+import { DatePickerDialog } from "@/shared/components/DatePickerDialog";
 import { BrandColors } from "../../../../../shared/theme";
 import { LoanApplicantFormData } from "../../../types/loans.types";
 import { styles } from "./PropertyLoanApplicantStep.styles";
@@ -80,7 +72,7 @@ export const PropertyLoanApplicantStep: React.FC<PropertyLoanApplicantStepProps>
 }) => {
   const [activePicker, setActivePicker] = useState<ApplicantDropdownKey | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [tempDate, setTempDate] = useState<Date>(() =>
+  const [pickerDate, setPickerDate] = useState<Date>(() =>
     parseDDMMYYYYToDate(data.dob)
   );
 
@@ -133,20 +125,9 @@ export const PropertyLoanApplicantStep: React.FC<PropertyLoanApplicantStepProps>
     setActivePicker(null);
   };
 
-  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (Platform.OS === "android") {
-      setShowDatePicker(false);
-      if (event.type === "set" && selectedDate) {
-        onChange("dob", formatDateToDDMMYYYY(selectedDate));
-      }
-    } else if (selectedDate) {
-      setTempDate(selectedDate);
-    }
-  };
-
-  const handleIosDateConfirm = () => {
+  const handleDateConfirm = (selectedDate: Date) => {
     setShowDatePicker(false);
-    onChange("dob", formatDateToDDMMYYYY(tempDate));
+    onChange("dob", formatDateToDDMMYYYY(selectedDate));
   };
 
   return (
@@ -157,7 +138,7 @@ export const PropertyLoanApplicantStep: React.FC<PropertyLoanApplicantStepProps>
         onChange={onChange}
         errors={errors}
         onOpenDatePicker={() => {
-          setTempDate(parseDDMMYYYYToDate(data.dob));
+          setPickerDate(parseDDMMYYYYToDate(data.dob));
           setShowDatePicker(true);
         }}
       />
@@ -245,47 +226,14 @@ export const PropertyLoanApplicantStep: React.FC<PropertyLoanApplicantStepProps>
         onClose={() => setActivePicker(null)}
       />
 
-      {/* Android Native Date Picker */}
-      {Platform.OS === "android" && showDatePicker && (
-        <DateTimePicker
-          value={parseDDMMYYYYToDate(data.dob)}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-          maximumDate={new Date()}
-        />
-      )}
-
-      {/* iOS Modal Date Picker */}
-      {Platform.OS === "ios" && (
-        <Modal
-          visible={showDatePicker}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowDatePicker(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContentIos}>
-              <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                  <Text style={styles.datePickerCancelText}>Cancel</Text>
-                </TouchableOpacity>
-                <Text style={styles.modalTitle}>Select Date of Birth</Text>
-                <TouchableOpacity onPress={handleIosDateConfirm}>
-                  <Text style={styles.datePickerDoneText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-              <DateTimePicker
-                value={tempDate}
-                mode="date"
-                display="spinner"
-                onChange={handleDateChange}
-                maximumDate={new Date()}
-              />
-            </View>
-          </View>
-        </Modal>
-      )}
+      <DatePickerDialog
+        visible={showDatePicker}
+        value={pickerDate}
+        onConfirm={handleDateConfirm}
+        onCancel={() => setShowDatePicker(false)}
+        maximumDate={new Date()}
+        title="Select Date of Birth"
+      />
     </View>
   );
 };

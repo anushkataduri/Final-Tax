@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "@/hooks/use-theme";
 import { getServiceById } from "@/data/services";
@@ -117,7 +118,7 @@ export default function ServiceDetailScreen() {
           <View style={[styles.progressBarFill, { backgroundColor: colors.primary }]} />
         </View>
 
-        <ScrollView contentContainerStyle={[styles.scrollContent, getScrollContentStyle(insets.bottom + 40)]} keyboardShouldPersistTaps="handled">
+        <KeyboardAwareScrollView contentContainerStyle={[styles.scrollContent, getScrollContentStyle(insets.bottom + 40)]} keyboardShouldPersistTaps="handled">
           <View style={[styles.card, getThemedCardStyle(colors)]}>
             <Text style={[styles.formSectionTitle, { color: colors.primary }]}>Applicant Information</Text>
             <Text style={[styles.formSectionSub, { color: colors.textSecondary }]}>Provide identity details matching official documents.</Text>
@@ -128,7 +129,7 @@ export default function ServiceDetailScreen() {
               submitButtonText="Continue →"
             />
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </View>
     );
   }

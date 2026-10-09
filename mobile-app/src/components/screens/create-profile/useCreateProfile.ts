@@ -1,7 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import {
-  Platform,
-  Keyboard,
   ScrollView,
   TextInput,
   Alert,
@@ -14,7 +12,10 @@ import {
   formatDobInput,
   validateField,
   validateRealTimeField,
+  validateFormAddressLength,
   checkFormValidity,
+  cleanFieldWhileTyping,
+  cleanFieldOnCommit,
 } from "./createProfileValidation";
 import type { SignupForm, SignupErrors } from "./types";
 import { formatSignupAddress, buildRegistrationProfile } from "./createProfile.helpers";
@@ -71,43 +72,9 @@ export function useCreateProfile(
     });
   };
 
-  // ─── Keyboard-aware scroll ───────────────────────────────────────────────────
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  // Keeping the focused field above the keyboard is done by the screen's KeyboardAwareScrollView.
+  // These offsets are only used to scroll to the first invalid field when submitting.
   const fieldYOffsets = useRef<Record<string, number>>({});
-  const activeFieldKey = useRef<string | null>(null);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
-    const showSub = Keyboard.addListener(showEvent, (e) => {
-      const h = e?.endCoordinates?.height || 280;
-      setKeyboardHeight(h);
-      const focusedKey = activeFieldKey.current;
-      focusedKey &&
-        (() => {
-          const y = fieldYOffsets.current[focusedKey];
-          y !== undefined &&
-            scrollRef.current?.scrollTo({ y: Math.max(0, y - 70), animated: true });
-        })();
-    });
-
-    const hideSub = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-      activeFieldKey.current = null;
-    });
-
-    return () => { showSub.remove(); hideSub.remove(); };
-  }, []);
-
-  const handleFieldFocus = (fieldKey: string) => {
-    activeFieldKey.current = fieldKey;
-    const y = fieldYOffsets.current[fieldKey];
-    y !== undefined &&
-      setTimeout(() => {
-        scrollRef.current?.scrollTo({ y: Math.max(0, y - 70), animated: true });
-      }, 120);
-  };
 
   // ─── Modal State ─────────────────────────────────────────────────────────────
   const [showGenderModal, setShowGenderModal] = useState(false);
@@ -165,7 +132,9 @@ export function useCreateProfile(
   };
 
   // ─── Form Update with Real-Time Validation ──────────────────────────────────
-  const updateForm = (key: keyof SignupForm, val: string) => {
+  const updateForm = (key: keyof SignupForm, rawVal: string) => {
+    // No leading or doubled spaces while typing (email: no spaces at all).
+    const val = cleanFieldWhileTyping(key, rawVal);
     setForm((p) => ({ ...p, [key]: val }));
 
     const updatedForm = { ...form, [key]: val };
@@ -202,7 +171,10 @@ export function useCreateProfile(
   };
 
   const handleBlur = (key: keyof SignupForm) => {
-    const val = form[key];
+    // Leaving a field normalises it (trimmed, single spaces) so what is validated is what is sent.
+    const committed = cleanFieldOnCommit(key, form[key]);
+    if (committed !== form[key]) setForm((p) => ({ ...p, [key]: committed }));
+    const val = committed;
     if (val && val.trim().length > 0) {
       const err = validateField(
         key,
@@ -210,7 +182,15 @@ export function useCreateProfile(
         form.mobileNumber || storeMobileNumber,
         form.password
       );
-      if (err) setProfileErrors((p) => ({ ...p, [key]: err }));
+      setProfileErrors((p) => {
+        const next = { ...p };
+        if (err) {
+          next[key] = err;
+        } else {
+          delete next[key];
+        }
+        return next;
+      });
     }
   };
 
@@ -278,7 +258,10 @@ export function useCreateProfile(
             }
             router.replace(toHref(destination));
           })()
-        : Alert.alert("Registration Error", res.error || "Failed to create account. Please try again.");
+        : res.requiresReverification
+          ? (Alert.alert("Verification expired", res.error || "Please verify your mobile number again."),
+            router.replace("/(auth)/login"))
+          : Alert.alert("Registration Error", res.error || "Failed to create account. Please try again.");
     } catch (err) {
       setProfileLoading(false);
       Alert.alert("Registration Error", getErrorMessage(err) || "An unexpected error occurred during registration.");
@@ -295,6 +278,7 @@ export function useCreateProfile(
     { key: "pan", ref: panRef },
     { key: "aadhaar", ref: aadhaarRef },
     { key: "addressLine1", ref: address1Ref },
+    { key: "addressLine2", ref: address2Ref },
     { key: "city", ref: cityRef },
     { key: "pincode", ref: pinRef },
     { key: "state" },
@@ -317,6 +301,10 @@ export function useCreateProfile(
         ? {}
         : { terms: "Please accept the Terms of Service and Privacy Policy to continue." }
     );
+
+    // The server stores the joined address in one 500-character column.
+    const addressTooLong = validateFormAddressLength(form);
+    if (addressTooLong && !errs.addressLine1) errs.addressLine1 = addressTooLong;
 
     const hasErrors = Object.keys(errs).length > 0;
     hasErrors
@@ -388,9 +376,7 @@ export function useCreateProfile(
     setAgreedToTerms,
     showAddressLine2,
     setShowAddressLine2,
-    keyboardHeight,
     setFieldOffset,
-    handleFieldFocus,
     scrollRef,
     nameRef,
     emailRef,

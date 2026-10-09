@@ -1,12 +1,15 @@
 import { create } from "zustand";
 import type { DevUser, AuthState } from "../types/auth.types";
 import { authService } from "../services/authService";
+import { passcodeService } from "../services/passcodeService";
 import { authStorage } from "../services/authStorage";
 import { biometricService } from "../services/biometricService";
 import { validateLoginPhone, validateOtp } from "../validation/authSchema";
 import { refreshNotificationsForActiveCustomer, toCustomer } from "./authStore.helpers";
 import { createPasscodeRecoveryActions } from "./authPasscodeRecoveryActions";
 import { createSessionActions } from "./authSessionActions";
+import { loginPresentationResetPatch, otpRefusalPatch, passcodeFailurePatch } from "./authLockoutState";
+import { registrationProgressService } from "../services/registrationProgressService";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
 import { logger } from "@/core/logging/logger";
 
@@ -38,10 +41,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   otp: "",
   otpTimer: 30,
   canResendOTP: false,
+  otpLockoutUntil: null,
 
   // Passcode State
   passcode: "",
   confirmPasscode: "",
+  passcodeLockoutUntil: null,
 
   // Onboarding & Service Access
   pendingServiceRoute: null,
@@ -95,6 +100,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }),
   resetTimer: (initialSeconds = 30) => set({ otpTimer: initialSeconds, canResendOTP: false }),
 
+  // Lockout actions
+  resetLoginPresentation: () => set(loginPresentationResetPatch()),
+
+  refreshPasscodeLockout: async () => {
+    const { mobileNumber } = get();
+    if (!mobileNumber) return;
+    const lock = await passcodeService.checkLockout(mobileNumber);
+    set({ passcodeLockoutUntil: lock.isLocked ? lock.lockedUntil : null });
+  },
+
   // Identity, profile sync & session lifecycle
   ...createSessionActions(set, get),
 
@@ -107,7 +122,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return false;
     }
 
-    const cleanMobile = mobileToUse.replace(/\D/g, "");
+    const cleanMobile = validation.value ?? mobileToUse.replace(/\D/g, "");
     set({ isLoading: true, error: null });
     try {
       // 1. Check database status for user state
@@ -116,13 +131,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // 2. Send OTP
       const res = await authService.sendOtp(cleanMobile);
       if (!res.success) {
-        set({ isLoading: false, error: res.message || "Failed to send OTP. Could not reach server." });
+        set({
+          isLoading: false,
+          ...otpRefusalPatch(get().authFlowState, res, "Failed to send OTP. Could not reach server."),
+        });
         return false;
       }
 
       set({
         isLoading: false,
         error: null,
+        otpLockoutUntil: null,
         mobileNumber: cleanMobile,
         customerExists: checkRes.customerExists,
         isExistingUser: checkRes.customerExists,
@@ -155,9 +174,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: false });
 
       if (!res.success) {
-        set({ error: res.message || "Invalid OTP. Please try again." });
+        set(otpRefusalPatch(get().authFlowState, res, "Invalid OTP. Please try again."));
         return { success: false };
       }
+      set({ otpLockoutUntil: null });
 
       // Check customer database table status directly from backend
       const customerExists = res.customerExists === true || res.isExistingUser === true;
@@ -206,6 +226,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           activeMobile: cleanMobile,
           lastLoginAt: new Date().toISOString(),
         });
+        // Keep the server's single-use proof so a restart can resume the registration form and
+        // register. Without a proof the server will refuse registration, so there is nothing to resume.
+        if (res.registrationProof) {
+          await registrationProgressService.markOtpVerified(
+            cleanMobile,
+            res.registrationProof,
+            res.registrationProofExpiresInSeconds,
+          );
+        }
 
         set({
           isExistingUser: false,
@@ -257,6 +286,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({
           isLoading: false,
           isLoggedIn: true,
+          passcodeLockoutUntil: null,
           customerExists: true,
           isExistingUser: true,
           profileCompleted: true,
@@ -277,7 +307,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         return { success: true };
       }
-      set({ isLoading: false, error: res.error || "Incorrect passcode. Please try again." });
+      set({ isLoading: false, ...passcodeFailurePatch(res, "Incorrect passcode. Please try again.") });
       return { success: false, error: res.error };
     } catch (err) {
       const msg = getErrorMessage(err) || "Incorrect passcode. Please try again.";
@@ -297,7 +327,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const res = await authService.sendOtp(mobileNumber);
       if (!res.success) {
-        set({ isLoading: false, error: res.message || "Failed to resend code" });
+        set({ isLoading: false, ...otpRefusalPatch(get().authFlowState, res, "Failed to resend code") });
         return false;
       }
       set({
@@ -319,6 +349,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       otp: "",
       passcode: "",
       confirmPasscode: "",
+      otpLockoutUntil: null,
+      passcodeLockoutUntil: null,
       error: null,
     });
   },
@@ -334,6 +366,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       customerExists: false,
       profileCompleted: false,
       hasPasscode: false,
+      otpLockoutUntil: null,
+      passcodeLockoutUntil: null,
       error: null,
       isCompleteProfileModalOpen: false,
     });

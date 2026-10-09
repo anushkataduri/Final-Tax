@@ -4,11 +4,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   StatusBar,
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -217,7 +218,7 @@ export const UploadNoticeScreen: React.FC = () => {
       />
 
       {/* Main Form Content */}
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.scrollContent,
           getScrollContentInsetsStyle(insets.bottom),
@@ -355,10 +356,10 @@ export const UploadNoticeScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Sticky Bottom Action Bar */}
-      <View style={[styles.bottomBar, getBottomBarInsetsStyle(insets.bottom)]}>
+      <KeyboardStickyFooter style={[styles.bottomBar, getBottomBarInsetsStyle(insets.bottom)]}>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleStep1Continue}
@@ -371,7 +372,7 @@ export const UploadNoticeScreen: React.FC = () => {
             <Text style={styles.continueButtonText}>{taxNoticeDraft?.step === "REVIEW" ? "Update & Continue" : "Continue to Supporting Documents"}</Text>
           )}
         </TouchableOpacity>
-      </View>
+      </KeyboardStickyFooter>
 
       {/* Universal Draft Confirmation Modal */}
       <UniversalDraftModal

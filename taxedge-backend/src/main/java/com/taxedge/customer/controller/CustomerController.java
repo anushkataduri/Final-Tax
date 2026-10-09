@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,9 +28,12 @@ public class CustomerController {
 	
 	private final CustomerService customerService;
 
+    /** Registration requires the proof issued by POST /otp/verify, sent in the {@code X-Registration-Proof} header. */
     @PostMapping("/register")
-    public ResponseEntity<CustomerJwt> registerCustomer(@RequestBody CustomerDto customerDto) {
-        CustomerJwt customerJwt = customerService.registerCustomer(customerDto);
+    public ResponseEntity<CustomerJwt> registerCustomer(
+            @RequestBody CustomerDto customerDto,
+            @RequestHeader(value = "X-Registration-Proof", required = false) String registrationProof) {
+        CustomerJwt customerJwt = customerService.registerCustomer(customerDto, registrationProof);
         return new ResponseEntity<>(customerJwt, HttpStatus.CREATED);
     }
     

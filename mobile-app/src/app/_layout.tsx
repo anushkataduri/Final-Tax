@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { LogBox } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { Stack } from "expo-router";
+import { ServiceRouteGuard } from "@/shared/components/ServiceRouteGuard";
 
 LogBox.ignoreLogs([
   "Can't perform a React state update on a component that hasn't mounted yet",
@@ -89,6 +90,7 @@ export default function RootLayout() {
           <Stack.Screen name="chat/[id]" />
           <Stack.Screen name="notifications" />
           </Stack>
+          <ServiceRouteGuard />
           <CompleteProfileModal />
         </ThemeProvider>
       </SafeAreaProvider>

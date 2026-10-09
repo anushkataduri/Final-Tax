@@ -1,9 +1,13 @@
 import { authStorage } from "./authStorage";
 import { authApi } from "./authApi";
 import { passcodeService } from "./passcodeService";
+import { otpLockoutService } from "./otpLockoutService";
+import { registrationProgressService } from "./registrationProgressService";
+import { lockoutMessage } from "./lockoutPolicy";
+import { validateLoginPhone } from "../validation/authSchema";
 import { tokenManager } from "../../../core/authentication/tokenManager";
 import { registerForPushNotificationsAsync } from "../../../utils/pushNotificationService";
-import type { DevUser, StoredUser, RegistrationData, AuthResult } from "../types/auth.types";
+import type { DevUser, StoredUser, RegistrationData, AuthResult, OtpRequestResult } from "../types/auth.types";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
 import { logger } from "@/core/logging/logger";
  
@@ -13,29 +17,85 @@ export interface RegisterParams extends Partial<RegistrationData> {
   passcode?: string;
 }
  
+/**
+ * Turns a 429 from the OTP endpoints into a countdown message. A verification lockout
+ * ("OTP_LOCKED") is also remembered on the device so the countdown survives an app restart.
+ */
+async function describeOtpLimit(
+  mobile: string,
+  res: { message?: string; code?: string; retryAfterSeconds?: number },
+): Promise<{ message?: string; lockedUntil?: number }> {
+  const retry = res.retryAfterSeconds;
+  if (retry === undefined) return { message: res.message };
+  if (res.code === "OTP_LOCKED") {
+    const lockedUntil = await otpLockoutService.lockFor(mobile, retry);
+    return { message: lockoutMessage("otp-verify", retry), lockedUntil };
+  }
+  return { message: lockoutMessage("otp-resend", retry) };
+}
+
 export const authService = {
   findUserByMobile: (m: string) => authStorage.getUserByMobile(m),
   isUserRegistered: (m: string) => Boolean(authStorage.getUserByMobile(m)?.registrationCompleted),
  
-  async sendOtp(mobileNumber: string): Promise<{ success: boolean; message?: string }> {
-    const clean = mobileNumber.replace(/\D/g, "");
+  async sendOtp(mobileNumber: string): Promise<OtpRequestResult> {
+    // Malformed and dummy numbers never reach the OTP endpoint (the server rejects them too).
+    const phone = validateLoginPhone(mobileNumber);
+    if (!phone.valid || !phone.value) return { success: false, message: phone.error };
+    const clean = phone.value;
+
+    // A known verification lockout also blocks new codes: asking again must not be a way around it.
+    const lock = await otpLockoutService.check(clean);
+    if (lock.isLocked) {
+      return {
+        success: false,
+        code: "OTP_LOCKED",
+        retryAfterSeconds: lock.remainingSeconds,
+        lockedUntil: lock.lockedUntil,
+        message: lockoutMessage("otp-verify", lock.remainingSeconds),
+      };
+    }
+
     const res = await authApi.sendOtp(clean);
-    return res;
+    if (res.success) return res;
+    return { ...res, ...(await describeOtpLimit(clean, res)) };
   },
  
   async verifyOtp(mobileNumber: string, otp: string): Promise<AuthResult & { customerExists?: boolean; profileCompleted?: boolean; hasPasscode?: boolean }> {
     const clean = mobileNumber.replace(/\D/g, "");
-    const apiRes = await authApi.verifyOtp(clean, otp);
-    if (!apiRes.success) {
+
+    // While locked, even the right code is refused (server-side too); skip the pointless request.
+    const lock = await otpLockoutService.check(clean);
+    if (lock.isLocked) {
       return {
         success: false,
         isExistingUser: false,
         customerExists: false,
         profileCompleted: false,
         hasPasscode: false,
-        message: apiRes.message || "Invalid OTP code",
+        code: "OTP_LOCKED",
+        retryAfterSeconds: lock.remainingSeconds,
+        lockedUntil: lock.lockedUntil,
+        message: lockoutMessage("otp-verify", lock.remainingSeconds),
       };
     }
+
+    const apiRes = await authApi.verifyOtp(clean, otp);
+    if (!apiRes.success) {
+      const limit = await describeOtpLimit(clean, apiRes);
+      return {
+        success: false,
+        isExistingUser: false,
+        customerExists: false,
+        profileCompleted: false,
+        hasPasscode: false,
+        code: apiRes.code,
+        retryAfterSeconds: apiRes.retryAfterSeconds,
+        lockedUntil: limit.lockedUntil,
+        message: limit.message || apiRes.message || "Invalid OTP code",
+      };
+    }
+    await otpLockoutService.clear(clean);
 
     // Direct check in Customer table from backend response
     const customerExists = apiRes.customerExists === true || apiRes.isExistingUser === true;
@@ -68,6 +128,8 @@ export const authService = {
       profileCompleted,
       hasPasscode,
       user: user || undefined,
+      registrationProof: apiRes.registrationProof,
+      registrationProofExpiresInSeconds: apiRes.registrationProofExpiresInSeconds,
     };
   },
 
@@ -149,17 +211,24 @@ export const authService = {
     };
  
     // Execute Backend Fetch Request
-    const apiRes = await authApi.register({
-      ...user,
-      mobileNumber: mobile,
-      passcode,
-      pushToken,
-    });
+    // The server only registers a number that passed OTP; present the proof it issued then.
+    const registrationProof = (await registrationProgressService.getProof(mobile)) || undefined;
+    const apiRes = await authApi.register(
+      {
+        ...user,
+        mobileNumber: mobile,
+        passcode,
+        pushToken,
+      },
+      registrationProof,
+    );
  
     if (!apiRes.success) {
       return {
         success: false,
         error: apiRes.message || "Failed to register customer on server.",
+        code: apiRes.code,
+        requiresReverification: Boolean(apiRes.code?.startsWith("REGISTRATION_PROOF_")),
       };
     }
  
@@ -235,7 +304,13 @@ export const authService = {
 
     const verifyRes = await passcodeService.verifyPasscode(clean, pass);
     if (!verifyRes.success) {
-      return { success: false, error: verifyRes.error || "Invalid mobile number or passcode" };
+      return {
+        success: false,
+        error: verifyRes.error || "Invalid mobile number or passcode",
+        code: verifyRes.isLockedOut ? "PASSCODE_LOCKED" : undefined,
+        retryAfterSeconds: verifyRes.lockoutRemainingSeconds,
+        lockedUntil: verifyRes.lockedUntil,
+      };
     }
 
     let existingUser = authStorage.getUserByMobile(clean) || ({} as DevUser);
@@ -255,9 +330,9 @@ export const authService = {
     return { success: true, user, token: verifyRes.token };
   },
 
-  async forgotPasscode(mobileNumber: string): Promise<{ success: boolean; message?: string }> {
+  async forgotPasscode(mobileNumber: string): Promise<OtpRequestResult> {
     const clean = mobileNumber.replace(/\D/g, "");
-    return authApi.forgotPasscode(clean);
+    return authService.sendOtp(clean);
   },
 
   async updatePassword(mobileNumber: string, newPasscode: string): Promise<AuthResult> {

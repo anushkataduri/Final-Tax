@@ -3,6 +3,7 @@ import type { AuthState } from "../types/auth.types";
 import { authService } from "../services/authService";
 import { validateOtp, validatePasscodeMatch } from "../validation/authSchema";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
+import { otpRefusalPatch } from "./authLockoutState";
 
 export type AuthPasscodeRecoveryActions = Pick<
   AuthState,
@@ -23,7 +24,19 @@ export const createPasscodeRecoveryActions = (
 
     set({ isLoading: true, error: null });
     try {
-      await authService.forgotPasscode(mobileNumber);
+      const res = await authService.forgotPasscode(mobileNumber);
+      if (!res.success) {
+        // A lockout stays on the current screen. A resend limit still opens the code form so a
+        // code that was just sent can be used, with the resend timer set to the server's wait.
+        const patch = otpRefusalPatch(get().authFlowState, res, "Failed to send reset code.");
+        const rateLimited = res.code === "OTP_RESEND_LIMITED";
+        set({
+          isLoading: false,
+          ...patch,
+          ...(rateLimited ? { authFlowState: "FORGOT_PASSCODE_OTP" as const, otp: "" } : {}),
+        });
+        return rateLimited;
+      }
       set({
         isLoading: false,
         authFlowState: "FORGOT_PASSCODE_OTP",
@@ -60,7 +73,7 @@ export const createPasscodeRecoveryActions = (
         });
         return true;
       }
-      set({ isLoading: false, error: "Invalid OTP code" });
+      set({ isLoading: false, ...otpRefusalPatch(get().authFlowState, res, "Invalid OTP code") });
       return false;
     } catch (err) {
       set({ isLoading: false, error: getErrorMessage(err) || "Invalid OTP code" });

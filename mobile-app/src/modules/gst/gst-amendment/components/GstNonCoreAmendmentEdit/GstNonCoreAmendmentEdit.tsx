@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StatusBar,
 } from "react-native";
+import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import {
@@ -89,7 +91,7 @@ export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = (
         <View style={styles.placeholderBox} />
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -321,10 +323,10 @@ export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = (
             onToggleExpandProofs={onToggleExpandProofs}
           />
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Bottom Bar */}
-      <View style={[styles.bottomBar, getBottomBarStyle(insets.bottom)]}>
+      <KeyboardStickyFooter style={[styles.bottomBar, getBottomBarStyle(insets.bottom)]}>
         <TouchableOpacity
           style={[styles.primaryBtn, isSaving && { opacity: 0.65 }]}
           activeOpacity={0.8}
@@ -337,7 +339,7 @@ export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = (
               : (isEditMode ? "Review Updated Changes" : "Review Changes")}
           </Text>
         </TouchableOpacity>
-      </View>
+      </KeyboardStickyFooter>
     </View>
   );
 };

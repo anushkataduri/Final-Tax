@@ -1,9 +1,10 @@
 import { useCallback, useEffect } from "react";
-import { useRouter, usePathname, type Href } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
+import { decideServiceAccess, hrefPathname, isProfileComplete } from "@/shared/guards/serviceAccess";
 
-export function useServiceAccessGuard() {
-  const router = useRouter();
+/** Login state and profile completeness for the signed-in user, read from the auth store. */
+function useAccessState() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const profileCompleted = useAuthStore((s) => s.profileCompleted);
   const isExistingUser = useAuthStore((s) => s.isExistingUser);
@@ -12,49 +13,42 @@ export function useServiceAccessGuard() {
   const authenticatedUser = useAuthStore((s) => s.authenticatedUser);
   const openCompleteProfileModal = useAuthStore((s) => s.openCompleteProfileModal);
 
-  const rawName = customer?.name || authenticatedUser?.name || "";
-  const hasValidName = Boolean(
-    rawName &&
-    rawName.trim() !== "" &&
-    rawName.toLowerCase() !== "valued client" &&
-    rawName.toLowerCase() !== "client" &&
-    rawName.toLowerCase() !== "valued"
-  );
+  const profileComplete = isProfileComplete({
+    profileCompleted,
+    isExistingUser,
+    customerExists,
+    customer,
+    authenticatedUser,
+  });
 
-  const hasCustomerId = Boolean(
-    (customer?.customerId && customer.customerId.trim() !== "") ||
-    (authenticatedUser?.customerId && authenticatedUser.customerId.trim() !== "")
-  );
+  return { isLoggedIn, isProfileComplete: profileComplete, openCompleteProfileModal };
+}
 
-  const hasPanOrAadhaar = Boolean(
-    (customer?.pan && customer.pan.trim() !== "") ||
-    (customer?.aadhaar && customer.aadhaar.trim() !== "") ||
-    (authenticatedUser?.pan && authenticatedUser.pan.trim() !== "") ||
-    (authenticatedUser?.aadhaar && authenticatedUser.aadhaar.trim() !== "")
-  );
-
-  const isProfileComplete = Boolean(
-    (hasValidName && (profileCompleted || customer?.profileCompleted || authenticatedUser?.registrationCompleted || isExistingUser || customerExists)) ||
-    (hasValidName && hasCustomerId) ||
-    (hasValidName && hasPanOrAadhaar)
-  );
+/**
+ * Navigation entry for services. `accessService(route)` is the single place that applies the
+ * profile rule (see shared/guards/serviceAccess): browse / hub destinations open directly; any
+ * other service needs a signed-in user with a complete profile, otherwise the user is sent to log
+ * in or shown the Complete Profile prompt (which returns here afterwards).
+ */
+export function useServiceAccessGuard() {
+  const router = useRouter();
+  const { isLoggedIn, isProfileComplete: profileComplete, openCompleteProfileModal } = useAccessState();
 
   const accessService = useCallback(
     async (targetRoute: Href, params?: Record<string, string | number>): Promise<boolean> => {
-      // 1. Checks authentication
-      if (!isLoggedIn) {
+      const decision = decideServiceAccess(targetRoute, { isLoggedIn, isProfileComplete: profileComplete });
+
+      if (decision === "login") {
         router.push("/(auth)/login");
         return false;
       }
 
-      // 2. Checks profile completion
-      if (!isProfileComplete) {
+      if (decision === "complete-profile") {
         const routeToSave = typeof targetRoute === "string" ? targetRoute : targetRoute?.pathname || "/service/gst";
         openCompleteProfileModal(routeToSave);
         return false;
       }
 
-      // 3. Authorized: navigate to requested service
       if (params) {
         router.push({ pathname: targetRoute, params } as Href);
       } else {
@@ -62,81 +56,45 @@ export function useServiceAccessGuard() {
       }
       return true;
     },
-    [isLoggedIn, isProfileComplete, openCompleteProfileModal, router]
+    [isLoggedIn, profileComplete, openCompleteProfileModal, router]
   );
 
   return {
     accessService,
     isLoggedIn,
-    profileCompleted: isProfileComplete,
+    profileCompleted: profileComplete,
   };
 }
 
 /**
- * Hook for screen-level protection when a service route mounts directly
+ * Screen-level protection for a service screen that was opened directly (deep link, notification,
+ * saved draft, back stack) rather than through `accessService`. When the user is not allowed in it
+ * sends them to log in, or shows the Complete Profile prompt and leaves the screen.
+ *
+ * `route` is the screen's own path; `enabled` lets one caller (the root ServiceRouteGuard) switch
+ * the check off for screens that are not service routes.
  */
-export function useServiceProtection(targetRoute?: any) {
+export function useServiceProtection(route: Href | string, enabled = true) {
   const router = useRouter();
-  const pathname = usePathname();
-  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
-  const profileCompleted = useAuthStore((s) => s.profileCompleted);
-  const isExistingUser = useAuthStore((s) => s.isExistingUser);
-  const customerExists = useAuthStore((s) => s.customerExists);
-  const customer = useAuthStore((s) => s.customer);
-  const authenticatedUser = useAuthStore((s) => s.authenticatedUser);
-  const openCompleteProfileModal = useAuthStore((s) => s.openCompleteProfileModal);
-
-  const rawName = customer?.name || authenticatedUser?.name || "";
-  const hasValidName = Boolean(
-    rawName &&
-    rawName.trim() !== "" &&
-    rawName.toLowerCase() !== "valued client" &&
-    rawName.toLowerCase() !== "client" &&
-    rawName.toLowerCase() !== "valued"
-  );
-
-  const hasCustomerId = Boolean(
-    (customer?.customerId && customer.customerId.trim() !== "") ||
-    (authenticatedUser?.customerId && authenticatedUser.customerId.trim() !== "")
-  );
-
-  const hasPanOrAadhaar = Boolean(
-    (customer?.pan && customer.pan.trim() !== "") ||
-    (customer?.aadhaar && customer.aadhaar.trim() !== "") ||
-    (authenticatedUser?.pan && authenticatedUser.pan.trim() !== "") ||
-    (authenticatedUser?.aadhaar && authenticatedUser.aadhaar.trim() !== "")
-  );
-
-  const isProfileComplete = Boolean(
-    (hasValidName && (profileCompleted || customer?.profileCompleted || authenticatedUser?.registrationCompleted || isExistingUser || customerExists)) ||
-    (hasValidName && hasCustomerId) ||
-    (hasValidName && hasPanOrAadhaar)
-  );
+  const { isLoggedIn, isProfileComplete: profileComplete, openCompleteProfileModal } = useAccessState();
+  const decision = enabled ? decideServiceAccess(route, { isLoggedIn, isProfileComplete: profileComplete }) : "allow";
+  const path = hrefPathname(route);
 
   useEffect(() => {
-    let isMounted = true;
-    const checkAndProtect = async () => {
-      if (!isLoggedIn) {
-        router.replace("/(auth)/login");
-        return;
-      }
-
-      if (!isProfileComplete) {
-        if (!isMounted) return;
-        const routeToSave = targetRoute || pathname;
-        openCompleteProfileModal(routeToSave);
+    if (decision === "login") {
+      router.replace("/(auth)/login");
+    } else if (decision === "complete-profile") {
+      openCompleteProfileModal(path);
+      if (router.canGoBack()) {
         router.back();
+      } else {
+        router.replace("/(main)/home");
       }
-    };
-
-    checkAndProtect();
-    return () => {
-      isMounted = false;
-    };
-  }, [isLoggedIn, isProfileComplete, targetRoute, pathname, openCompleteProfileModal, router]);
+    }
+  }, [decision, path, openCompleteProfileModal, router]);
 
   return {
-    isAuthorized: isLoggedIn && isProfileComplete,
+    isAuthorized: decision === "allow",
   };
 }
 

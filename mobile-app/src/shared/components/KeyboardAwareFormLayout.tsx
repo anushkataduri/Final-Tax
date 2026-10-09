@@ -27,6 +27,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { computeScrollTarget, keyboardOverlap } from "@/shared/utils/keyboardOverlap";
 
 /**
  * Shared keyboard handling for forms.
@@ -98,7 +99,8 @@ const getBasePaddingBottom = (style: StyleProp<ViewStyle>): number => {
   return 0;
 };
 
-const getKeyboardTop = (event: KeyboardEvent): number => {
+/** Screen Y of the top edge of the keyboard described by a keyboard event. */
+export const getKeyboardTop = (event: KeyboardEvent): number => {
   const { screenY, height } = event.endCoordinates;
   if (Number.isFinite(screenY) && screenY > 0) return screenY;
   return Dimensions.get("window").height - height;
@@ -172,24 +174,14 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, KeyboardAwareScrol
               const visibleHeight = visibleBottom - scrollTop;
               if (visibleHeight <= 0) return;
 
-              const currentOffset = scrollOffsetY.current;
-              const inputBottom = inputY + inputHeight;
-              let targetOffset: number | null = null;
-
-              if (inputHeight + extraScrollHeight > visibleHeight) {
-                // Tall multiline input: keep its top (and cursor start) visible.
-                targetOffset = inputY - Math.min(extraScrollHeight / 2, 16);
-              } else if (inputBottom + extraScrollHeight > currentOffset + visibleHeight) {
-                // Covered by the keyboard: lift it just above the keyboard.
-                targetOffset = inputBottom + extraScrollHeight - visibleHeight;
-              } else if (inputY < currentOffset) {
-                // Scrolled out above the viewport.
-                targetOffset = inputY - Math.min(extraScrollHeight / 2, 16);
-              }
-
+              const targetOffset = computeScrollTarget({
+                inputY,
+                inputHeight,
+                currentOffset: scrollOffsetY.current,
+                visibleHeight,
+                extraScrollHeight,
+              });
               if (targetOffset == null) return;
-              targetOffset = Math.max(0, targetOffset);
-              if (Math.abs(targetOffset - currentOffset) < 1) return;
               scrollRef.current?.scrollTo({ y: targetOffset, animated: true });
             });
           },
@@ -200,15 +192,27 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, KeyboardAwareScrol
       });
     }, [enableAutomaticScroll, extraScrollHeight, getScrollHost]);
 
+    /** Bottom padding = the part of the scroll view the keyboard covers right now. */
+    const refreshKeyboardInset = useCallback(() => {
+      const kbTop = keyboardTop.current;
+      const scrollHost = getScrollHost();
+      if (kbTop == null || !scrollHost) return;
+      scrollHost.measureInWindow((_x, scrollTop, _w, scrollHeight) => {
+        if (keyboardTop.current == null || !Number.isFinite(scrollTop) || scrollHeight <= 0) return;
+        setKeyboardInset(keyboardOverlap(scrollTop + scrollHeight, kbTop));
+      });
+    }, [getScrollHost]);
+
     const scheduleScroll = useCallback(
       (delay: number) => {
         if (pendingTimer.current) clearTimeout(pendingTimer.current);
         pendingTimer.current = setTimeout(() => {
           pendingTimer.current = null;
+          refreshKeyboardInset();
           scrollToFocusedInput();
         }, delay);
       },
-      [scrollToFocusedInput]
+      [refreshKeyboardInset, scrollToFocusedInput]
     );
 
     useImperativeHandle(controllerRef, () => ({ scrollToFocusedInput }), [scrollToFocusedInput]);
@@ -225,8 +229,7 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, KeyboardAwareScrol
         const scrollHost = getScrollHost();
         if (!scrollHost) return;
         scrollHost.measureInWindow((_x, scrollTop, _w, scrollHeight) => {
-          const overlap = Math.max(0, Math.round(scrollTop + scrollHeight - kbTop));
-          setKeyboardInset(overlap);
+          setKeyboardInset(keyboardOverlap(scrollTop + scrollHeight, kbTop));
           scheduleScroll(SCROLL_AFTER_KEYBOARD_DELAY_MS);
         });
       });

@@ -4,8 +4,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
 } from "react-native";
+import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
@@ -145,7 +146,7 @@ export const FindOriginalReturnScreen: React.FC = () => {
       <RevisedItrHeader subtitle="Find Original Return" />
 
       {/* Main Content */}
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.scrollContent,
           getScrollContentInsetsStyle(insets.bottom),
@@ -226,10 +227,10 @@ export const FindOriginalReturnScreen: React.FC = () => {
 
         {/* Return Summary Card if Found */}
         {foundReturn && <ReturnSummaryCard details={foundReturn} />}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Sticky Bottom Action Button */}
-      <View
+      <KeyboardStickyFooter
         style={[
           styles.bottomBar,
           getBottomBarInsetsStyle(insets.bottom),
@@ -243,7 +244,7 @@ export const FindOriginalReturnScreen: React.FC = () => {
           <Text style={styles.ctaButtonText}>{maxStepReached >= 3 ? "Update and Continue" : "Continue"}</Text>
           <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
         </TouchableOpacity>
-      </View>
+      </KeyboardStickyFooter>
     </View>
   );
 };

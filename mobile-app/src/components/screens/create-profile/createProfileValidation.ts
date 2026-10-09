@@ -1,9 +1,20 @@
 import { validatePasscode } from "@/modules/authentication/validation/authSchema";
+import { describePanCategoryError, describePanError } from "@/shared/validators/indianTaxValidators";
 import {
-  validateDateOfBirth,
-  validateEmail,
-  validateFullName,
-} from "@/shared/validators/indianTaxValidators";
+  CITY_RULES,
+  FATHER_SPOUSE_NAME_RULES,
+  FULL_NAME_RULES,
+  PROFILE_FIELD_LIMITS,
+  collapseTypingSpaces,
+  normalizeSpaces,
+  validateAddressLine,
+  validateDobForRegistration,
+  validateEmailAddress,
+  validateFullAddressLength,
+  validateNameField,
+  validateNameTyping,
+} from "@/shared/validators/profileValidators";
+import { formatSignupAddress } from "./createProfile.helpers";
 import type { SignupForm } from "./types";
 
 export const sanitizePanInput = (text: string, currentPan: string): string => {
@@ -33,6 +44,58 @@ export const formatDobInput = (text: string): string => {
       : digits;
 };
 
+// ─── Required fields ──────────────────────────────────────────────────────────
+
+/**
+ * The fields a user must fill on the Create Account form (the account type is chosen on the
+ * previous step). Everything else is optional. The form marks exactly these with "*", and
+ * `validateField` / `checkFormValidity` enforce exactly these.
+ */
+export const REQUIRED_FIELDS: readonly (keyof SignupForm)[] = [
+  "name",
+  "email",
+  "gender",
+  "dob",
+  "fatherSpouseName",
+  "pan",
+  "aadhaar",
+  "addressLine1",
+  "city",
+  "pincode",
+  "state",
+  "password",
+  "confirmPassword",
+];
+
+export const isRequiredField = (key: keyof SignupForm): boolean => REQUIRED_FIELDS.includes(key);
+
+// ─── Input cleanup ────────────────────────────────────────────────────────────
+
+/** Fields whose repeated, leading and trailing spaces are cleaned up. */
+const SPACE_NORMALISED_FIELDS: readonly (keyof SignupForm)[] = [
+  "name",
+  "fatherSpouseName",
+  "addressLine1",
+  "addressLine2",
+  "city",
+];
+
+/** Live typing: no leading or double spaces (a single trailing space stays so the next word can be typed). */
+export const cleanFieldWhileTyping = (key: keyof SignupForm, text: string): string => {
+  if (key === "email") return text.replace(/\s/g, "");
+  return SPACE_NORMALISED_FIELDS.includes(key) ? collapseTypingSpaces(text) : text;
+};
+
+/** On leaving a field and on submit: spaces fully normalised, email trimmed. */
+export const cleanFieldOnCommit = (key: keyof SignupForm, text: string): string => {
+  if (key === "email") return text.trim();
+  return SPACE_NORMALISED_FIELDS.includes(key) ? normalizeSpaces(text) : text;
+};
+
+// ─── Validation ───────────────────────────────────────────────────────────────
+
+const REQUIRED = "Required";
+
 export const validateField = (
   key: keyof SignupForm,
   val: string,
@@ -40,49 +103,48 @@ export const validateField = (
   passwordForConfirm?: string
 ): string => {
   const validators: Record<keyof SignupForm, () => string> = {
-    name: () => (!val.trim() ? "Required" : validateFullName(val) ? "" : "Enter a valid full name"),
-    email: () => {
-      const c = val.trim();
-      return !c ? "Required" : !validateEmail(c) ? "Invalid email" : "";
-    },
-    gender: () => (val ? "" : "Required"),
-    dob: () => {
-      const c = val.trim();
-      return !c ? "Required" : !validateDateOfBirth(c) ? "Please enter a valid date of birth." : "";
-    },
-    fatherSpouseName: () => (val.trim() ? "" : "Required"),
-    pan: () => {
-      const c = val.trim().toUpperCase();
-      return !c ? "Required" : !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(c) ? "Invalid PAN" : "";
-    },
+    name: () => (!val.trim() ? REQUIRED : validateNameField(val, FULL_NAME_RULES)),
+    email: () => (!val.trim() ? REQUIRED : validateEmailAddress(val)),
+    gender: () => (val ? "" : REQUIRED),
+    dob: () => (!val.trim() ? REQUIRED : validateDobForRegistration(val)),
+    fatherSpouseName: () => (!val.trim() ? REQUIRED : validateNameField(val, FATHER_SPOUSE_NAME_RULES)),
+    pan: () => (!val.trim() ? REQUIRED : describePanError(val)),
     aadhaar: () => {
       const c = val.replace(/\D/g, "");
-      return !c ? "Required" : c.length !== 12 || !/^[2-9]{1}[0-9]{11}$/.test(c) ? "Invalid Aadhaar" : "";
+      return !c ? REQUIRED : c.length !== 12 || !/^[2-9]{1}[0-9]{11}$/.test(c) ? "Invalid Aadhaar" : "";
     },
-    addressLine1: () => (val.trim() ? "" : "Required"),
-    addressLine2: () => "",
-    city: () => (val.trim() ? "" : "Required"),
+    addressLine1: () => (!val.trim() ? REQUIRED : validateAddressLine(val, "Address Line 1")),
+    addressLine2: () => validateAddressLine(val, "Address Line 2"),
+    city: () => (!val.trim() ? REQUIRED : validateNameField(val, CITY_RULES)),
     pincode: () => {
       const c = val.replace(/\D/g, "");
-      return !c ? "Required" : c.length !== 6 ? "PIN Code must be 6 digits" : "";
+      return !c ? REQUIRED : c.length !== 6 ? "PIN Code must be 6 digits" : "";
     },
-    state: () => (val ? "" : "Required"),
+    state: () => (val ? "" : REQUIRED),
     mobileNumber: () => "",
     password: () =>
       !val
-        ? "Required"
+        ? REQUIRED
         : val.length < 6
           ? "Passcode must be 6 digits"
           : !validatePasscode(val, mobileNumber).valid
             ? validatePasscode(val, mobileNumber).error || "Invalid passcode"
             : "",
     confirmPassword: () =>
-      !val ? "Required" : val !== passwordForConfirm ? "Passcodes do not match" : "",
-    customerType: () => (val ? "" : "Required"),
+      !val ? REQUIRED : val !== passwordForConfirm ? "Passcodes do not match" : "",
+    customerType: () => (val ? "" : REQUIRED),
   };
   return validators[key]?.() ?? "";
 };
 
+/** The server joins the address parts into one 500-character column; "" when they fit. */
+export const validateFormAddressLength = (form: SignupForm): string =>
+  validateFullAddressLength(formatSignupAddress(form));
+
+/**
+ * Feedback while typing: only definite mistakes (digits or symbols in a name, a bad PAN category,
+ * an over-long value), never "not finished yet". The complete check runs on blur and on submit.
+ */
 export const validateRealTimeField = (
   key: keyof SignupForm,
   val: string,
@@ -90,40 +152,35 @@ export const validateRealTimeField = (
   mobileNumber?: string
 ): string => {
   switch (key) {
-    case "name": {
+    case "name":
+      return validateNameTyping(val, FULL_NAME_RULES);
+    case "fatherSpouseName":
+      return validateNameTyping(val, FATHER_SPOUSE_NAME_RULES);
+    case "city":
+      return validateNameTyping(val, CITY_RULES);
+    case "addressLine1":
+    case "addressLine2": {
       if (!val) return "";
-      if (/[0-9]/.test(val)) return "Name cannot contain numbers";
-      if (val.trim().length >= 2 && !validateFullName(val)) {
-        return "Enter a valid full name";
-      }
-      return "";
+      // Punctuation and spacing are judged when the field is left; here only forbidden symbols.
+      const complete = validateAddressLine(val, key === "addressLine1" ? "Address Line 1" : "Address Line 2");
+      return complete.includes("can contain only") || complete.includes("longer than") ? complete : "";
     }
     case "email": {
       if (!val) return "";
       if (val.includes("@") && val.indexOf(".") > val.indexOf("@") + 1) {
-        return validateEmail(val.trim()) ? "" : "Invalid email address";
+        return validateEmailAddress(val.trim());
       }
       return "";
     }
     case "dob": {
       if (!val) return "";
-      if (val.length === 10) {
-        return validateDateOfBirth(val) ? "" : "Please enter a valid date of birth.";
-      }
-      return "";
-    }
-    case "fatherSpouseName": {
-      if (!val) return "";
-      if (/[0-9]/.test(val)) return "Name cannot contain numbers";
+      if (val.length === 10) return validateDobForRegistration(val);
       return "";
     }
     case "pan": {
       const clean = val.trim().toUpperCase();
       if (!clean) return "";
-      if (clean.length === 10) {
-        return /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(clean) ? "" : "Invalid PAN format";
-      }
-      return "";
+      return describePanCategoryError(clean) || (clean.length === 10 ? describePanError(clean) : "");
     }
     case "aadhaar": {
       const clean = val.replace(/\D/g, "");
@@ -161,26 +218,15 @@ export const validateRealTimeField = (
   }
 };
 
+/** True when every required field passes `validateField`, the optional address line 2 is acceptable and the terms are accepted. */
 export const checkFormValidity = (
   form: SignupForm,
   agreedToTerms: boolean,
   mobileNumber?: string
-): boolean => {
-  return (
-    validateFullName(form.name) &&
-    validateEmail(form.email) &&
-    Boolean(form.gender) &&
-    validateDateOfBirth(form.dob) &&
-    Boolean(form.fatherSpouseName.trim()) &&
-    /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(form.pan.trim().toUpperCase()) &&
-    /^[2-9]{1}[0-9]{11}$/.test(form.aadhaar.replace(/\D/g, "")) &&
-    Boolean(form.addressLine1.trim()) &&
-    Boolean(form.city.trim()) &&
-    form.pincode.replace(/\D/g, "").length === 6 &&
-    Boolean(form.state) &&
-    validatePasscode(form.password, mobileNumber).valid &&
-    form.confirmPassword === form.password &&
-    form.confirmPassword.length === 6 &&
-    agreedToTerms
-  );
-};
+): boolean =>
+  agreedToTerms &&
+  REQUIRED_FIELDS.every((key) => validateField(key, form[key], mobileNumber, form.password) === "") &&
+  validateField("addressLine2", form.addressLine2) === "" &&
+  validateFormAddressLength(form) === "";
+
+export { PROFILE_FIELD_LIMITS };

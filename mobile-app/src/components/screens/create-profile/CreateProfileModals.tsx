@@ -20,6 +20,8 @@ import type { IconName } from "@/types/domain";
 
 export interface FieldProps {
   label?: string;
+  /** Marks the field as mandatory with a "*" after the label (and tells screen readers). */
+  required?: boolean;
   labelRight?: React.ReactNode;
   leftIcon?: IconName;
   value: string;
@@ -40,8 +42,18 @@ export interface FieldProps {
   fieldRef?: React.RefObject<TextInput | null>;
 }
 
+/** Field label with the red "*" that marks a mandatory field. */
+export function FieldLabel({ label, required }: { label: string; required?: boolean }) {
+  return (
+    <Text style={styles.label} accessibilityLabel={required ? `${label}, required` : label}>
+      {label}
+      {required ? <Text style={styles.requiredStar}> *</Text> : null}
+    </Text>
+  );
+}
+
 export function FormField({
-  label, labelRight, leftIcon, value, onChange, onFocus, onBlur,
+  label, required, labelRight, leftIcon, value, onChange, onFocus, onBlur,
   placeholder, rightIcon, onRightIcon, error, keyboardType, maxLength,
   returnKeyType, onSubmit, secure, autoCapitalize, onLayout, fieldRef,
 }: FieldProps) {
@@ -56,8 +68,8 @@ export function FormField({
   return (
     <View style={styles.fieldContainer} onLayout={onLayout}>
       {label && (labelRight ? (
-        <View style={styles.labelWithActionRow}><Text style={styles.label}>{label}</Text>{labelRight}</View>
-      ) : <Text style={styles.label}>{label}</Text>)}
+        <View style={styles.labelWithActionRow}><FieldLabel label={label} required={required} />{labelRight}</View>
+      ) : <FieldLabel label={label} required={required} />)}
       <View style={boxStyle}>
         {leftIcon && <Ionicons name={leftIcon} size={20} color={error ? Colors.error : BrandColors.PRIMARY_ORANGE} style={styles.leftIcon} />}
         <TextInput

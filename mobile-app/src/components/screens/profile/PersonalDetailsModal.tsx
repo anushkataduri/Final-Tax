@@ -3,11 +3,11 @@ import {
   View,
   Text,
   Modal,
-  ScrollView,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SecondaryButton } from "@/shared/components/Button/SecondaryButton";
 import { styles } from "@/styles/app/(main)/profile.styles";
@@ -136,7 +136,7 @@ export function PersonalDetailsModal({
               </Text>
             </View>
           ) : (
-            <ScrollView
+            <KeyboardAwareScrollView
               style={styles.modalScroll}
               keyboardShouldPersistTaps="handled"
             >
@@ -246,7 +246,7 @@ export function PersonalDetailsModal({
                   ))}
                 </View>
               )}
-            </ScrollView>
+            </KeyboardAwareScrollView>
           )}
 
           {!isEditingPersonal && (

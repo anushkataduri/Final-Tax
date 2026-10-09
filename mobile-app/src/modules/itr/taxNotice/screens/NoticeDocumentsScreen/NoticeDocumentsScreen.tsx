@@ -3,12 +3,13 @@ import {
   View,
   Text,
   TextInput,
-  ScrollView,
   TouchableOpacity,
   StatusBar,
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -310,7 +311,7 @@ export const NoticeDocumentsScreen: React.FC = () => {
       />
 
       {/* Main Content */}
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.scrollContent,
           getScrollContentInsetsStyle(insets.bottom),
@@ -361,10 +362,10 @@ export const NoticeDocumentsScreen: React.FC = () => {
           />
           <Text style={styles.charCounter}>{remarks.length}/500</Text>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Sticky Bottom Action Button */}
-      <View style={[styles.bottomBar, getBottomBarInsetsStyle(insets.bottom)]}>
+      <KeyboardStickyFooter style={[styles.bottomBar, getBottomBarInsetsStyle(insets.bottom)]}>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleSubmitDocuments}
@@ -377,7 +378,7 @@ export const NoticeDocumentsScreen: React.FC = () => {
             <Text style={styles.submitButtonText}>{taxNoticeDraft?.step === "REVIEW" ? "Update & Continue" : "Submit Documents & Review Response"}</Text>
           )}
         </TouchableOpacity>
-      </View>
+      </KeyboardStickyFooter>
 
       {/* Universal Draft Modal */}
       <UniversalDraftModal

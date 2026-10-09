@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  View, Text, KeyboardAvoidingView, Platform, ScrollView,
+  View, Text,
   TouchableOpacity, BackHandler, StyleSheet, LayoutAnimation,
   Keyboard, Alert, ActivityIndicator,
 } from "react-native";
@@ -10,9 +10,11 @@ import Svg, { Path } from "react-native-svg";
 import { BrandColors, Colors, Spacing } from "@/shared/theme";
 import { BiometricPromptModal } from "@/shared/components/BiometricPromptModal";
 import { UniversalDatePicker } from "@/shared/components/UniversalDatePicker";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { styles } from "./RegisterScreen.styles";
 import { useCreateProfile } from "@/components/screens/create-profile/useCreateProfile";
-import { FormField, GenderPickerModal, StatePickerModal } from "@/components/screens/create-profile/CreateProfileModals";
+import { FieldLabel, FormField, GenderPickerModal, StatePickerModal } from "@/components/screens/create-profile/CreateProfileModals";
+import { PROFILE_FIELD_LIMITS } from "@/shared/validators/profileValidators";
 import { CUSTOMER_TYPE_OPTIONS } from "@/components/screens/create-profile/types";
 
 export function RegisterScreen() {
@@ -24,8 +26,8 @@ export function RegisterScreen() {
     profileErrors, profileLoading, handleProceedToRegistration, handleFinalRegistration,
     handleBack, panKeyboardType, showPassword, setShowPassword,
     showConfirmPassword, setShowConfirmPassword, agreedToTerms, setAgreedToTerms,
-    showAddressLine2, setShowAddressLine2, keyboardHeight, setFieldOffset,
-    handleFieldFocus, scrollRef, nameRef, emailRef, fatherSpouseRef,
+    showAddressLine2, setShowAddressLine2, setFieldOffset,
+    scrollRef, nameRef, emailRef, fatherSpouseRef,
     panRef, aadhaarRef, address1Ref, address2Ref, cityRef, pinRef,
     passcodeRef, confirmPasscodeRef,
     showGenderModal, setShowGenderModal, showStateModal, setShowStateModal,
@@ -47,18 +49,13 @@ export function RegisterScreen() {
   }, [currentStep, scrollRef]);
 
   const yo = (key: string) => ({ onLayout: (e: any) => setFieldOffset(key, e.nativeEvent.layout.y) });
-  const ff = (key: string) => ({ onFocus: () => handleFieldFocus(key), onBlur: () => handleBlur(key as any) });
+  const ff = (key: string) => ({ onBlur: () => handleBlur(key as any) });
 
-  const scrollBottomPadding = currentStep === 1 ? Spacing.base
-    : keyboardHeight > 0 ? keyboardHeight + (Platform.OS === "android" ? 100 : 60)
-    : Math.max(insets.bottom + Spacing.xl, 40);
+  // The keyboard gap is added by KeyboardAwareScrollView, measured from what the keyboard covers.
+  const scrollBottomPadding = currentStep === 1 ? Spacing.base : Math.max(insets.bottom + Spacing.xl, 40);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
-      style={[styles.container, { backgroundColor: BrandColors.BACKGROUND }]}
-    >
+    <View style={[styles.container, { backgroundColor: BrandColors.BACKGROUND }]}>
       <View style={styles.waveHeaderWrapper}>
         <Svg height={150} width="100%" viewBox="0 0 375 150" style={StyleSheet.absoluteFill} preserveAspectRatio="none">
           <Path d="M0,0 L375,0 L375,100 C310,140 230,135 140,115 C60,95 20,110 0,120 Z" fill={BrandColors.PRIMARY_BLUE_DARK} />
@@ -74,7 +71,7 @@ export function RegisterScreen() {
         </View>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         ref={scrollRef}
         style={currentStep === 1 ? { flex: 1 } : undefined}
         contentContainerStyle={[styles.profileScroll, { paddingBottom: scrollBottomPadding }]}
@@ -128,18 +125,23 @@ export function RegisterScreen() {
               </View>
             </TouchableOpacity>
 
-            <FormField fieldRef={nameRef} {...yo("name")} label="Full Name" leftIcon="person-outline"
-              value={form.name} onChange={(t) => updateForm("name", t)} {...ff("name")}
-              placeholder="Full Name" error={profileErrors.name} returnKeyType="next" onSubmit={() => emailRef.current?.focus()} />
+            <Text style={styles.requiredLegend}>
+              Fields marked <Text style={styles.requiredStar}>*</Text> are required
+            </Text>
 
-            <FormField fieldRef={emailRef} {...yo("email")} label="Email" leftIcon="mail-outline"
+            <FormField fieldRef={nameRef} {...yo("name")} label="Full Name" required leftIcon="person-outline"
+              value={form.name} onChange={(t) => updateForm("name", t)} {...ff("name")}
+              placeholder="Full Name" maxLength={PROFILE_FIELD_LIMITS.fullName} autoCapitalize="words"
+              error={profileErrors.name} returnKeyType="next" onSubmit={() => emailRef.current?.focus()} />
+
+            <FormField fieldRef={emailRef} {...yo("email")} label="Email" required leftIcon="mail-outline"
               value={form.email} onChange={(t) => updateForm("email", t)} {...ff("email")}
-              placeholder="Email" keyboardType="email-address" autoCapitalize="none"
+              placeholder="Email" keyboardType="email-address" autoCapitalize="none" maxLength={PROFILE_FIELD_LIMITS.email}
               error={profileErrors.email} returnKeyType="next"
               onSubmit={() => { Keyboard.dismiss(); setShowGenderModal(true); }} />
 
             <View style={styles.fieldContainer} {...yo("gender")}>
-              <Text style={styles.label}>Gender</Text>
+              <FieldLabel label="Gender" required />
               <TouchableOpacity activeOpacity={0.8} onPress={() => { Keyboard.dismiss(); setShowGenderModal(true); }}
                 style={[styles.inputBox, profileErrors.gender ? styles.inputBoxError : styles.inputBoxDefault]}>
                 <Ionicons name="transgender-outline" size={20} color={profileErrors.gender ? Colors.error : BrandColors.PRIMARY_ORANGE} style={styles.leftIcon} />
@@ -152,6 +154,7 @@ export function RegisterScreen() {
             <View {...yo("dob")}>
               <UniversalDatePicker
                 label="Date of Birth"
+                required
                 value={form.dob}
                 onChange={(d) => {
                   handleDobChange(d);
@@ -166,22 +169,23 @@ export function RegisterScreen() {
               />
             </View>
 
-            <FormField fieldRef={fatherSpouseRef} {...yo("fatherSpouseName")} label="Father's / Spouse Name" leftIcon="people-outline"
+            <FormField fieldRef={fatherSpouseRef} {...yo("fatherSpouseName")} label="Father's / Spouse Name" required leftIcon="people-outline"
               value={form.fatherSpouseName} onChange={(t) => updateForm("fatherSpouseName", t)} {...ff("fatherSpouseName")}
-              placeholder="Father's / Spouse Name" error={profileErrors.fatherSpouseName}
+              placeholder="Father's / Spouse Name" maxLength={PROFILE_FIELD_LIMITS.fatherSpouseName} autoCapitalize="words"
+              error={profileErrors.fatherSpouseName}
               returnKeyType="next" onSubmit={() => panRef.current?.focus()} />
 
-            <FormField fieldRef={panRef} {...yo("pan")} label="PAN Number" leftIcon="card-outline"
+            <FormField fieldRef={panRef} {...yo("pan")} label="PAN Number" required leftIcon="card-outline"
               value={form.pan} onChange={handlePanChange} {...ff("pan")}
               placeholder="PAN Number" autoCapitalize="characters" keyboardType={panKeyboardType} maxLength={10}
               error={profileErrors.pan} returnKeyType="next" onSubmit={() => aadhaarRef.current?.focus()} />
 
-            <FormField fieldRef={aadhaarRef} {...yo("aadhaar")} label="Aadhaar Number" leftIcon="newspaper-outline"
+            <FormField fieldRef={aadhaarRef} {...yo("aadhaar")} label="Aadhaar Number" required leftIcon="newspaper-outline"
               value={form.aadhaar} onChange={(t) => updateForm("aadhaar", t.replace(/\D/g, "").slice(0, 12))} {...ff("aadhaar")}
               placeholder="Aadhaar Number" keyboardType="number-pad" maxLength={12}
               error={profileErrors.aadhaar} returnKeyType="next" onSubmit={() => address1Ref.current?.focus()} />
 
-            <FormField fieldRef={address1Ref} {...yo("addressLine1")} label="Address Line 1 *"
+            <FormField fieldRef={address1Ref} {...yo("addressLine1")} label="Address Line 1" required
               labelRight={!showAddressLine2 ? (
                 <TouchableOpacity activeOpacity={0.7} onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setShowAddressLine2(true); setTimeout(() => address2Ref.current?.focus(), 150); }}
                   style={styles.addAddressLineBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -190,23 +194,23 @@ export function RegisterScreen() {
                 </TouchableOpacity>
               ) : null}
               leftIcon="home-outline" value={form.addressLine1} onChange={(t) => updateForm("addressLine1", t)} {...ff("addressLine1")}
-              placeholder="House / Building / Street" error={profileErrors.addressLine1} returnKeyType="next"
+              placeholder="House / Building / Street" maxLength={PROFILE_FIELD_LIMITS.addressLine} error={profileErrors.addressLine1} returnKeyType="next"
               onSubmit={() => showAddressLine2 ? address2Ref.current?.focus() : cityRef.current?.focus()} />
 
             {showAddressLine2 && (
               <FormField fieldRef={address2Ref} label="Address Line 2 (Optional)" leftIcon="location-outline"
-                value={form.addressLine2} onChange={(t) => updateForm("addressLine2", t)} onFocus={() => handleFieldFocus("addressLine2")}
-                placeholder="Locality, Landmark" returnKeyType="next" onSubmit={() => cityRef.current?.focus()} />
+                value={form.addressLine2} onChange={(t) => updateForm("addressLine2", t)} {...ff("addressLine2")}
+                placeholder="Locality, Landmark" maxLength={PROFILE_FIELD_LIMITS.addressLine} error={profileErrors.addressLine2} returnKeyType="next" onSubmit={() => cityRef.current?.focus()} />
             )}
 
             <View style={styles.cityPinRow} onLayout={(e) => { setFieldOffset("city", e.nativeEvent.layout.y); setFieldOffset("pincode", e.nativeEvent.layout.y); }}>
               <View style={styles.cityCol}>
-                <FormField fieldRef={cityRef} label="City" leftIcon="business-outline"
+                <FormField fieldRef={cityRef} label="City" required leftIcon="business-outline"
                   value={form.city} onChange={(t) => updateForm("city", t)} {...ff("city")}
-                  placeholder="City" error={profileErrors.city} returnKeyType="next" onSubmit={() => pinRef.current?.focus()} />
+                  placeholder="City" maxLength={PROFILE_FIELD_LIMITS.city} autoCapitalize="words" error={profileErrors.city} returnKeyType="next" onSubmit={() => pinRef.current?.focus()} />
               </View>
               <View style={styles.pinCol}>
-                <FormField fieldRef={pinRef} label="PIN Code" leftIcon="pin-outline"
+                <FormField fieldRef={pinRef} label="PIN Code" required leftIcon="pin-outline"
                   value={form.pincode} onChange={(t) => updateForm("pincode", t.replace(/\D/g, "").slice(0, 6))} {...ff("pincode")}
                   placeholder="PIN Code" keyboardType="number-pad" maxLength={6}
                   error={profileErrors.pincode} returnKeyType="next"
@@ -215,7 +219,7 @@ export function RegisterScreen() {
             </View>
 
             <View style={styles.fieldContainer} onLayout={(e) => setFieldOffset("state", e.nativeEvent.layout.y)}>
-              <Text style={styles.label}>State / UT</Text>
+              <FieldLabel label="State / UT" required />
               <TouchableOpacity activeOpacity={0.8} onPress={() => { Keyboard.dismiss(); setStateSearchQuery(""); setShowStateModal(true); }}
                 style={[styles.inputBox, profileErrors.state ? styles.inputBoxError : styles.inputBoxDefault]}>
                 <Ionicons name="map-outline" size={20} color={profileErrors.state ? Colors.error : BrandColors.PRIMARY_ORANGE} style={styles.leftIcon} />
@@ -225,13 +229,13 @@ export function RegisterScreen() {
               {profileErrors.state ? <Text style={styles.errorText}>{profileErrors.state}</Text> : null}
             </View>
 
-            <FormField fieldRef={passcodeRef} {...yo("password")} label="Passcode" leftIcon="lock-closed-outline"
+            <FormField fieldRef={passcodeRef} {...yo("password")} label="Passcode" required leftIcon="lock-closed-outline"
               value={form.password} onChange={(t) => updateForm("password", t.replace(/\D/g, "").slice(0, 6))} {...ff("password")}
               placeholder="Passcode" keyboardType="number-pad" maxLength={6} secure={!showPassword}
               rightIcon={showPassword ? "eye-off-outline" : "eye-outline"} onRightIcon={() => setShowPassword((p) => !p)}
               error={profileErrors.password} returnKeyType="next" onSubmit={() => confirmPasscodeRef.current?.focus()} />
 
-            <FormField fieldRef={confirmPasscodeRef} {...yo("confirmPassword")} label="Confirm Passcode" leftIcon="lock-closed-outline"
+            <FormField fieldRef={confirmPasscodeRef} {...yo("confirmPassword")} label="Confirm Passcode" required leftIcon="lock-closed-outline"
               value={form.confirmPassword} onChange={(t) => updateForm("confirmPassword", t.replace(/\D/g, "").slice(0, 6))} {...ff("confirmPassword")}
               placeholder="Confirm Passcode" keyboardType="number-pad" maxLength={6} secure={!showConfirmPassword}
               rightIcon={showConfirmPassword ? "eye-off-outline" : "eye-outline"} onRightIcon={() => setShowConfirmPassword((p) => !p)}
@@ -260,7 +264,7 @@ export function RegisterScreen() {
             </TouchableOpacity>
           </View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <GenderPickerModal visible={showGenderModal} selectedGender={form.gender}
         onSelect={(g) => { updateForm("gender", g); setShowGenderModal(false); }}
@@ -273,7 +277,7 @@ export function RegisterScreen() {
 
       <BiometricPromptModal visible={showBiometricModal} biometricType={biometricType}
         onEnable={handleEnableBiometric} onNotNow={handleNotNowBiometric} />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

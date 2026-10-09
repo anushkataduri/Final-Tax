@@ -8,7 +8,8 @@ import com.taxedge.security.jwt.CustomerJwt;
 
 public interface CustomerService {
 
-    CustomerJwt registerCustomer(CustomerDto customerDto);
+    /** @param registrationProof the single-use proof from OTP verification; registration is refused without a valid one */
+    CustomerJwt registerCustomer(CustomerDto customerDto, String registrationProof);
     CustomerJwt loginCustomer(LoginRequest loginRequest);
     String updatePassword(UpdatePasswordDto updatePasswordDto);
     boolean existsByMobileNumber(String mobileNumber);

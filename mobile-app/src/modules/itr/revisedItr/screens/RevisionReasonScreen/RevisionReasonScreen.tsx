@@ -4,8 +4,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
 } from "react-native";
+import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useRevisedProgressStore } from "../../store/revisedProgressStore";
@@ -67,7 +68,7 @@ export const RevisionReasonScreen: React.FC = () => {
       <RevisedItrHeader subtitle="Reason for Revision" />
 
       {/* Main Content */}
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.scrollContent,
           getScrollContentInsetsStyle(insets.bottom),
@@ -118,10 +119,10 @@ export const RevisionReasonScreen: React.FC = () => {
             ) : null}
           </View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Sticky Bottom Action Button */}
-      <View
+      <KeyboardStickyFooter
         style={[
           styles.bottomBar,
           getBottomBarInsetsStyle(insets.bottom),
@@ -134,7 +135,7 @@ export const RevisionReasonScreen: React.FC = () => {
         >
           <Text style={styles.continueButtonText}>{maxStepReached >= 3 ? "Update and Continue" : "Continue"}</Text>
         </TouchableOpacity>
-      </View>
+      </KeyboardStickyFooter>
     </View>
   );
 };

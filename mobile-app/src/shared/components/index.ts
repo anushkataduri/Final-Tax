@@ -20,6 +20,7 @@ export * from "./UniversalDraftModal";
 export * from "./UniversalDatePicker";
 export * from "./DocumentUploadBottomSheet";
 export * from "./KeyboardAwareFormLayout";
+export * from "./KeyboardStickyFooter";
 export * from "./CompleteProfileModal";
 export * from "./BiometricPromptModal";
 export * from "./ServerConfigModal";

@@ -4,6 +4,8 @@ import type { DevUser, AuthState } from "../types/auth.types";
 import { authService } from "../services/authService";
 import { authStorage } from "../services/authStorage";
 import { authApi, type CustomerApiRecord } from "../services/authApi";
+import { registrationProgressService } from "../services/registrationProgressService";
+import { loginPresentationResetPatch } from "./authLockoutState";
 import {
   isPlaceholderCustomerName,
   refreshNotificationsForActiveCustomer,
@@ -138,6 +140,7 @@ export const createSessionActions = (
     );
     if (res.success && res.user) {
       authStorage.saveUser(res.user);
+      await registrationProgressService.clear();
       if (autoLogin) {
         set({
           isLoggedIn: true,
@@ -161,6 +164,17 @@ export const createSessionActions = (
         });
       }
       return { success: true };
+    }
+    if (res.requiresReverification) {
+      // The OTP verification behind this registration is gone (expired, spent or never issued):
+      // drop the stale record and make the user verify the number again.
+      await registrationProgressService.clear();
+      set({ authFlowState: "ENTER_MOBILE", otp: "", error: null });
+      return {
+        success: false,
+        error: "Your mobile number verification has expired. Please verify your number again.",
+        requiresReverification: true,
+      };
     }
     return { success: false, error: res.error || "Registration failed" };
   },
@@ -187,6 +201,11 @@ export const createSessionActions = (
       authFlowState: "ENTER_MOBILE",
       pendingServiceRoute: null,
       isCompleteProfileModalOpen: false,
+      // Don't carry the last user's error banner or lockout countdown onto the next login screen.
+      ...loginPresentationResetPatch(),
+    });
+    registrationProgressService.clear().catch((err) => {
+      logger.debug("[AuthSession] Clearing registration progress failed", { error: getErrorMessage(err) });
     });
     // 2. Perform server token revocation and secure storage cleanup in background
     authService.logout().catch((err) => {

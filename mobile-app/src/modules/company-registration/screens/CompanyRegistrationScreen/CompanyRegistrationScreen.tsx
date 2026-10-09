@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { KeyboardAwareScrollView } from '@/shared/components/KeyboardAwareFormLayout';
+import { KeyboardStickyFooter } from '@/shared/components/KeyboardStickyFooter';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader } from '../../../../shared/components/AppHeader';
@@ -144,29 +146,23 @@ export const CompanyRegistrationScreen: React.FC = () => {
       </View>
 
       {/* Main Scroll Content with Keyboard Handling */}
-      <KeyboardAvoidingView
+      <KeyboardAwareScrollView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets={true}
-          showsVerticalScrollIndicator={false}
-        >
-          {renderStepContent()}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {renderStepContent()}
+      </KeyboardAwareScrollView>
 
-      {/* Sticky Bottom Footer Navigation */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), justifyContent: 'flex-end' }]}>
+      {/* Sticky Bottom Footer Navigation (rises above the keyboard) */}
+      <KeyboardStickyFooter style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), justifyContent: 'flex-end' }]}>
         {currentStep < 8 && (
           <TouchableOpacity style={styles.nextBtn} onPress={handleNext} activeOpacity={0.8}>
             <Text style={styles.nextBtnText}>Continue →</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </KeyboardStickyFooter>
 
       <UniversalDraftModal
         visible={showDraftModal}

@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Animated } from "react-native";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -54,7 +55,7 @@ export function GstCertificateScreen() {
       </View>
 
       {!flow.isCompleted ? (
-        <ScrollView
+        <KeyboardAwareScrollView
           contentContainerStyle={st.inputScroll}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -161,7 +162,7 @@ export function GstCertificateScreen() {
               <Text style={st.orangeCtaText}>{getButtonText()}</Text>
             </TouchableOpacity>
           </Animated.View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
       ) : (
         /* Completed State */
         <ScrollView contentContainerStyle={st.readyScroll} showsVerticalScrollIndicator={false}>

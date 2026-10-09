@@ -3,6 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, Platform } from "react-native"
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "../../../../hooks/use-theme";
 import { PrimaryButton } from "../../../../shared/components/Button/PrimaryButton";
+import { LockoutNotice } from "../LockoutNotice";
+import { useCountdown } from "../../hooks/useCountdown";
 import { styles, getThemedStyles } from "./PasscodeLoginSection.styles";
 
 interface PasscodeLoginSectionProps {
@@ -17,6 +19,8 @@ interface PasscodeLoginSectionProps {
   biometricTypeLabel?: string;
   /** If false, suppresses the automatic keyboard focus on mount. Defaults to true. */
   autoFocus?: boolean;
+  /** Epoch ms until which passcode login is locked by the server. */
+  lockoutUntil?: number | null;
 }
 
 export function PasscodeLoginSection({
@@ -30,8 +34,11 @@ export function PasscodeLoginSection({
   isBiometricEnabled,
   biometricTypeLabel = "Biometrics",
   autoFocus = true,
+  lockoutUntil,
 }: PasscodeLoginSectionProps) {
   const colors = useTheme();
+  const lockRemaining = useCountdown(lockoutUntil);
+  const locked = lockRemaining > 0;
   const inputRef = useRef<TextInput>(null);
   const themed = getThemedStyles(colors);
 
@@ -44,6 +51,7 @@ export function PasscodeLoginSection({
   }, [autoFocus]);
 
   const handleChangeText = (text: string) => {
+    if (locked) return;
     const clean = text.replace(/[^0-9]/g, "");
     onChangePasscode(clean);
     if (clean.length === 6) {
@@ -92,6 +100,7 @@ export function PasscodeLoginSection({
         keyboardType="number-pad"
         maxLength={6}
         secureTextEntry
+        editable={!locked}
         style={styles.hiddenInput}
       />
 
@@ -103,13 +112,15 @@ export function PasscodeLoginSection({
         </TouchableOpacity>
       </View>
 
+      <LockoutNotice kind="passcode" remainingSeconds={lockRemaining} />
+
       {error ? <Text style={[styles.error, themed.error]}>{error}</Text> : null}
 
       <PrimaryButton
         title="Login"
         onPress={onLogin}
         loading={loading}
-        disabled={loading || passcode.length !== 6}
+        disabled={loading || locked || passcode.length !== 6}
         colorType="orange"
         style={styles.loginBtn}
       />

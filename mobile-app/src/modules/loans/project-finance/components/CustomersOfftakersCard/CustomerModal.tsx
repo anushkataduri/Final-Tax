@@ -5,8 +5,8 @@ import {
   TextInput,
   TouchableOpacity,
   Modal,
-  ScrollView,
 } from "react-native";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { CustomerOfftakerItem } from "../../types/projectFinance.types";
 import { styles } from "./CustomerModal.styles";
 
@@ -57,7 +57,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
             {initialData ? "Edit Customer / Offtaker" : "Add Customer / Offtaker"}
           </Text>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <KeyboardAwareScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Customer / Offtaker Name *</Text>
               <TextInput
@@ -113,7 +113,7 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({
                 onChangeText={setEstimatedRevenue}
               />
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
 
           <View style={styles.btnRow}>
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>

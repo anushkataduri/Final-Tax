@@ -1,12 +1,11 @@
-import { validatePhone, validatePan, validateAadhaar, validateEmail } from "../../../shared/validators/indianTaxValidators";
+import { validatePan, validateAadhaar, validateEmail } from "../../../shared/validators/indianTaxValidators";
+import { normalizeIndianMobile } from "./mobileNumber";
 import type { RegistrationData } from "../types/auth.types";
 
-export function validateLoginPhone(phone: string): { valid: boolean; error?: string } {
-  const clean = phone.replace(/\D/g, "");
-  if (!clean) return { valid: false, error: "Mobile number is required" };
-  if (clean.length !== 10) return { valid: false, error: "Please enter a valid 10-digit mobile number" };
-  if (!validatePhone(clean)) return { valid: false, error: "Invalid mobile number format" };
-  return { valid: true };
+/** Validates a mobile number for login; `value` is the normalised 10-digit number when valid. */
+export function validateLoginPhone(phone: string): { valid: boolean; error?: string; value?: string } {
+  const result = normalizeIndianMobile(phone);
+  return result.ok ? { valid: true, value: result.value } : { valid: false, error: result.error };
 }
 
 export function validateOtp(otp: string): { valid: boolean; error?: string } {
@@ -101,7 +100,7 @@ export function validateRegisterForm(values: Partial<RegistrationData>): Record<
   }
 
   if (values.pan && !validatePan(values.pan.trim())) {
-    errors.pan = "Please enter a valid 10-character PAN (e.g. ABCDE1234F)";
+    errors.pan = "Please enter a valid 10-character PAN (e.g. ABCPE1234F)";
   }
 
   if (values.aadhaar && !validateAadhaar(values.aadhaar.trim())) {

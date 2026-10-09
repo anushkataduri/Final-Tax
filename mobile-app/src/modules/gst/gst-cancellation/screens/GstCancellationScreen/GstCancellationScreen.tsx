@@ -1,8 +1,11 @@
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from "react-native";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
-import { GstServiceBanner, GstSelectModal, GstDatePickerModal } from "@/modules/gst/components/common";
+import { GstServiceBanner, GstSelectModal } from "@/modules/gst/components/common";
+import { DatePickerDialog } from "@/shared/components/DatePickerDialog";
+import { formatDateDDMMYYYY, parseDDMMYYYY } from "@/shared/formatters/dateFormatter";
 import { GstStepHeader } from "@/modules/gst/components/GstStepHeader";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 
@@ -73,7 +76,7 @@ export function GstCancellationScreen() {
             }}
           />
 
-          <ScrollView
+          <KeyboardAwareScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
@@ -359,7 +362,7 @@ export function GstCancellationScreen() {
                 </Text>
               )}
             </TouchableOpacity>
-          </ScrollView>
+          </KeyboardAwareScrollView>
 
           {/* Modals */}
           <GstSelectModal
@@ -375,16 +378,16 @@ export function GstCancellationScreen() {
             onClose={() => flow.setReasonOpen(false)}
           />
 
-          <GstDatePickerModal
+          <DatePickerDialog
             visible={flow.dateOpen}
             title="Effective Date of Cancellation"
-            selectedDate={flow.form.cancellationDate}
-            onSelectDate={(d: string) => {
-              flow.setFormField("cancellationDate", d);
+            value={parseDDMMYYYY(flow.form.cancellationDate) || new Date()}
+            onConfirm={(date: Date) => {
+              flow.setFormField("cancellationDate", formatDateDDMMYYYY(date));
               flow.clearError("cancellationDate");
               flow.setDateOpen(false);
             }}
-            onClose={() => flow.setDateOpen(false)}
+            onCancel={() => flow.setDateOpen(false)}
           />
         </View>
       )}

@@ -45,32 +45,4 @@ export const styles = StyleSheet.create({
     color: "#EF4444",
     marginTop: 6,
   },
-  iosPickerOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(15, 23, 42, 0.4)",
-  },
-  iosPickerContainer: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingBottom: 20,
-  },
-  iosPickerHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
-  },
-  iosPickerCancel: {
-    fontSize: 16,
-    color: "#64748B",
-  },
-  iosPickerConfirm: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#EA580C",
-  },
 });

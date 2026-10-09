@@ -7,6 +7,7 @@ import {
   TextInput,
   StatusBar,
 } from "react-native";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import {
@@ -56,7 +57,7 @@ export const GstAmendmentLanding: React.FC<GstAmendmentLandingProps> = ({
         <View style={styles.placeholderBox} />
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -153,7 +154,7 @@ export const GstAmendmentLanding: React.FC<GstAmendmentLandingProps> = ({
             </TouchableOpacity>
           ))}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Platform, Modal, TouchableOpacity, View, Text } from "react-native";
+import { TouchableOpacity, View, Text } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { DatePickerDialog } from "@/shared/components/DatePickerDialog";
 import { styles } from "./TaxNoticeDatePickerInput.styles";
 
 export const parseStringToDate = (dateStr: string): Date | undefined => {
@@ -44,8 +44,6 @@ export const TaxNoticeDatePickerInput: React.FC<TaxNoticeDatePickerInputProps> =
   label, value, onChange, required, error, placeholder, helperText, maximumDate, minimumDate, validateMinDate
 }) => {
   const [showPicker, setShowPicker] = useState(false);
-  const [tempDate, setTempDate] = useState<Date | undefined>(undefined);
-
   const currentDate = parseStringToDate(value) || new Date();
 
   const handleConfirm = (dateToSave: Date) => {
@@ -61,10 +59,7 @@ export const TaxNoticeDatePickerInput: React.FC<TaxNoticeDatePickerInputProps> =
       
       <TouchableOpacity 
         activeOpacity={0.8} 
-        onPress={() => {
-          setTempDate(currentDate);
-          setShowPicker(true);
-        }}
+        onPress={() => setShowPicker(true)}
         style={[styles.inputBox, error ? styles.inputBoxError : null]}
       >
         <Text style={[styles.inputValue, !value && { color: "#94A3B8" }]}>
@@ -76,48 +71,15 @@ export const TaxNoticeDatePickerInput: React.FC<TaxNoticeDatePickerInputProps> =
       {helperText && !error ? <Text style={styles.helperText}>{helperText}</Text> : null}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      {Platform.OS === "ios" && (
-        <Modal visible={showPicker} transparent animationType="slide">
-          <View style={styles.iosPickerOverlay}>
-            <View style={styles.iosPickerContainer}>
-              <View style={styles.iosPickerHeader}>
-                <TouchableOpacity onPress={() => setShowPicker(false)}>
-                  <Text style={styles.iosPickerCancel}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleConfirm(tempDate || currentDate)}>
-                  <Text style={styles.iosPickerConfirm}>Done</Text>
-                </TouchableOpacity>
-              </View>
-              <DateTimePicker
-                value={tempDate || currentDate}
-                mode="date"
-                display="spinner"
-                maximumDate={maximumDate}
-                minimumDate={minimumDate}
-                onChange={(event, date) => {
-                  if (date) setTempDate(date);
-                }}
-              />
-            </View>
-          </View>
-        </Modal>
-      )}
-
-      {Platform.OS !== "ios" && showPicker && (
-        <DateTimePicker
-          value={currentDate}
-          mode="date"
-          display="default"
-          maximumDate={maximumDate}
-          minimumDate={minimumDate}
-          onChange={(event, date) => {
-            setShowPicker(false);
-            if (event.type === "set" && date) {
-              handleConfirm(date);
-            }
-          }}
-        />
-      )}
+      <DatePickerDialog
+        visible={showPicker}
+        value={currentDate}
+        onConfirm={handleConfirm}
+        onCancel={() => setShowPicker(false)}
+        minimumDate={minimumDate}
+        maximumDate={maximumDate}
+        title={label}
+      />
     </View>
   );
 };

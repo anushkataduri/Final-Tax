@@ -5,8 +5,8 @@ import {
   TextInput,
   TouchableOpacity,
   Modal,
-  ScrollView,
 } from "react-native";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { ProductServiceItem } from "../../types/projectFinance.types";
 import {
   PRODUCT_CATEGORIES,
@@ -65,7 +65,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             {initialData ? "Edit Product / Service" : "Add Product / Service"}
           </Text>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <KeyboardAwareScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>Product / Service Name *</Text>
               <TextInput
@@ -110,7 +110,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 onChangeText={setProductMix}
               />
             </View>
-          </ScrollView>
+          </KeyboardAwareScrollView>
 
           <View style={styles.btnRow}>
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>

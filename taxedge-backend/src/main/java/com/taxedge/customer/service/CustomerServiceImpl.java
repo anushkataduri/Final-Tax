@@ -1,17 +1,24 @@
 package com.taxedge.customer.service;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import com.taxedge.customer.config.LoginProperties;
 import com.taxedge.customer.dto.CustomerDto;
 import com.taxedge.customer.dto.LoginRequest;
 import com.taxedge.customer.dto.UpdatePasswordDto;
 import com.taxedge.customer.entity.Customer;
+import com.taxedge.customer.exception.AccountLockedException;
 import com.taxedge.customer.exception.CustomerNotFoundException;
 import com.taxedge.customer.exception.DuplicateResourceException;
 import com.taxedge.customer.exception.InvalidCredentialsException;
@@ -23,6 +30,8 @@ import com.taxedge.notification.service.FcmNotificationService;
 import com.taxedge.security.jwt.CustomerJwt;
 import com.taxedge.security.jwt.service.JwtService;
 import com.taxedge.security.jwt.service.RefreshTokenService;
+import com.taxedge.security.otp.proof.RegistrationProofService;
+import com.taxedge.shared.concurrency.KeyedLock;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,10 +48,20 @@ public class CustomerServiceImpl implements CustomerService {
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
+    private final RegistrationProofService registrationProofService;
+    private final LoginProperties loginProperties;
+    private final Clock clock;
+    private final KeyedLock keyedLock;
+    private final TransactionTemplate transactionTemplate;
 
     @Override
     @Transactional
-    public CustomerJwt registerCustomer(CustomerDto customerDto) {
+    public CustomerJwt registerCustomer(CustomerDto customerDto, String registrationProof) {
+
+        // Spend the OTP-verification proof first, in this transaction: concurrent requests with the
+        // same proof serialise on it and only one proceeds, and any later failure rolls it back.
+        String verifiedMobile = customerDto.getMobileNumber() == null ? "" : customerDto.getMobileNumber().trim();
+        registrationProofService.consumeForRegistration(verifiedMobile, registrationProof);
 
         validateUniqueFields(customerDto);
 
@@ -60,7 +79,6 @@ public class CustomerServiceImpl implements CustomerService {
                 savedCustomer.getMobileNumber()
         );
 
-        log.debug("[TEST-ONLY] Access token for [{}]: {}", savedCustomer.getCustId(), accessToken);
         String refreshToken = refreshTokenService.createRefreshToken(savedCustomer);
 
         // Nothing is announced until the row is actually committed.
@@ -121,17 +139,118 @@ public class CustomerServiceImpl implements CustomerService {
         return value != null && !value.isBlank();
     }
 
+    /**
+     * Passcode login with a server-enforced lockout. The whole check-verify-record sequence runs
+     * under a per-account lock and one transaction (row-locked in the database), so parallel
+     * guesses cannot exceed the attempt limit. Failures are returned as outcomes and thrown only
+     * after the transaction commits, otherwise the attempt counter would roll back with them.
+     */
     @Override
-    @Transactional
     public CustomerJwt loginCustomer(LoginRequest loginRequest) {
         String mobileNumber = loginRequest.getMobileNumber() != null ? loginRequest.getMobileNumber().trim() : "";
-        Customer customer = customerRepository.findByMobileNumber(mobileNumber)
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid mobile number or password"));
 
-        if (!passwordEncoder.matches(loginRequest.getPassword(), customer.getPassword())) {
-            throw new InvalidCredentialsException("Invalid mobile number or password");
+        LoginAttempt attempt = keyedLock.withLock("login:" + mobileNumber, () -> {
+            try {
+                return transactionTemplate.execute(status -> attemptLogin(mobileNumber, loginRequest.getPassword()));
+            } catch (DataIntegrityViolationException raced) {
+                return transactionTemplate.execute(status -> attemptLogin(mobileNumber, loginRequest.getPassword()));
+            }
+        });
+
+        if (attempt.jwt() != null) {
+            return attempt.jwt();
+        }
+        if (attempt.lockedForSeconds() > 0) {
+            throw new AccountLockedException(
+                    "Too many incorrect passcode attempts. Please try again in "
+                            + describeDuration(attempt.lockedForSeconds()) + ".",
+                    attempt.lockedForSeconds());
+        }
+        throw new InvalidCredentialsException("Invalid mobile number or password", attempt.remainingAttempts());
+    }
+
+    private LoginAttempt attemptLogin(String mobileNumber, String password) {
+        Customer customer = customerRepository.findByMobileNumberForUpdate(mobileNumber).orElse(null);
+        if (customer == null) {
+            return LoginAttempt.failed(null);
         }
 
+        Instant now = clock.instant();
+        releaseExpiredLoginLock(customer, now);
+
+        // Refused even for the right passcode while locked; the refusal is not counted.
+        if (customer.getLoginLockedUntil() != null && now.isBefore(customer.getLoginLockedUntil())) {
+            return LoginAttempt.locked(secondsUntil(customer.getLoginLockedUntil(), now));
+        }
+
+        if (!passwordEncoder.matches(password, customer.getPassword())) {
+            int failed = zeroIfNull(customer.getFailedLoginAttempts()) + 1;
+            customer.setFailedLoginAttempts(failed);
+            customer.setLastFailedLoginAt(now);
+            if (failed >= loginProperties.getMaxFailedAttempts()) {
+                customer.setLoginLockedUntil(now.plus(loginProperties.getLockoutDuration()));
+                customerRepository.save(customer);
+                log.warn("Passcode login locked for customer [{}] until {}", customer.getCustId(), customer.getLoginLockedUntil());
+                return LoginAttempt.locked(secondsUntil(customer.getLoginLockedUntil(), now));
+            }
+            customerRepository.save(customer);
+            return LoginAttempt.failed(loginProperties.getMaxFailedAttempts() - failed);
+        }
+
+        customer.setFailedLoginAttempts(0);
+        customer.setLastFailedLoginAt(null);
+        customer.setLoginLockedUntil(null);
+        customerRepository.save(customer);
+        return LoginAttempt.success(issueTokens(customer));
+    }
+
+    /** Clears a finished lockout, and failures old enough to no longer count. */
+    private void releaseExpiredLoginLock(Customer customer, Instant now) {
+        boolean lockoutOver = customer.getLoginLockedUntil() != null && !now.isBefore(customer.getLoginLockedUntil());
+        boolean staleFailures = customer.getLoginLockedUntil() == null
+                && zeroIfNull(customer.getFailedLoginAttempts()) > 0
+                && customer.getLastFailedLoginAt() != null
+                && now.isAfter(customer.getLastFailedLoginAt().plus(loginProperties.getLockoutDuration()));
+        if (lockoutOver || staleFailures) {
+            customer.setLoginLockedUntil(null);
+            customer.setFailedLoginAttempts(0);
+            customer.setLastFailedLoginAt(null);
+        }
+    }
+
+    private static long secondsUntil(Instant target, Instant now) {
+        long millis = Duration.between(now, target).toMillis();
+        return Math.max(1, (millis + 999) / 1000);
+    }
+
+    private static int zeroIfNull(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private static String describeDuration(long seconds) {
+        if (seconds >= 60) {
+            long minutes = (seconds + 59) / 60;
+            return minutes + (minutes == 1 ? " minute" : " minutes");
+        }
+        return seconds + (seconds == 1 ? " second" : " seconds");
+    }
+
+    /** Result of one login attempt: tokens on success, otherwise a lockout or the attempts left. */
+    private record LoginAttempt(CustomerJwt jwt, long lockedForSeconds, Integer remainingAttempts) {
+        static LoginAttempt success(CustomerJwt jwt) {
+            return new LoginAttempt(jwt, 0, null);
+        }
+
+        static LoginAttempt locked(long seconds) {
+            return new LoginAttempt(null, seconds, 0);
+        }
+
+        static LoginAttempt failed(Integer remainingAttempts) {
+            return new LoginAttempt(null, 0, remainingAttempts);
+        }
+    }
+
+    private CustomerJwt issueTokens(Customer customer) {
         String accessToken = jwtService.generateToken(
                 customer.getCustId(),
                 customer.getName(),
@@ -139,11 +258,6 @@ public class CustomerServiceImpl implements CustomerService {
         );
 
         String refreshToken = refreshTokenService.createRefreshToken(customer);
-
-        System.out.println("=================================================");
-        System.out.println("🔑 [LOGIN SUCCESS] Access token for user (" + customer.getCustId() + " / " + customer.getMobileNumber() + "):");
-        System.out.println(accessToken);
-        System.out.println("=================================================");
 
         return new CustomerJwt(
                 accessToken,

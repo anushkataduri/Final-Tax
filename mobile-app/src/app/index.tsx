@@ -6,6 +6,7 @@ import { LandingScreen } from "@/components/landing/LandingScreen";
 import { biometricService } from "@/modules/authentication/services/biometricService";
 import { passcodeService } from "@/modules/authentication/services/passcodeService";
 import { authStorage } from "@/modules/authentication/services/authStorage";
+import { recoverIncompleteRegistration } from "@/modules/authentication/services/launchRegistrationRecovery";
 import { logger } from "@/core/logging/logger";
 import { styles } from "@/styles/app/index.styles";
 
@@ -30,6 +31,31 @@ export default function Index() {
         const activeMobile = session?.activeMobile;
         const user = activeMobile ? authStorage.getUserByMobile(activeMobile) : null;
         const isAuthed = Boolean(session?.isLoggedIn && activeMobile && user);
+
+        // A new number that verified its OTP but never finished registering must resume the
+        // registration form (or log in, if the customer now exists) - never be treated as signed in.
+        const recovery = await recoverIncompleteRegistration(isAuthed ? user : null, activeMobile);
+        if (recovery && recovery.kind !== "RESTART") {
+          const resuming = recovery.kind === "RESUME_PROFILE";
+          useAuthStore.setState({
+            isLoggedIn: false,
+            mobileNumber: recovery.mobile,
+            customerExists: !resuming,
+            isExistingUser: !resuming,
+            profileCompleted: !resuming,
+            hasPasscode: !resuming,
+            authFlowState: resuming ? "ENTER_MOBILE" : "PASSCODE_LOGIN",
+          });
+          if (!hasNavigated.current) {
+            hasNavigated.current = true;
+            router.replace(resuming ? "/(auth)/createprofile" : "/(auth)/login");
+          }
+          return;
+        }
+        if (recovery) {
+          // Nothing trustworthy to resume: start from the mobile-number step.
+          return;
+        }
 
         if (isAuthed && user) {
           // Sync profile in background if available

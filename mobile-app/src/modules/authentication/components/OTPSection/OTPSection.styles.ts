@@ -6,9 +6,6 @@ export const styles = StyleSheet.create({
     width: "100%",
     marginTop: Spacing.md,
   },
-  otpTouchable: {
-    width: "100%",
-  },
   otpGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -27,11 +24,9 @@ export const styles = StyleSheet.create({
     fontSize: Typography.fontSize.lg + 4,
     fontWeight: Typography.fontWeight.bold,
   },
-  hiddenInput: {
-    position: "absolute",
-    opacity: 0,
-    width: 1,
-    height: 1,
+  otpBoxInput: {
+    textAlign: "center",
+    padding: 0,
   },
   error: {
     fontSize: Typography.fontSize.sm + 0.5,

@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  ScrollView,
 } from "react-native";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ItrSelectableBank } from "../../itr-filing/types/itrFiling.types";
 import { styles } from "./BankSelectorModal.styles";
@@ -90,7 +90,7 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
             Direct income tax refunds are credited by CPC Bengaluru to your pre-validated bank account.
           </Text>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <KeyboardAwareScrollView showsVerticalScrollIndicator={false}>
             {/* List of Registered Accounts */}
             <View style={styles.bankList}>
               {banks.map((bank) => {
@@ -191,7 +191,7 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
             <TouchableOpacity activeOpacity={0.85} style={styles.confirmBtn} onPress={onClose}>
               <Text style={styles.confirmBtnText}>Confirm Selected Account</Text>
             </TouchableOpacity>
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </View>
       </View>
     </Modal>

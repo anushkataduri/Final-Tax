@@ -65,6 +65,15 @@ export const formStyles = {
     marginBottom: 6,
     color: BrandColors.PRIMARY_BLUE_DARK,
   },
+  requiredStar: {
+    color: "#DC2626",
+    fontWeight: Typography.fontWeight.bold,
+  },
+  requiredLegend: {
+    fontSize: Typography.fontSize.sm,
+    color: BrandColors.TEXT_SECONDARY,
+    marginBottom: Spacing.sm,
+  },
   inputBox: {
     height: 52,
     borderRadius: BorderRadius.md,

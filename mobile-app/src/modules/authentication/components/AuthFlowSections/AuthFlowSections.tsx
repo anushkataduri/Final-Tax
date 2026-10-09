@@ -42,6 +42,8 @@ export function AuthFlowSections({
     error,
     otpTimer,
     canResendOTP,
+    otpLockoutUntil,
+    passcodeLockoutUntil,
     setMobileNumber,
     setOtp,
     setPasscode,
@@ -79,6 +81,7 @@ export function AuthFlowSections({
               canResend={canResendOTP}
               loading={isLoading}
               verifyButtonTitle="Verify OTP"
+              lockoutUntil={otpLockoutUntil}
             />
           )}
 
@@ -109,6 +112,7 @@ export function AuthFlowSections({
             isBiometricEnabled={isBiometricEnabled}
             biometricTypeLabel={biometricTypeLabel}
             autoFocus={true}
+            lockoutUntil={passcodeLockoutUntil}
           />
 
           <GoogleLoginSection disabled={isLoading} />
@@ -137,6 +141,7 @@ export function AuthFlowSections({
             canResend={canResendOTP}
             loading={isLoading}
             verifyButtonTitle="Verify Reset Code"
+            lockoutUntil={otpLockoutUntil}
           />
         </>
       )}

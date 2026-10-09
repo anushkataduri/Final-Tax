@@ -1,5 +1,6 @@
 package com.taxedge.customer.entity;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -87,6 +88,17 @@ public class Customer {
     
     @Column(name = "push_token", length = 500)
     private String pushToken;
+
+    // Passcode-login abuse state. Nullable so existing rows load (null = 0 / unset).
+    @Column(name = "failed_login_attempts")
+    private Integer failedLoginAttempts;
+
+    @Column(name = "last_failed_login_at")
+    private Instant lastFailedLoginAt;
+
+    /** Passcode logins are refused until this instant. */
+    @Column(name = "login_locked_until")
+    private Instant loginLockedUntil;
 }
 
 

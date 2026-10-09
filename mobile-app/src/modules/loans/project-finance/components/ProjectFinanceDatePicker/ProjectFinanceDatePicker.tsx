@@ -1,16 +1,7 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Platform,
-  Modal,
-  Pressable,
-} from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
+import { DatePickerDialog } from "@/shared/components/DatePickerDialog";
 import { styles } from "./ProjectFinanceDatePicker.styles";
 
 interface ProjectFinanceDatePickerProps {
@@ -59,32 +50,16 @@ export const ProjectFinanceDatePicker: React.FC<
   required = false,
 }) => {
   const [showPicker, setShowPicker] = useState(false);
-  const [tempDate, setTempDate] = useState<Date>(() => parseDate(value));
+  const [pickerDate, setPickerDate] = useState<Date>(() => parseDate(value));
 
   const handleOpen = () => {
-    setTempDate(parseDate(value));
+    setPickerDate(parseDate(value));
     setShowPicker(true);
   };
 
-  const handleNativeChange = (
-    event: DateTimePickerEvent,
-    selectedDate?: Date
-  ) => {
-    if (Platform.OS === "android") {
-      setShowPicker(false);
-    }
-    if (event.type === "set" && selectedDate) {
-      if (Platform.OS === "ios") {
-        setTempDate(selectedDate);
-      } else {
-        onChange(formatDate(selectedDate));
-      }
-    }
-  };
-
-  const handleIosDone = () => {
-    onChange(formatDate(tempDate));
+  const handleConfirm = (selectedDate: Date) => {
     setShowPicker(false);
+    onChange(formatDate(selectedDate));
   };
 
   return (
@@ -106,46 +81,13 @@ export const ProjectFinanceDatePicker: React.FC<
         <Ionicons name="calendar-outline" size={18} color="#64748B" />
       </TouchableOpacity>
 
-      {/* Android DateTimePicker */}
-      {Platform.OS === "android" && showPicker && (
-        <DateTimePicker
-          value={parseDate(value)}
-          mode="date"
-          display="default"
-          onChange={handleNativeChange}
-        />
-      )}
-
-      {/* iOS Modal DateTimePicker */}
-      {Platform.OS === "ios" && (
-        <Modal
-          visible={showPicker}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowPicker(false)}
-        >
-          <Pressable
-            style={styles.iosModalOverlay}
-            onPress={() => setShowPicker(false)}
-          >
-            <Pressable style={styles.iosPickerContainer}>
-              <View style={styles.iosHeader}>
-                <Text style={styles.iosTitle}>{label || "Select Date"}</Text>
-                <TouchableOpacity onPress={handleIosDone}>
-                  <Text style={styles.iosDoneButton}>Done</Text>
-                </TouchableOpacity>
-              </View>
-              <DateTimePicker
-                value={tempDate}
-                mode="date"
-                display="spinner"
-                onChange={handleNativeChange}
-                textColor="#0F172A"
-              />
-            </Pressable>
-          </Pressable>
-        </Modal>
-      )}
+      <DatePickerDialog
+        visible={showPicker}
+        value={pickerDate}
+        onConfirm={handleConfirm}
+        onCancel={() => setShowPicker(false)}
+        title={label}
+      />
     </View>
   );
 };

@@ -61,6 +61,9 @@ export function AuthenticationScreen() {
     isLoading,
     error,
     otpTimer,
+    passcodeLockoutUntil,
+    refreshPasscodeLockout,
+    resetLoginPresentation,
     setMobileNumber,
     setPasscode,
     setError,
@@ -163,6 +166,15 @@ export function AuthenticationScreen() {
     }, [authFlowState])
   );
 
+  // ─── Passcode lockout survives restarts: re-read it whenever a passcode form is shown ─────────
+  useEffect(() => {
+    if ((authFlowState === "PASSCODE_LOGIN" || authFlowState === "BIOMETRIC_REAUTH") && mobileNumber) {
+      refreshPasscodeLockout().catch((err) => {
+        logger.debug("[AuthenticationScreen] Passcode lockout refresh failed", { error: getErrorMessage(err) });
+      });
+    }
+  }, [authFlowState, mobileNumber, refreshPasscodeLockout]);
+
   // ─── If already authenticated, redirect to home ───────────────────────────
   useEffect(() => {
     if (
@@ -194,6 +206,8 @@ export function AuthenticationScreen() {
       });
 
       if (authRes.success) {
+        // Biometric login supersedes any earlier passcode failure shown on this screen.
+        resetLoginPresentation();
         // ✅ Biometric succeeded — restore session and navigate to Dashboard
         const activeMobile = mobileNumber || authStorage.getSession().activeMobile;
         if (activeMobile) {
@@ -277,6 +291,7 @@ export function AuthenticationScreen() {
       const typeLabel = await biometricService.getBiometricTypeLabel();
       const authRes = await biometricService.authenticate(`Authenticate with ${typeLabel}`);
       if (authRes.success) {
+        resetLoginPresentation();
         const activeMobile = mobileNumber || authStorage.getSession().activeMobile;
         if (activeMobile) {
           authStorage.saveSession({
@@ -419,6 +434,7 @@ export function AuthenticationScreen() {
                   isBiometricEnabled={isBiometricEnabled}
                   biometricTypeLabel={biometricType}
                   autoFocus={passcodeAutoFocus}
+                  lockoutUntil={passcodeLockoutUntil}
                 />
               </Reanimated.View>
             )}

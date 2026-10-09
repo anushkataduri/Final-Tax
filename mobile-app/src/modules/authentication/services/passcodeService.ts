@@ -6,22 +6,38 @@ import type { DevUser } from "../types/auth.types";
 import type { CustomerLoginResponse } from "./authApi";
 import { logger } from "@/core/logging/logger";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
+import { ApiError } from "../../../core/api/apiError";
+import {
+  MAX_TRUSTED_LOCKOUT_MS,
+  PASSCODE_LOCKOUT_DURATION_MS,
+  PASSCODE_MAX_FAILED_ATTEMPTS,
+  lockoutMessage,
+  secondsUntil,
+} from "./lockoutPolicy";
 
 const KEY_PREFIX = "passcode_";
 const KEY_FAILED_ATTEMPTS = "passcode_failed_attempts_";
 const KEY_LOCKOUT_UNTIL = "passcode_lockout_until_";
 
-const MAX_FAILED_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 30 * 1000; // 30 seconds
+const MAX_FAILED_ATTEMPTS = PASSCODE_MAX_FAILED_ATTEMPTS;
+const LOCKOUT_DURATION_MS = PASSCODE_LOCKOUT_DURATION_MS;
 
 export interface PasscodeVerificationResult {
   success: boolean;
   error?: string;
   isLockedOut?: boolean;
   lockoutRemainingSeconds?: number;
+  /** Epoch ms at which the lockout ends (set together with `isLockedOut`). */
+  lockedUntil?: number;
   user?: DevUser;
   token?: string;
 }
+
+/** What `POST /customer/login` said about a passcode. */
+type BackendLoginOutcome =
+  | { kind: "success"; result: PasscodeVerificationResult }
+  | { kind: "locked"; result: PasscodeVerificationResult }
+  | { kind: "rejected"; remainingAttempts?: number };
 
 class PasscodeService {
   private clean(mobile: string): string {
@@ -31,43 +47,57 @@ class PasscodeService {
   /**
    * Check if a lockout is currently active for this mobile number
    */
-  async checkLockout(mobile: string): Promise<{ isLocked: boolean; remainingSeconds: number }> {
+  async checkLockout(mobile: string): Promise<{ isLocked: boolean; remainingSeconds: number; lockedUntil: number }> {
     const cleanMobile = this.clean(mobile);
-    if (!cleanMobile) return { isLocked: false, remainingSeconds: 0 };
+    if (!cleanMobile) return { isLocked: false, remainingSeconds: 0, lockedUntil: 0 };
 
     const lockoutStr = await secureStorage.getItem(`${KEY_LOCKOUT_UNTIL}${cleanMobile}`);
-    if (!lockoutStr) return { isLocked: false, remainingSeconds: 0 };
+    if (!lockoutStr) return { isLocked: false, remainingSeconds: 0, lockedUntil: 0 };
 
     const lockoutUntil = parseInt(lockoutStr, 10);
     const now = Date.now();
-    if (lockoutUntil > now) {
-      const remainingSeconds = Math.ceil((lockoutUntil - now) / 1000);
-      return { isLocked: true, remainingSeconds };
+    // A lock further away than any the server imposes means the clock moved or the value is bad:
+    // drop it and let the server decide.
+    if (Number.isFinite(lockoutUntil) && lockoutUntil > now && lockoutUntil - now <= MAX_TRUSTED_LOCKOUT_MS) {
+      return { isLocked: true, remainingSeconds: secondsUntil(lockoutUntil, now), lockedUntil: lockoutUntil };
     }
 
     // Lockout expired; clear lockout record
     await secureStorage.removeItem(`${KEY_LOCKOUT_UNTIL}${cleanMobile}`);
     await secureStorage.removeItem(`${KEY_FAILED_ATTEMPTS}${cleanMobile}`);
-    return { isLocked: false, remainingSeconds: 0 };
+    return { isLocked: false, remainingSeconds: 0, lockedUntil: 0 };
+  }
+
+  /** Remembers a lockout the server imposed so the countdown survives an app restart. */
+  private async lockFor(cleanMobile: string, retryAfterSeconds: number): Promise<number> {
+    const lockedUntil = Date.now() + Math.max(0, retryAfterSeconds) * 1000;
+    await secureStorage.setItem(`${KEY_LOCKOUT_UNTIL}${cleanMobile}`, String(lockedUntil));
+    await secureStorage.setItem(`${KEY_FAILED_ATTEMPTS}${cleanMobile}`, String(MAX_FAILED_ATTEMPTS));
+    return lockedUntil;
   }
 
   /**
    * Record a failed passcode attempt and trigger lockout if limit reached
    */
-  async recordFailedAttempt(mobile: string): Promise<{ isLocked: boolean; remainingSeconds: number; remainingAttempts: number }> {
+  async recordFailedAttempt(mobile: string): Promise<{ isLocked: boolean; remainingSeconds: number; lockedUntil: number; remainingAttempts: number }> {
     const cleanMobile = this.clean(mobile);
     const attemptsStr = await secureStorage.getItem(`${KEY_FAILED_ATTEMPTS}${cleanMobile}`);
     const attempts = (attemptsStr ? parseInt(attemptsStr, 10) : 0) + 1;
 
     if (attempts >= MAX_FAILED_ATTEMPTS) {
-      const lockoutUntil = Date.now() + LOCKOUT_DURATION_MS;
-      await secureStorage.setItem(`${KEY_LOCKOUT_UNTIL}${cleanMobile}`, String(lockoutUntil));
+      const lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+      await secureStorage.setItem(`${KEY_LOCKOUT_UNTIL}${cleanMobile}`, String(lockedUntil));
       await secureStorage.setItem(`${KEY_FAILED_ATTEMPTS}${cleanMobile}`, String(attempts));
-      return { isLocked: true, remainingSeconds: Math.ceil(LOCKOUT_DURATION_MS / 1000), remainingAttempts: 0 };
+      return {
+        isLocked: true,
+        remainingSeconds: Math.ceil(LOCKOUT_DURATION_MS / 1000),
+        lockedUntil,
+        remainingAttempts: 0,
+      };
     }
 
     await secureStorage.setItem(`${KEY_FAILED_ATTEMPTS}${cleanMobile}`, String(attempts));
-    return { isLocked: false, remainingSeconds: 0, remainingAttempts: MAX_FAILED_ATTEMPTS - attempts };
+    return { isLocked: false, remainingSeconds: 0, lockedUntil: 0, remainingAttempts: MAX_FAILED_ATTEMPTS - attempts };
   }
 
   /**
@@ -147,7 +177,7 @@ class PasscodeService {
   private async loginWithBackend(
     cleanMobile: string,
     cleanPasscode: string
-  ): Promise<PasscodeVerificationResult | null> {
+  ): Promise<BackendLoginOutcome | null> {
     try {
       const response = await apiClient.post<CustomerLoginResponse>("/customer/login", {
         mobileNumber: cleanMobile,
@@ -172,13 +202,34 @@ class PasscodeService {
         };
 
         return {
-          success: true,
-          token: response.accessToken,
-          user: devUser,
+          kind: "success",
+          result: {
+            success: true,
+            token: response.accessToken,
+            user: devUser,
+          },
         };
       }
     } catch (apiError) {
-      // If network error occurred and local passcode wasn't configured, fall through to failure
+      if (apiError instanceof ApiError && apiError.statusCode === 429) {
+        // The server has locked this account: honour its duration, not a local guess.
+        const retryAfter = apiError.retryAfterSeconds ?? Math.ceil(LOCKOUT_DURATION_MS / 1000);
+        const lockedUntil = await this.lockFor(cleanMobile, retryAfter);
+        return {
+          kind: "locked",
+          result: {
+            success: false,
+            isLockedOut: true,
+            lockoutRemainingSeconds: retryAfter,
+            lockedUntil,
+            error: lockoutMessage("passcode", retryAfter),
+          },
+        };
+      }
+      if (apiError instanceof ApiError && apiError.statusCode === 401) {
+        return { kind: "rejected", remainingAttempts: apiError.remainingAttempts };
+      }
+      // Network error or other failure: fall through, the caller treats it as a failed attempt
     }
 
     return null;
@@ -207,7 +258,8 @@ class PasscodeService {
         success: false,
         isLockedOut: true,
         lockoutRemainingSeconds: lockout.remainingSeconds,
-        error: `Too many failed attempts. Please try again in ${lockout.remainingSeconds}s.`,
+        lockedUntil: lockout.lockedUntil,
+        error: lockoutMessage("passcode", lockout.remainingSeconds),
       };
     }
 
@@ -230,8 +282,8 @@ class PasscodeService {
 
     // 3. If not matched locally or first time on device, authenticate with backend POST /customer/login
     const backendResult = await this.loginWithBackend(cleanMobile, cleanPasscode);
-    if (backendResult) {
-      return backendResult;
+    if (backendResult?.kind === "success" || backendResult?.kind === "locked") {
+      return backendResult.result;
     }
 
     // Passcode incorrect
@@ -241,13 +293,19 @@ class PasscodeService {
         success: false,
         isLockedOut: true,
         lockoutRemainingSeconds: attemptInfo.remainingSeconds,
-        error: `Account locked due to multiple incorrect attempts. Try again in ${attemptInfo.remainingSeconds}s.`,
+        lockedUntil: attemptInfo.lockedUntil,
+        error: lockoutMessage("passcode", attemptInfo.remainingSeconds),
       };
     }
 
+    // The server's count is authoritative when it reports one.
+    const remaining =
+      backendResult?.kind === "rejected" && backendResult.remainingAttempts !== undefined
+        ? backendResult.remainingAttempts
+        : attemptInfo.remainingAttempts;
     return {
       success: false,
-      error: `Incorrect passcode. ${attemptInfo.remainingAttempts} attempt(s) remaining.`,
+      error: `Incorrect passcode. ${remaining} attempt(s) remaining.`,
     };
   }
 }

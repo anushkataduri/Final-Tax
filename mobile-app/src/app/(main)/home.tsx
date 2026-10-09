@@ -156,19 +156,8 @@ export default function HomeScreen() {
   const openTile = (tile: DashboardServiceTile | ServiceTile) => {
     if (tile.isMore) { setMoreQuery(""); setMoreOpen(true); return; }
     setMoreOpen(false);
-    if (tile.route) {
-      if (
-        tile.route === "/service/gst" ||
-        tile.route === "/service/itr" ||
-        tile.route === "/service/loans" ||
-        tile.route === "/service/health-insurance" ||
-        tile.route === "/services"
-      ) {
-        router.push(tile.route);
-      } else {
-        accessService(tile.route);
-      }
-    }
+    // accessService applies the one profile rule (shared/guards/serviceAccess) for every tile.
+    if (tile.route) accessService(tile.route);
   };
 
   // Catalogue filtered by the sheet's search box.

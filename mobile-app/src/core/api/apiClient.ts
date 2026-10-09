@@ -44,7 +44,15 @@ interface ApiErrorBody {
   error?: string;
   code?: string;
   errors?: Record<string, string[]>;
+  retryAfterSeconds?: number;
+  remainingAttempts?: number;
 }
+
+/** A finite, non-negative number from a JSON field or header, else undefined. */
+const toSeconds = (value: unknown): number | undefined => {
+  const n = typeof value === "string" ? Number(value) : value;
+  return typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : undefined;
+};
 
 /** User-facing message for a request that failed before any HTTP response (timeout, offline, …). */
 const describeTransportError = (error: unknown): string => {
@@ -376,6 +384,11 @@ export class ApiClient {
       response.status,
       errorData.code || "API_ERROR",
       errorData.errors,
+      {
+        retryAfterSeconds:
+          toSeconds(errorData.retryAfterSeconds) ?? toSeconds(response.headers?.get?.("Retry-After")),
+        remainingAttempts: toSeconds(errorData.remainingAttempts),
+      },
     );
   }
 

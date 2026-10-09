@@ -5,14 +5,13 @@ import {
   TextInput,
   TouchableOpacity,
   Platform,
-  Modal,
   Keyboard,
   type StyleProp,
   type TextStyle,
   type ViewStyle,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { DatePickerDialog } from "@/shared/components/DatePickerDialog";
 import { useTheme } from "@/shared/hooks/useTheme";
 import {
   formatDateDDMMYYYY,
@@ -158,41 +157,22 @@ export const UniversalDatePicker: React.FC<UniversalDatePickerProps> = ({
   };
 
   const currentDate = resolvePickerDate();
-  const [tempIosDate, setTempIosDate] = useState<Date>(currentDate);
+  const [pickerDate, setPickerDate] = useState<Date>(currentDate);
 
   const openPicker = () => {
     // Make sure no text field keeps (or later regains) focus: this is what
     // re-opened the keyboard after a picker/dropdown closed.
     Keyboard.dismiss();
-    setTempIosDate(resolvePickerDate());
+    setPickerDate(resolvePickerDate());
     setShowPicker(true);
   };
 
-  const handleAndroidValueChange = (
-    _event: any,
-    selectedDate?: Date
-  ) => {
+  const handlePickerConfirm = (selectedDate: Date) => {
     setShowPicker(false);
-    if (selectedDate) {
-      onChange(formatOutput(selectedDate));
-    }
+    onChange(formatOutput(selectedDate));
   };
 
-  const handleIosValueChange = (
-    _event: any,
-    selectedDate?: Date
-  ) => {
-    if (selectedDate) {
-      setTempIosDate(selectedDate);
-    }
-  };
-
-  const handleIosConfirm = () => {
-    setShowPicker(false);
-    onChange(formatOutput(tempIosDate));
-  };
-
-  const handleIosCancel = () => {
+  const handlePickerCancel = () => {
     setShowPicker(false);
   };
 
@@ -309,55 +289,16 @@ export const UniversalDatePicker: React.FC<UniversalDatePickerProps> = ({
       {errorNode}
       {helperNode}
 
-      {/* Android Picker (the calendar header's year opens a year list for fast navigation) */}
-      {Platform.OS === "android" && showPicker && (
-        <DateTimePicker
-          value={currentDate}
-          mode="date"
-          display="default"
-          onValueChange={handleAndroidValueChange}
-          onDismiss={() => setShowPicker(false)}
-          minimumDate={effectiveMinDate}
-          maximumDate={maximumDate}
-        />
-      )}
-
-      {/* iOS Modal Picker (spinner has independent day / month / year wheels) */}
-      {Platform.OS === "ios" && (
-        <Modal
-          visible={showPicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={handleIosCancel}
-        >
-          <View style={styles.iosModalOverlay}>
-            <View style={styles.iosPickerContainer}>
-              <View style={styles.iosPickerHeader}>
-                <TouchableOpacity onPress={handleIosCancel} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Text style={styles.iosCancelButton}>Cancel</Text>
-                </TouchableOpacity>
-
-                <Text style={styles.iosHeaderTitle}>{label || "Select Date"}</Text>
-
-                <TouchableOpacity onPress={handleIosConfirm} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Text style={styles.iosDoneButton}>Done</Text>
-                </TouchableOpacity>
-              </View>
-
-              <DateTimePicker
-                value={tempIosDate}
-                mode="date"
-                display="spinner"
-                onValueChange={handleIosValueChange}
-                onDismiss={handleIosCancel}
-                minimumDate={effectiveMinDate}
-                maximumDate={maximumDate}
-                textColor={isDark ? "#F8FAFC" : "#0F172A"}
-              />
-            </View>
-          </View>
-        </Modal>
-      )}
+      {/* The app's one calendar: Material dialog on Android, spinner sheet on iOS */}
+      <DatePickerDialog
+        visible={showPicker}
+        value={pickerDate}
+        onConfirm={handlePickerConfirm}
+        onCancel={handlePickerCancel}
+        minimumDate={effectiveMinDate}
+        maximumDate={maximumDate}
+        title={label}
+      />
     </View>
   );
 };

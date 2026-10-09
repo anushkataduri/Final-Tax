@@ -222,13 +222,6 @@ export const styles = StyleSheet.create({
     maxHeight: "70%",
     paddingBottom: 24,
   },
-  modalContentIos: {
-    backgroundColor: BrandColors.WHITE,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -242,15 +235,6 @@ export const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm + 1,
     fontWeight: "700",
     color: "#0F172A",
-  },
-  datePickerCancelText: {
-    fontSize: Typography.fontSize.sm,
-    color: "#64748B",
-  },
-  datePickerDoneText: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: "700",
-    color: BrandColors.PRIMARY_ORANGE,
   },
   modalItem: {
     flexDirection: "row",

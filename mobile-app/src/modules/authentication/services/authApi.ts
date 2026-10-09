@@ -15,6 +15,9 @@ const maskMobile = (mobile: string): string => {
 export interface SendOtpResponse {
   success: boolean;
   message?: string;
+  /** Server limit code ("OTP_LOCKED" / "OTP_RESEND_LIMITED") when the request was refused with HTTP 429. */
+  code?: string;
+  retryAfterSeconds?: number;
 }
 
 /** Customer record as returned by the customer endpoints (backend CustomerDto; legacy aliases included). */
@@ -55,6 +58,9 @@ interface VerifyOtpApiResponse {
   hasPasscode?: boolean;
   message?: string;
   customer?: CustomerApiRecord & { custId: string; name: string; email: string };
+  /** Single-use proof that a new number passed OTP; required by `POST /customer/register`. */
+  registrationProof?: string;
+  registrationProofExpiresInSeconds?: number;
 }
 
 /** `GET /customer/exists/:mobile` body. */
@@ -95,6 +101,12 @@ export interface VerifyOtpResponse {
   message?: string;
   user?: DevUser;
   customer?: CustomerApiRecord;
+  registrationProof?: string;
+  registrationProofExpiresInSeconds?: number;
+  /** Server limit code ("OTP_LOCKED") when verification was refused with HTTP 429. */
+  code?: string;
+  retryAfterSeconds?: number;
+  remainingAttempts?: number;
 }
 
 export interface CheckUserResponse {
@@ -111,6 +123,8 @@ export interface RegisterResponse {
   user: DevUser;
   token?: string;
   message?: string;
+  /** Server error code, e.g. "REGISTRATION_PROOF_EXPIRED". */
+  code?: string;
 }
 
 export interface PasscodeResponse {
@@ -143,6 +157,9 @@ export const authApi = {
       const errorMsg = getErrorMessage(error)?.includes("Network request failed")
         ? `Network error: Unable to reach backend at ${apiClient.getBaseUrl()}. Check connection.`
         : getErrorMessage(error) || "Failed to generate OTP";
+      if (error instanceof ApiError && error.statusCode === 429) {
+        return { success: false, message: errorMsg, code: error.code, retryAfterSeconds: error.retryAfterSeconds };
+      }
       return { success: false, message: errorMsg };
     }
   },
@@ -190,6 +207,8 @@ export const authApi = {
         message: res?.message || "OTP verified successfully",
         user: devUser,
         customer: res?.customer,
+        registrationProof: res?.registrationProof,
+        registrationProofExpiresInSeconds: res?.registrationProofExpiresInSeconds,
       };
     } catch (error) {
       logger.warn("[OTP] Incorrect OTP entered or verification failed", {
@@ -203,6 +222,14 @@ export const authApi = {
         !errorMessage.includes("status code")
           ? errorMessage
           : "Incorrect OTP code. Please enter the valid OTP sent to your terminal.";
+      const limits =
+        error instanceof ApiError
+          ? {
+              code: error.code,
+              retryAfterSeconds: error.statusCode === 429 ? error.retryAfterSeconds : undefined,
+              remainingAttempts: error.remainingAttempts,
+            }
+          : {};
       return {
         success: false,
         isExistingUser: false,
@@ -210,6 +237,7 @@ export const authApi = {
         profileCompleted: false,
         hasPasscode: false,
         message: backendMsg,
+        ...limits,
       };
     }
   },
@@ -242,6 +270,7 @@ export const authApi = {
 
   register: async (
     data: RegistrationData & { mobileNumber: string; passcode?: string },
+    registrationProof?: string,
   ): Promise<RegisterResponse> => {
     try {
       const payload = buildRegisterPayload(data);
@@ -249,7 +278,11 @@ export const authApi = {
         customerType: data.customerType,
         mobile: maskMobile(data.mobileNumber),
       });
-      const response = await apiClient.post<Partial<CustomerLoginResponse>>("/customer/register", payload);
+      const response = await apiClient.post<Partial<CustomerLoginResponse>>(
+        "/customer/register",
+        payload,
+        registrationProof ? { headers: { "X-Registration-Proof": registrationProof } } : undefined,
+      );
       logger.info("[API] Customer registration response received", {
         custId: response.custId,
         hasAccessToken: Boolean(response.accessToken),
@@ -278,6 +311,7 @@ export const authApi = {
       return {
         success: false,
         message: getErrorMessage(error) || "Registration failed on backend",
+        code: error instanceof ApiError ? error.code : undefined,
         user: {} as DevUser,
       };
     }

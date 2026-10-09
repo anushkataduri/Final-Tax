@@ -1,11 +1,12 @@
+import { normalizeSpaces } from "@/shared/validators/profileValidators";
 import type { SignupForm } from "./types";
 
 /** "Line 1, Line 2, City, State - PIN" from the sign-up address fields, skipping empty parts. */
 export const formatSignupAddress = (form: SignupForm): string =>
   [
-    form.addressLine1.trim(),
-    form.addressLine2.trim(),
-    form.city.trim(),
+    normalizeSpaces(form.addressLine1),
+    normalizeSpaces(form.addressLine2),
+    normalizeSpaces(form.city),
     form.state.trim()
       ? `${form.state.trim()} - ${form.pincode.trim()}`
       : form.pincode.trim(),
@@ -19,18 +20,18 @@ export const buildRegistrationProfile = (
   fullAddress: string,
   storeMobileNumber: string
 ) => ({
-  name: form.name.trim(),
+  name: normalizeSpaces(form.name),
   email: form.email.trim(),
   customerType: form.customerType,
   dob: form.dob.trim(),
   gender: form.gender,
-  fatherSpouseName: form.fatherSpouseName.trim(),
+  fatherSpouseName: normalizeSpaces(form.fatherSpouseName),
   pan: form.pan.trim().toUpperCase(),
   aadhaar: form.aadhaar.replace(/\D/g, ""),
   address: fullAddress,
-  addressLine1: form.addressLine1.trim(),
-  addressLine2: form.addressLine2.trim(),
-  city: form.city.trim(),
+  addressLine1: normalizeSpaces(form.addressLine1),
+  addressLine2: normalizeSpaces(form.addressLine2),
+  city: normalizeSpaces(form.city),
   pincode: form.pincode.trim(),
   state: form.state.trim(),
   mobileNumber: form.mobileNumber || storeMobileNumber,

@@ -13,3 +13,8 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 150MB
+
+# Development only: no SMS gateway yet, so the OTP is written to the log. Never enable this in uat/prod.
+taxedge:
+  otp:
+    log-code: true

@@ -1,5 +1,7 @@
 import React, { useRef, useCallback } from "react";
 import { View, ScrollView, Alert } from "react-native";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
+import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -136,7 +138,7 @@ export const ProjectFinanceScreen: React.FC = () => {
       />
 
       <View style={styles.mainContainer}>
-        <ScrollView
+        <KeyboardAwareScrollView
           ref={scrollViewRef}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -147,16 +149,18 @@ export const ProjectFinanceScreen: React.FC = () => {
             state={state}
             setCurrentStepIndex={wizard.goToStep}
           />
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         {/* Sticky Bottom Action Bar */}
-        <LoanNavigation
-          onNext={handleNextOrSubmit}
-          isFirstStep={wizard.isFirstStep}
-          isLastStep={wizard.isLastStep}
-          nextText={wizard.isLastStep ? "Submit Application" : "Save & Continue"}
-          containerStyle={getBottomBarPadding(insets.bottom, 14)}
-        />
+        <KeyboardStickyFooter>
+          <LoanNavigation
+            onNext={handleNextOrSubmit}
+            isFirstStep={wizard.isFirstStep}
+            isLastStep={wizard.isLastStep}
+            nextText={wizard.isLastStep ? "Submit Application" : "Save & Continue"}
+            containerStyle={getBottomBarPadding(insets.bottom, 14)}
+          />
+        </KeyboardStickyFooter>
       </View>
 
       {/* Success Modal */}
