@@ -11,7 +11,7 @@ export const ReviewApplicationScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, themed.container]}>
-      <AppHeader title="Review Application" showBack />
+      <AppHeader title="Review Application" showBack={false} />
       <ScrollView contentContainerStyle={styles.scroll}>
         <StepReviewApplication />
       </ScrollView>

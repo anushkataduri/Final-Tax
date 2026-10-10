@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
 import { styles } from './StepSubmissionSuccess.styles';
 
 export const StepSubmissionSuccess: React.FC = () => {
+  const router = useRouter();
   const draft = useCompanyRegistrationStore((state) => state.draft);
-  const setStep = useCompanyRegistrationStore((state) => state.setStep);
 
   const appliedDateStr = draft.createdAt || new Date().toISOString().split('T')[0];
 
@@ -45,17 +46,33 @@ export const StepSubmissionSuccess: React.FC = () => {
         </View>
       </View>
 
-      {/* Buttons */}
-      <TouchableOpacity style={styles.btnPrimaryContainer} onPress={() => setStep(8)} activeOpacity={0.8}>
+      {/* Action Buttons */}
+      <TouchableOpacity
+        style={styles.btnPrimaryContainer}
+        onPress={() => router.replace('/(main)/home')}
+        activeOpacity={0.8}
+      >
         <LinearGradient
           colors={['#FF8A00', '#FF5500']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.btnPrimary}
         >
-          <Text style={styles.btnPrimaryText}>Track Application</Text>
+          <Ionicons name="home-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.btnPrimaryText}>Go to Dashboard</Text>
         </LinearGradient>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.btnSecondary}
+        onPress={() => router.replace('/(main)/applications')}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="folder-open-outline" size={20} color="#083B75" />
+        <Text style={styles.btnSecondaryText}>Track Application</Text>
       </TouchableOpacity>
     </View>
   );
 };
+
+export default StepSubmissionSuccess;

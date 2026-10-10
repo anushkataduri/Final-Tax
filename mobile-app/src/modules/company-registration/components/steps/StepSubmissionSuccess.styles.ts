@@ -82,6 +82,8 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
     borderRadius: 12,
   },
   btnPrimaryText: {
@@ -95,6 +97,9 @@ export const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
   },
   btnSecondaryText: {
     fontSize: 15,

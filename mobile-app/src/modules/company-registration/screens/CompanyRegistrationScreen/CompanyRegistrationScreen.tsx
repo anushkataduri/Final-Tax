@@ -20,7 +20,6 @@ import { StepDocumentsKYC } from '../../components/steps/StepDocumentsKYC';
 import { StepLinkedRegistrations } from '../../components/steps/StepLinkedRegistrations';
 import { StepReviewApplication } from '../../components/steps/StepReviewApplication';
 import { StepFeesPayment } from '../../components/steps/StepFeesPayment';
-import { StepApplicationTracking } from '../../components/steps/StepApplicationTracking';
 import { StepSubmissionSuccess } from '../../components/steps/StepSubmissionSuccess';
 
 import { styles } from './CompanyRegistrationScreen.styles';
@@ -35,7 +34,6 @@ const STEP_NAMES = [
   // 'Linked Registrations', // Disabled (Step 7)
   'Review Application',
   'Submission Success',
-  'Application Tracking',
 ];
 
 export const CompanyRegistrationScreen: React.FC = () => {
@@ -43,6 +41,8 @@ export const CompanyRegistrationScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const draft = useCompanyRegistrationStore((state) => state.draft);
   const setStep = useCompanyRegistrationStore((state) => state.setStep);
+  const editingStep = useCompanyRegistrationStore((state) => state.editingStep);
+  const clearEditingStep = useCompanyRegistrationStore((state) => state.clearEditingStep);
   const submitRegistrationSuccess = useCompanyRegistrationStore((state) => state.submitRegistrationSuccess);
   const resetRegistration = useCompanyRegistrationStore((state) => state.resetRegistration);
 
@@ -50,6 +50,7 @@ export const CompanyRegistrationScreen: React.FC = () => {
 
   const currentStep = draft.currentStep;
   const totalSteps = STEP_NAMES.length;
+  const isEditing = editingStep !== null && editingStep === currentStep;
 
   const {
     showDraftModal,
@@ -66,11 +67,16 @@ export const CompanyRegistrationScreen: React.FC = () => {
     onDiscardDraft: () => {
       resetRegistration();
     },
-    isSubmitted: () => draft.status === 'Submitted',
+    isSubmitted: () => draft.status === 'Submitted' || currentStep === 7,
     discardDestination: '/(main)/home',
   });
 
   const handleHeaderBack = () => {
+    if (editingStep !== null) {
+      clearEditingStep();
+      setStep(6);
+      return;
+    }
     if (currentStep > 0) {
       setStep(currentStep - 1);
     } else {
@@ -124,6 +130,21 @@ export const CompanyRegistrationScreen: React.FC = () => {
     }
 
     setFieldErrors({});
+
+    // Dedicated edit mode from Review Application: Save updates and return to Review
+    if (isEditing) {
+      setIsSubmitting(true);
+      try {
+        clearEditingStep();
+        setStep(6);
+      } catch (err: any) {
+        Alert.alert('Update Error', getErrorMessage(err) || 'Failed to update section.');
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
     if (currentStep < totalSteps - 1) {
       setStep(currentStep + 1);
     }
@@ -147,8 +168,6 @@ export const CompanyRegistrationScreen: React.FC = () => {
         return <StepReviewApplication />;
       case 7:
         return <StepSubmissionSuccess />;
-      case 8:
-        return <StepApplicationTracking />;
       default:
         return <StepCompanyType />;
     }
@@ -163,7 +182,7 @@ export const CompanyRegistrationScreen: React.FC = () => {
         subtitle={STEP_NAMES[currentStep] || ''}
         currentStepIndex={currentStep}
         totalSteps={totalSteps}
-        onBack={handleHeaderBack}
+        onBack={currentStep >= 6 ? undefined : handleHeaderBack}
         onSettings={() =>
           Alert.alert(
             "Company Incorporation Assistance",
@@ -204,7 +223,11 @@ export const CompanyRegistrationScreen: React.FC = () => {
               style={styles.gradientBtn}
             >
               <Text style={styles.nextBtnText}>
-                {currentStep === 6 ? (isSubmitting ? 'Submitting...' : 'Submit Application') : 'Continue →'}
+                {currentStep === 6
+                  ? (isSubmitting ? 'Submitting...' : 'Submit Application')
+                  : isEditing
+                  ? (isSubmitting ? 'Updating...' : 'Update and Continue')
+                  : 'Continue →'}
               </Text>
             </LinearGradient>
           </TouchableOpacity>

@@ -5,7 +5,7 @@ import { styles } from './StepReviewApplication.styles';
 
 export const StepReviewApplication: React.FC = () => {
   const draft = useCompanyRegistrationStore((state) => state.draft);
-  const setStep = useCompanyRegistrationStore((state) => state.setStep);
+  const startEditingStep = useCompanyRegistrationStore((state) => state.startEditingStep);
   const { company, directors } = draft;
 
   const primaryDirector = directors[0] || {};
@@ -19,7 +19,7 @@ export const StepReviewApplication: React.FC = () => {
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Company Type & Classification</Text>
-          <TouchableOpacity onPress={() => setStep(0)} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => startEditingStep(0)} activeOpacity={0.7}>
             <Text style={styles.editBtn}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -33,7 +33,7 @@ export const StepReviewApplication: React.FC = () => {
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Business Activity & NIC</Text>
-          <TouchableOpacity onPress={() => setStep(1)} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => startEditingStep(1)} activeOpacity={0.7}>
             <Text style={styles.editBtn}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -46,7 +46,7 @@ export const StepReviewApplication: React.FC = () => {
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Proposed Company Names</Text>
-          <TouchableOpacity onPress={() => setStep(1)} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => startEditingStep(1)} activeOpacity={0.7}>
             <Text style={styles.editBtn}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -59,7 +59,7 @@ export const StepReviewApplication: React.FC = () => {
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Registered Office Details</Text>
-          <TouchableOpacity onPress={() => setStep(2)} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => startEditingStep(2)} activeOpacity={0.7}>
             <Text style={styles.editBtn}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -77,7 +77,7 @@ export const StepReviewApplication: React.FC = () => {
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Promoter / Director Details</Text>
-          <TouchableOpacity onPress={() => setStep(3)} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => startEditingStep(3)} activeOpacity={0.7}>
             <Text style={styles.editBtn}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -98,7 +98,7 @@ export const StepReviewApplication: React.FC = () => {
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Capital & Shareholding</Text>
-          <TouchableOpacity onPress={() => setStep(4)} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => startEditingStep(4)} activeOpacity={0.7}>
             <Text style={styles.editBtn}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -112,7 +112,7 @@ export const StepReviewApplication: React.FC = () => {
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Documents & KYC Checklist</Text>
-          <TouchableOpacity onPress={() => setStep(5)} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => startEditingStep(5)} activeOpacity={0.7}>
             <Text style={styles.editBtn}>Edit</Text>
           </TouchableOpacity>
         </View>

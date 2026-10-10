@@ -1,14 +1,16 @@
 import { create } from 'zustand';
-import type { CompanyRegistrationDraft, LinkedRegistrations, ApplicationReceipt, CompanyDoc } from '../types/registration.types';
+import type { CompanyRegistrationDraft, LinkedRegistrations, ApplicationReceipt } from '../types/registration.types';
 import type { CompanyType, CompanyDetails } from '../types/company.types';
 import type { DirectorInfo, OpcNomineeInfo, PartnerInfo } from '../types/director.types';
 import type { DocumentStatus, Application } from '../../../types/domain';
 import { useApplicationStore } from '../../../store/applicationStore';
 import { getSuffixForType } from '../validation/companySchema';
+import { initialDraft } from './initialDraft';
 
 interface CompanyRegistrationState {
   draft: CompanyRegistrationDraft;
   fieldErrors: Record<string, string>;
+  editingStep: number | null;
   setFieldErrors: (errors: Record<string, string>) => void;
   clearFieldError: (key: string) => void;
   clearAllFieldErrors: () => void;
@@ -23,100 +25,17 @@ interface CompanyRegistrationState {
   toggleLinkedRegistration: (key: keyof LinkedRegistrations) => void;
   updateDocumentStatus: (documentId: string, status: DocumentStatus, fileUri?: string, fileName?: string) => void;
   setStep: (step: number) => void;
+  startEditingStep: (step: number) => void;
+  clearEditingStep: () => void;
   processPayment: (paymentMethod: string) => void;
   submitRegistrationSuccess: (appId: string, statusText?: string) => void;
   resetRegistration: () => void;
 }
 
-const initialDraft: CompanyRegistrationDraft = {
-  id: '',
-  company: {
-    companyType: '' as CompanyType,
-    companyClass: '' as any,
-    companyCategory: '' as any,
-    companySubCategory: '' as any,
-    primaryActivity: '',
-    nicCode: '',
-    secondaryActivity: '',
-    proposedName1: '',
-    proposedName2: '',
-    proposedName3: '',
-    nameSuffix: '',
-    nameAvailabilityStatus: 'Available',
-    registeredAddressLine: '',
-    registeredCity: '',
-    registeredDistrict: '',
-    registeredState: '',
-    registeredPincode: '',
-    premisesOwnership: '' as any,
-    companyEmail: '',
-    companyMobile: '',
-    officeAddressProofName: '',
-    officeAddressProofUri: '',
-    ownershipDocName: '',
-    ownershipDocUri: '',
-    ownerNocName: '',
-    ownerNocUri: '',
-    authorizedCapital: 0,
-    paidUpCapital: 0,
-    numberOfShares: 0,
-    faceValuePerShare: 0,
-  },
-  directors: [],
-  opcNominee: {
-    name: '',
-    pan: '',
-    aadhaar: '',
-    email: '',
-    phone: '',
-    relationship: '',
-  },
-  partners: [],
-  documents: [
-    { id: 'doc-pan', name: 'Promoter PAN Card', category: 'Promoter KYC', required: true, status: 'Pending' },
-    { id: 'doc-aadhaar', name: 'Promoter Aadhaar / Passport', category: 'Promoter KYC', required: true, status: 'Pending' },
-    { id: 'doc-photo', name: 'Promoter Passport Photo', category: 'Promoter KYC', required: false, status: 'Pending' },
-    { id: 'doc-address', name: 'Registered Office Ownership / Lease Proof', category: 'Office Proof', required: true, status: 'Pending' },
-    { id: 'doc-utility', name: 'Registered Office Utility Bill (Electricity/Water)', category: 'Office Proof', required: true, status: 'Pending' },
-    { id: 'doc-noc', name: 'Property Owner No Objection Certificate (NOC)', category: 'Office Proof', required: false, status: 'Pending' },
-    { id: 'doc-moa', name: 'Draft e-MoA (Memorandum of Association)', category: 'Statutory Docs', required: false, status: 'Pending' },
-    { id: 'doc-aoa', name: 'Draft e-AoA (Articles of Association)', category: 'Statutory Docs', required: false, status: 'Pending' },
-  ],
-  linkedRegistrations: {
-    pan: false,
-    tan: false,
-    gst: false,
-    esic: false,
-    epfo: false,
-    professionalTax: false,
-    bankAccount: false,
-  },
-  feeBreakdown: {
-    professionalFee: 4999,
-    gstAmount: 900,
-    statutoryCharges: 1500,
-    totalAmount: 7399,
-  },
-  trackingStages: [
-    { id: 'stg-1', title: 'Draft Creation', description: 'Application initiated by user', status: 'pending' },
-    { id: 'stg-2', title: 'KYC & Document Verification', description: 'Reviewing PAN, Aadhaar & Office Proofs', status: 'pending' },
-    { id: 'stg-3', title: 'Under Review', description: 'TaxEdge compliance expert validation', status: 'pending' },
-    { id: 'stg-4', title: 'Name Reservation (RUN / SPICe+ Part A)', description: 'Filing preferred names with MCA CRC', status: 'pending' },
-    { id: 'stg-5', title: 'DSC & DIN Processing', description: 'Digital signature token generation', status: 'pending' },
-    { id: 'stg-6', title: 'Ready for SPICe+ Part B Filing', description: 'Final incorporation payload compilation', status: 'pending' },
-    { id: 'stg-7', title: 'Submitted to MCA Portal', description: 'Form e-MoA, e-AoA & AGILE-PRO-S filed', status: 'pending' },
-    { id: 'stg-8', title: 'Government Approval & COI', description: 'Certificate of Incorporation & CIN Issuance', status: 'pending' },
-  ],
-  currentStep: 0,
-  totalFee: 4999,
-  paymentStatus: 'Pending',
-  status: 'Draft',
-  createdAt: '',
-};
-
 export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set) => ({
   draft: initialDraft,
   fieldErrors: {},
+  editingStep: null,
   setFieldErrors: (fieldErrors) => set({ fieldErrors }),
   clearFieldError: (key) =>
     set((state) => {
@@ -240,6 +159,12 @@ export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set
       };
     }),
   setStep: (currentStep) => set((state) => ({ draft: { ...state.draft, currentStep } })),
+  startEditingStep: (step) =>
+    set((state) => ({
+      editingStep: step,
+      draft: { ...state.draft, currentStep: step },
+    })),
+  clearEditingStep: () => set({ editingStep: null }),
   processPayment: (paymentMethod) =>
     set((state) => {
       const receipt: ApplicationReceipt = {
@@ -305,10 +230,7 @@ export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set
         chatHistory: [],
       };
       useApplicationStore.getState().addApplication(mappedApp);
-      return { draft: { ...state.draft, id: realId, status: 'Submitted', createdAt: dateStr, currentStep: 7 } };
+      return { draft: { ...state.draft, id: realId, status: 'Submitted', createdAt: dateStr, currentStep: 7 }, editingStep: null };
     }),
-  resetRegistration: () => set({ draft: initialDraft, fieldErrors: {} }),
+  resetRegistration: () => set({ draft: initialDraft, fieldErrors: {}, editingStep: null }),
 }));
-
-
-
