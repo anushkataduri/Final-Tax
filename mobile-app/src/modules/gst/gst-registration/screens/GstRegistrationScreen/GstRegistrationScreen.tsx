@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -19,7 +21,6 @@ import { GstStepHeader } from "@/modules/gst/components/GstStepHeader";
 import { GstBusinessStep } from "@/modules/gst/gst-registration/components/GstBusinessStep/GstBusinessStep";
 import { GstUnifiedDocumentStep } from "@/modules/gst/gst-registration/components/GstUnifiedDocumentStep/GstUnifiedDocumentStep";
 import { GstReviewStep } from "@/modules/gst/gst-registration/components/GstReviewStep/GstReviewStep";
-import { GstRegistrationPaymentStep } from "@/modules/gst/gst-registration/components/GstRegistrationPaymentStep/GstRegistrationPaymentStep";
 import { GstApplicationStatusStep } from "@/modules/gst/gst-status/components/GstApplicationStatusStep/GstApplicationStatusStep";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 
@@ -30,19 +31,7 @@ const STEP_LABELS = [
   "Business Details",
   "Upload Documents",
   "Review Application",
-  "Payment & Filing",
 ];
-
-const getScreenTitle = (index: number) => {
-  const titles = [
-    "GST Registration",
-    "Upload Documents",
-    "Review Application",
-    "Service Payment",
-    "Application Status",
-  ];
-  return titles[index] || titles[0];
-};
 
 const getButtonText = (index: number, isEditMode: boolean = false) => {
   if (isEditMode && (index === 0 || index === 1)) {
@@ -51,7 +40,7 @@ const getButtonText = (index: number, isEditMode: boolean = false) => {
   const texts = [
     "Continue to Documents",
     "Continue to Review",
-    "Proceed to Payment (₹1,499)",
+    "Submit Application",
   ];
   return texts[index] || "";
 };
@@ -62,7 +51,6 @@ export const GstRegistrationScreen: React.FC = () => {
 
   const {
     screenIndex,
-    setScreenIndex,
     isLoading,
     declared,
     setDeclared,
@@ -76,11 +64,14 @@ export const GstRegistrationScreen: React.FC = () => {
     handleBusinessBlur,
     handleUpdateDocuments,
     handleContinue,
-    handlePaymentSuccess,
     handleBack,
     isEditMode,
+    editSection,
     handleEditStep,
     isFetchingReview,
+    reviewFetchError,
+    handleRetryReviewFetch,
+    handleSectionLayout,
   } = useGstRegistrationFlow(scrollViewRef);
 
   const handleRequestScrollToSection = useCallback((_section: "bank" | "signatory", y?: number) => {
@@ -93,11 +84,11 @@ export const GstRegistrationScreen: React.FC = () => {
   return (
     <View style={styles.root}>
       {/* Header & Step Tracker */}
-      {screenIndex < 4 ? (
+      {screenIndex < 3 ? (
         <GstStepHeader
           title="GST Registration"
           currentStep={screenIndex + 1}
-          totalSteps={4}
+          totalSteps={3}
           stepLabel={STEP_LABELS[screenIndex]}
           onBack={handleBack}
         />
@@ -119,114 +110,111 @@ export const GstRegistrationScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Main Scroll Content */}
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.scrollContent,
-          screenIndex === 4 ? styles.scrollPaddingBottom : null,
-        ]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        bounces={true}
-        overScrollMode="always"
-        nestedScrollEnabled={true}
+      {/* Main Scroll Content with iOS Keyboard Avoidance */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 10 : 0}
       >
-        {screenIndex === 0 && (
-          <GstBusinessStep
-            data={businessData}
-            errors={businessErrors}
-            onChange={handleBusinessChange}
-            onBlurField={handleBusinessBlur}
-            onRequestScrollToSection={handleRequestScrollToSection}
-          />
-        )}
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom, 16) + (screenIndex === 3 ? 24 : 36) },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          bounces={true}
+          overScrollMode="always"
+          nestedScrollEnabled={true}
+        >
+          {screenIndex === 0 && (
+            <GstBusinessStep
+              data={businessData}
+              errors={businessErrors}
+              onChange={handleBusinessChange}
+              onBlurField={handleBusinessBlur}
+              onRequestScrollToSection={handleRequestScrollToSection}
+              initialExpandedSection={editSection}
+              onSectionLayout={handleSectionLayout}
+            />
+          )}
 
-        {screenIndex === 1 && (
-          <GstUnifiedDocumentStep
-            documents={documents}
-            onUpdateDocument={(docId, patch) => {
-              const updated = documents.map((d) =>
-                d.id === docId ? { ...d, ...patch } : d,
-              );
-              handleUpdateDocuments(updated);
-            }}
-          />
-        )}
+          {screenIndex === 1 && (
+            <GstUnifiedDocumentStep
+              documents={documents}
+              onUpdateDocument={(docId, patch) => {
+                const updated = documents.map((d) =>
+                  d.id === docId ? { ...d, ...patch } : d,
+                );
+                handleUpdateDocuments(updated);
+              }}
+            />
+          )}
 
-        {screenIndex === 2 && (
-          <GstReviewStep
-            businessData={businessData}
-            documents={documents}
-            onEditStep={handleEditStep}
-            declared={declared}
-            onToggleDeclaration={() => setDeclared((prev: boolean) => !prev)}
-            isFetching={isFetchingReview}
-          />
-        )}
+          {screenIndex === 2 && (
+            <GstReviewStep
+              businessData={businessData}
+              documents={documents}
+              onEditStep={handleEditStep}
+              declared={declared}
+              onToggleDeclaration={() => setDeclared((prev: boolean) => !prev)}
+              isFetching={isFetchingReview}
+              reviewFetchError={reviewFetchError}
+              onRetry={handleRetryReviewFetch}
+            />
+          )}
 
-        {screenIndex === 3 && (
-          <GstRegistrationPaymentStep
-            businessName={
-              businessData.businessName ||
-              businessData.legalName ||
-              "Your Business"
-            }
-            amount={1499}
-            applicationId={createdGstId || "GST-REG"}
-            onPaymentSuccess={handlePaymentSuccess}
-            onBackToReview={() => setScreenIndex(2)}
-          />
-        )}
+          {screenIndex === 3 && (
+            <GstApplicationStatusStep
+              appId={createdGstId || createdAppId || businessData.gstId}
+              businessName={businessData.businessName || "Your Business"}
+              appliedDate="Today"
+              serviceName="GST Registration"
+            />
+          )}
 
-        {screenIndex === 4 && (
-          <GstApplicationStatusStep
-            appId={createdGstId || createdAppId || businessData.gstId}
-            businessName={businessData.businessName || "Your Business"}
-            appliedDate="Today"
-            serviceName="GST Registration"
-          />
-        )}
-
-        {/* Action Button */}
-        {screenIndex < 3 && (
-          <View style={styles.buttonWrapper}>
-            {isEditMode ? (
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={handleContinue}
-                style={styles.updateReviewBtn}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <View style={styles.updateReviewContent}>
-                    <Ionicons name="checkmark-circle-outline" size={19} color="#FFFFFF" />
-                    <Text style={styles.updateReviewBtnText}>Update & Review</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={handleContinue}
-                style={styles.submitBtn}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.submitBtnText}>
-                    {getButtonText(screenIndex)}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-      </ScrollView>
+          {/* Action Button */}
+          {screenIndex < 3 && (
+            <View style={styles.buttonWrapper}>
+              {isEditMode ? (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleContinue}
+                  style={styles.updateReviewBtn}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <View style={styles.updateReviewContent}>
+                      <Ionicons name="checkmark-circle-outline" size={19} color="#FFFFFF" />
+                      <Text style={styles.updateReviewBtnText}>Update & Review</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleContinue}
+                  style={styles.submitBtn}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.submitBtnText}>
+                      {getButtonText(screenIndex)}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Universal Save As Draft Confirmation Modal */}
       <UniversalDraftModal

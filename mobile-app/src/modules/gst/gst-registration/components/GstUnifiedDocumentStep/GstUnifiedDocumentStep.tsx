@@ -9,15 +9,10 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import { styles, getProgressFillStyle } from "./GstUnifiedDocumentStep.styles";
 import { AddressProofSelectModal } from "./GstDocumentModals";
-import { GstDocumentCard, GstDocumentItem } from "@/modules/gst/components/GstDocumentCard";
+import { GstDocumentCard } from "@/modules/gst/components/GstDocumentCard";
 import {
-  DocumentUploadStatus,
-  DocumentDisplayStatus,
   DocumentItem,
   isDocumentUploaded,
-  getDocumentStatus,
-  isPdfDocument,
-  STATUS_LABELS,
 } from "./GstUnifiedDocumentStep.types";
 
 export const INITIAL_DOCUMENTS: DocumentItem[] = [
@@ -83,7 +78,6 @@ export const INITIAL_DOCUMENTS: DocumentItem[] = [
   },
 ];
 
-const ADDRESS_PROOF_PLACEHOLDER = "Electricity Bill / Rental Agreement";
 
 const DOCUMENT_CATEGORIES: readonly (DocumentItem["category"])[] = [
   "Identity Proof",
@@ -104,6 +98,7 @@ export const GstUnifiedDocumentStep: React.FC<Props> = ({
 }) => {
   const [showAddressProofModal, setShowAddressProofModal] = useState(false);
   const [addressUploadTrigger, setAddressUploadTrigger] = useState(0);
+  const [pendingAddressProofType, setPendingAddressProofType] = useState<string | null>(null);
 
   const uploadedCount = documents.reduce(
     (c, d) => (isDocumentUploaded(d) ? c + 1 : c),
@@ -113,6 +108,8 @@ export const GstUnifiedDocumentStep: React.FC<Props> = ({
   const totalCount = documents.length;
   const progressPercent =
     totalCount > 0 ? (selectedCount / totalCount) * 100 : 0;
+
+  const currentAddressDoc = documents.find((d) => d.id === "address-proof");
 
   return (
     <View style={styles.container}>
@@ -179,7 +176,7 @@ export const GstUnifiedDocumentStep: React.FC<Props> = ({
                   }
                   onDropdownPress={() => setShowAddressProofModal(true)}
                   onUploadSuccess={(id, asset) => {
-                    onUpdateDocument(id, {
+                    const patch: Partial<DocumentItem> = {
                       fileUri: asset.uri,
                       fileName: asset.name,
                       fileSize: asset.size,
@@ -190,12 +187,23 @@ export const GstUnifiedDocumentStep: React.FC<Props> = ({
                       }),
                       uploadStatus: undefined,
                       uploadError: undefined,
-                    });
+                    };
+                    if (id === "address-proof" && pendingAddressProofType) {
+                      patch.subtitle = pendingAddressProofType;
+                      setPendingAddressProofType(null);
+                    }
+                    onUpdateDocument(id, patch);
                   }}
                   onUploadError={(id, msg) => {
+                    if (id === "address-proof") {
+                      setPendingAddressProofType(null);
+                    }
                     onUpdateDocument(id, { uploadError: msg });
                   }}
                   onRemove={(id) => {
+                    if (id === "address-proof") {
+                      setPendingAddressProofType(null);
+                    }
                     onUpdateDocument(id, {
                       fileUri: undefined,
                       fileName: undefined,
@@ -227,10 +235,13 @@ export const GstUnifiedDocumentStep: React.FC<Props> = ({
 
       <AddressProofSelectModal
         visible={showAddressProofModal}
-        currentValue={documents.find((d) => d.id === "address-proof")?.subtitle}
-        onClose={() => setShowAddressProofModal(false)}
+        currentValue={pendingAddressProofType || currentAddressDoc?.subtitle}
+        onClose={() => {
+          setShowAddressProofModal(false);
+          setPendingAddressProofType(null);
+        }}
         onSelect={(p) => {
-          onUpdateDocument("address-proof", { subtitle: p });
+          setPendingAddressProofType(p);
           setShowAddressProofModal(false);
           setAddressUploadTrigger((prev) => prev + 1);
         }}

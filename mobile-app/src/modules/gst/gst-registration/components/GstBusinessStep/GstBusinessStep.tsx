@@ -4,177 +4,52 @@
  * helper functions, DRY renderers, and robust exception handling (< 400 lines).
  */
 
-import React, { useState, useEffect, useCallback, memo, useRef } from "react";
-import { View, Text, TouchableOpacity, Keyboard } from "react-native";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { View, Text, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import { styles } from "./GstBusinessStep.styles";
 import { UniversalDatePicker } from "@/shared/components/UniversalDatePicker";
-import { FormInput, FormSelect } from "./GstFormElements";
+import {
+  FormInput,
+  FormSelect,
+  SectionCard,
+  AccordionSection,
+  sanitizeDigits,
+  sanitizeAlphanumericUpper,
+} from "./GstFormElements";
+import { BANK_FIELD_NAMES, SIGNATORY_FIELD_NAMES } from "../../utils/gstDraftLifecycle";
 import { logger } from "@/core/logging/logger";
+import { hsnSacPolicy } from "@/modules/gst/utils/hsnSacPolicy";
+import { useGstFieldLookups } from "@/modules/gst/gst-registration/hooks/useGstFieldLookups";
+import {
+  STATE_OPTIONS, BANK_OPTIONS, BUSINESS_TYPES, NATURE_OF_BUSINESS, REASONS,
+  COMPOSITION_OPTIONS, PLACE_OPTIONS, ACCOUNT_TYPES,
+  type BusinessType, type NatureOfBusiness, type ReasonForRegistration,
+  type CompositionOption, type PlaceOption, type AccountType,
+} from "../../constants/gstOptionConstants";
 
-// --- CONSTANTS WITH 'as const' FOR STRICT TYPESCRIPT INFERENCE ---
-
-export const BUSINESS_TYPES = [
-  "Proprietorship", "Partnership Firm", "Limited Liability Partnership (LLP)",
-  "Private Limited Company", "Public Limited Company", "HUF",
-  "Society / Trust / Club", "AOP / BOI", "Government Department",
-  "Foreign Company", "One Person Company (OPC)",
-] as const;
-
-export const NATURE_OF_BUSINESS = [
-  "Trader", "Manufacturer", "Service Provider", "Wholesaler / Distributor",
-  "Retailer", "Exporter / Importer", "Contractor / Freelancer",
-] as const;
-
-export const REASONS = [
-  "Crossed turnover threshold", "Voluntary registration", "Inter-state supply",
-  "E-commerce operator / seller", "Casual taxable person", "Input Service Distributor",
-] as const;
-
-export const COMPOSITION_OPTIONS = ["No - regular scheme", "Yes - composition scheme"] as const;
-export const PLACE_OPTIONS = ["Principal place of business", "Additional place of business"] as const;
-export const STATE_OPTIONS = [
-  "Andhra Pradesh", "Delhi", "Gujarat", "Karnataka", "Maharashtra", "Tamil Nadu", "Telangana",
-] as const;
-export const BANK_OPTIONS = [
-  "Axis Bank", "HDFC Bank", "ICICI Bank", "Kotak Mahindra Bank", "Punjab National Bank", "State Bank of India",
-] as const;
-export const ACCOUNT_TYPES = ["Current", "Savings", "Cash Credit / OD"] as const;
-
-// Derived Union Types
-export type BusinessType = (typeof BUSINESS_TYPES)[number];
-export type NatureOfBusiness = (typeof NATURE_OF_BUSINESS)[number];
-export type ReasonForRegistration = (typeof REASONS)[number];
-export type CompositionOption = (typeof COMPOSITION_OPTIONS)[number];
-export type PlaceOption = (typeof PLACE_OPTIONS)[number];
-export type StateOption = (typeof STATE_OPTIONS)[number];
-export type BankOption = (typeof BANK_OPTIONS)[number];
-export type AccountType = (typeof ACCOUNT_TYPES)[number];
+export {
+  BUSINESS_TYPES, NATURE_OF_BUSINESS, REASONS, COMPOSITION_OPTIONS, PLACE_OPTIONS, ACCOUNT_TYPES,
+  type BusinessType, type NatureOfBusiness, type ReasonForRegistration,
+  type CompositionOption, type PlaceOption, type AccountType,
+};
 
 export interface GstBusinessFormData {
-  gstId?: string;
-  customerId?: string;
-  legalName: string;
-  businessName: string;
-  businessType: string;
-  natureOfBusiness: string;
-  placeOfBusiness: string;
-  businessStartDate: string;
-  reasonForRegistration: string;
-  compositionScheme: string;
-  businessAddress: string;
-  city: string;
-  district: string;
-  state: string;
-  pinCode: string;
-  hsnCode: string;
-  accountHolderName: string;
-  bankAccountNumber: string;
-  confirmBankAccountNumber: string;
-  ifscCode: string;
-  bankName: string;
-  branchName: string;
-  accountType: string;
-  signatoryName: string;
-  signatoryPan: string;
-  signatoryDob: string;
-  signatoryDesignation: string;
-  signatoryMobile: string;
-  signatoryEmail: string;
-  addressProofType: string;
-  aadhaarConsent: boolean;
+  gstId?: string; customerId?: string; legalName: string; businessName: string; businessType: string;
+  natureOfBusiness: string; placeOfBusiness: string; businessStartDate: string; reasonForRegistration: string;
+  compositionScheme: string; businessAddress: string; city: string; district: string; state: string; pinCode: string;
+  hsnCode: string; accountHolderName: string; bankAccountNumber: string; confirmBankAccountNumber: string;
+  ifscCode: string; bankName: string; branchName: string; accountType: string; signatoryName: string;
+  signatoryPan: string; signatoryDob: string; signatoryDesignation: string; signatoryMobile: string;
+  signatoryEmail: string; addressProofType: string; aadhaarConsent: boolean;
 }
 
 export type FormErrors = Partial<Record<keyof GstBusinessFormData, string>>;
 
-// Field keys for automated accordion error expansion
-const BANK_FIELD_KEYS: readonly (keyof GstBusinessFormData)[] = [
-  "accountHolderName", "bankAccountNumber", "confirmBankAccountNumber",
-  "ifscCode", "bankName", "branchName", "accountType",
-];
+const BANK_FIELD_KEYS = BANK_FIELD_NAMES as readonly (keyof GstBusinessFormData)[];
+const SIGNATORY_FIELD_KEYS = SIGNATORY_FIELD_NAMES as readonly (keyof GstBusinessFormData)[];
 
-const SIGNATORY_FIELD_KEYS: readonly (keyof GstBusinessFormData)[] = [
-  "signatoryName", "signatoryPan", "signatoryDob",
-  "signatoryDesignation", "signatoryMobile", "signatoryEmail",
-];
-
-// --- EXCEPTION HANDLING & SANITIZATION UTILITIES ---
-
-function safeTransform(value: unknown, transformer: (val: string) => string): string {
-  try {
-    if (value === null || value === undefined) return "";
-    return transformer(typeof value === "string" ? value : String(value));
-  } catch (error) {
-    logger.warn("[GstBusinessStep] Input transformation fallback", { error });
-    return typeof value === "string" ? value : "";
-  }
-}
-
-const sanitizeDigits = (val: string): string => safeTransform(val, (s) => s.replace(/\D/g, ""));
-const sanitizeAlphanumericUpper = (val: string): string => safeTransform(val, (s) => s.replace(/[^a-zA-Z0-9]/g, "").toUpperCase());
-const sanitizeUpper = (val: string): string => safeTransform(val, (s) => s.toUpperCase());
-
-// --- FUNCTIONAL CARD & ACCORDION COMPONENTS ---
-
-interface SectionCardProps {
-  iconName: keyof typeof Ionicons.glyphMap;
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-}
-
-const SectionCard: React.FC<SectionCardProps> = memo(({ iconName, title, subtitle, children }) => (
-  <View style={styles.sectionCard}>
-    <View style={styles.sectionHeader}>
-      <View style={styles.sectionIconBox}>
-        <Ionicons name={iconName} size={18} color={BrandColors.PRIMARY_ORANGE} />
-      </View>
-      <View style={styles.sectionTitleWrap}>
-        <Text style={styles.sectionMainTitle}>{title}</Text>
-        <Text style={styles.sectionSubtitle}>{subtitle}</Text>
-      </View>
-    </View>
-    {children}
-  </View>
-));
-SectionCard.displayName = "SectionCard";
-
-interface AccordionSectionProps {
-  title: string;
-  subtitle?: string;
-  iconName: keyof typeof Ionicons.glyphMap;
-  isExpanded: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}
-
-const AccordionSection: React.FC<AccordionSectionProps> = memo(
-  ({ title, subtitle, iconName, isExpanded, onToggle, children }) => (
-    <View style={styles.accordionCard}>
-      <TouchableOpacity
-        style={styles.accordionCardHeader}
-        activeOpacity={0.7}
-        onPress={onToggle}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: isExpanded }}
-      >
-        <View style={styles.sectionHeaderWrap}>
-          <View style={styles.sectionIconBox}>
-            <Ionicons name={iconName} size={18} color={BrandColors.PRIMARY_ORANGE} />
-          </View>
-          <View style={styles.sectionTitleWrap}>
-            <Text style={styles.sectionMainTitle}>{title}</Text>
-            {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
-          </View>
-        </View>
-        <Ionicons name={isExpanded ? "chevron-up" : "chevron-down"} size={20} color="#64748B" />
-      </TouchableOpacity>
-      {isExpanded && <View style={styles.accordionCardContent}>{children}</View>}
-    </View>
-  )
-);
-AccordionSection.displayName = "AccordionSection";
 
 // --- PROPS INTERFACE ---
 
@@ -184,6 +59,8 @@ interface Props {
   onBlurField?: (field: keyof GstBusinessFormData) => void;
   errors?: FormErrors;
   onRequestScrollToSection?: (sectionKey: "bank" | "signatory", y?: number) => void;
+  initialExpandedSection?: string | null;
+  onSectionLayout?: (section: "bank" | "signatory", y: number) => void;
 }
 
 // --- MAIN COMPONENT ---
@@ -194,27 +71,60 @@ export const GstBusinessStep: React.FC<Props> = ({
   onBlurField,
   errors = {},
   onRequestScrollToSection,
+  initialExpandedSection,
+  onSectionLayout,
 }) => {
-  const [isBankExpanded, setIsBankExpanded] = useState(false);
-  const [isSignatoryExpanded, setIsSignatoryExpanded] = useState(false);
+  const [userToggledBank, setUserToggledBank] = useState<boolean | null>(null);
+  const [userToggledSignatory, setUserToggledSignatory] = useState<boolean | null>(null);
   const bankYRef = useRef(0);
   const signatoryYRef = useRef(0);
 
-  useEffect(() => {
-    try {
-      if (BANK_FIELD_KEYS.some((field) => Boolean(errors[field]))) setIsBankExpanded(true);
-    } catch (err) {
-      logger.warn("[GstBusinessStep] Failed to evaluate bank errors:", { error: err });
-    }
-  }, [errors]);
+  const bankErrorCount = useMemo(
+    () => BANK_FIELD_KEYS.filter((field) => Boolean(errors[field])).length,
+    [errors]
+  );
+  const signatoryErrorCount = useMemo(
+    () => SIGNATORY_FIELD_KEYS.filter((field) => Boolean(errors[field])).length,
+    [errors]
+  );
+
+  const hasBankErrors = bankErrorCount > 0;
+  const hasSignatoryErrors = signatoryErrorCount > 0;
+
+  const isBankExpanded =
+    hasBankErrors ||
+    (userToggledBank !== null
+      ? userToggledBank
+      : initialExpandedSection === "bank");
+  const isSignatoryExpanded =
+    hasSignatoryErrors ||
+    (userToggledSignatory !== null
+      ? userToggledSignatory
+      : initialExpandedSection === "signatory");
 
   useEffect(() => {
-    try {
-      if (SIGNATORY_FIELD_KEYS.some((field) => Boolean(errors[field]))) setIsSignatoryExpanded(true);
-    } catch (err) {
-      logger.warn("[GstBusinessStep] Failed to evaluate signatory errors:", { error: err });
+    if (initialExpandedSection === "bank" || hasBankErrors) {
+      setUserToggledBank(true);
+      const timer = setTimeout(() => {
+        if (bankYRef.current > 0) {
+          onRequestScrollToSection?.("bank", bankYRef.current);
+        }
+      }, 150);
+      return () => clearTimeout(timer);
     }
-  }, [errors]);
+  }, [initialExpandedSection, hasBankErrors, onRequestScrollToSection]);
+
+  useEffect(() => {
+    if (initialExpandedSection === "signatory" || hasSignatoryErrors) {
+      setUserToggledSignatory(true);
+      const timer = setTimeout(() => {
+        if (signatoryYRef.current > 0) {
+          onRequestScrollToSection?.("signatory", signatoryYRef.current);
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [initialExpandedSection, hasSignatoryErrors, onRequestScrollToSection]);
 
   const updateField = useCallback(
     <K extends keyof GstBusinessFormData>(field: K, value: GstBusinessFormData[K]) => {
@@ -238,6 +148,27 @@ export const GstBusinessStep: React.FC<Props> = ({
     [onBlurField],
   );
 
+  const handleInputChange = useCallback(
+    (field: string, text: string) => {
+      updateField(field as keyof GstBusinessFormData, text);
+    },
+    [updateField],
+  );
+
+  const handleInputBlur = useCallback(
+    (field: string) => {
+      blurField(field as keyof GstBusinessFormData);
+    },
+    [blurField],
+  );
+
+  const handleSelectField = useCallback(
+    (field: string, val: string) => {
+      updateField(field as keyof GstBusinessFormData, val);
+    },
+    [updateField],
+  );
+
   const renderInput = useCallback(
     (
       field: keyof GstBusinessFormData,
@@ -248,16 +179,35 @@ export const GstBusinessStep: React.FC<Props> = ({
         maxLength?: number;
         autoCapitalize?: "none" | "sentences" | "words" | "characters";
         transform?: (val: string) => string;
+        onChangeOverride?: (val: string) => void;
+        onBlurOverride?: (val: string) => void;
       },
     ) => {
       const val = (data?.[field] as string) ?? "";
       return (
         <FormInput
           key={field}
+          field={field}
           label={label}
           value={val}
-          onChange={(t) => updateField(field, (options?.transform ? options.transform(t) : t))}
-          onBlur={() => blurField(field)}
+          onChangeField={
+            options?.onChangeOverride
+              ? (_f, t) => {
+                  const transformed = options?.transform ? options.transform(t) : t;
+                  options.onChangeOverride?.(transformed);
+                }
+              : options?.transform
+              ? (_f, t) => handleInputChange(field, options.transform!(t))
+              : handleInputChange
+          }
+          onBlurField={
+            options?.onBlurOverride
+              ? (_f) => {
+                  options.onBlurOverride?.(val);
+                  handleInputBlur(field);
+                }
+              : handleInputBlur
+          }
           error={errors?.[field]}
           placeholder={placeholder}
           keyboardType={options?.keyboardType}
@@ -266,44 +216,55 @@ export const GstBusinessStep: React.FC<Props> = ({
         />
       );
     },
-    [data, errors, updateField, blurField],
+    [data, errors, handleInputChange, handleInputBlur],
   );
 
   const renderSelect = useCallback(
-    (field: keyof GstBusinessFormData, label: string, placeholder: string, options: readonly string[]) => {
+    (field: keyof GstBusinessFormData, label: string, placeholder: string, options: readonly string[], cfg?: { searchable?: boolean; allowCustom?: boolean; searchPlaceholder?: string }) => {
       const val = (data?.[field] as string) ?? "";
       return (
         <FormSelect
           key={field}
+          field={field}
           label={label}
           value={val}
           options={options as string[]}
-          onChange={(t) => updateField(field, t)}
+          onSelectField={handleSelectField}
           error={errors?.[field]}
           placeholder={placeholder}
+          searchable={cfg?.searchable}
+          allowCustom={cfg?.allowCustom}
+          searchPlaceholder={cfg?.searchPlaceholder}
         />
       );
     },
-    [data, errors, updateField],
+    [data, errors, handleSelectField],
   );
 
   const renderDatePicker = useCallback(
-    (field: keyof GstBusinessFormData, label: string) => {
+    (field: keyof GstBusinessFormData, label: string, opts?: { maximumDate?: Date }) => {
       const val = (data?.[field] as string) ?? "";
       return (
         <UniversalDatePicker
           key={field}
           label={label}
           value={val}
-          onChange={(d) => updateField(field, d)}
+          onChange={(d: string) => updateField(field, d)}
           error={errors?.[field]}
           valueFormat="DD-MM-YYYY"
           placeholder="DD-MM-YYYY"
+          maximumDate={opts?.maximumDate}
         />
       );
     },
     [data, errors, updateField],
   );
+
+  const yesterday = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d;
+  }, []);
 
   const renderBusinessIdentity = () => (
     <SectionCard
@@ -311,11 +272,11 @@ export const GstBusinessStep: React.FC<Props> = ({
       title="Business Identity"
       subtitle="Legal name and constitutional details"
     >
-      {renderInput("legalName", "Legal Name of Business (as per PAN) *", "Exactly as on the PAN card")}
-      {renderInput("businessName", "Trade Name *", "Enter your business / trade name")}
+      {renderInput("legalName", "Legal Name of Business (as per PAN) *", "Exactly as on the PAN card", { maxLength: 100, onBlurOverride: (v) => updateField("legalName", v.trim()) })}
+      {renderInput("businessName", "Trade Name *", "Enter your business / trade name", { maxLength: 100, onBlurOverride: (v) => updateField("businessName", v.trim()) })}
       {renderSelect("businessType", "Constitution of Business *", "Select business type", BUSINESS_TYPES)}
       {renderSelect("natureOfBusiness", "Nature of Business *", "Select nature of business", NATURE_OF_BUSINESS)}
-      {renderDatePicker("businessStartDate", "Date of Commencement of Business *")}
+      {renderDatePicker("businessStartDate", "Date of Commencement of Business *", { maximumDate: yesterday })}
     </SectionCard>
   );
 
@@ -330,51 +291,105 @@ export const GstBusinessStep: React.FC<Props> = ({
     </SectionCard>
   );
 
-  const renderAddressSection = () => (
-    <SectionCard
-      iconName="location-outline"
-      title="Principal Place of Business"
-      subtitle="Registered business address & HSN details"
-    >
-      {renderSelect("placeOfBusiness", "Place of Business *", "Select place type", PLACE_OPTIONS)}
-      {renderInput("businessAddress", "Business Address *", "Building, street, locality")}
-      <View style={styles.row}>
-        <View style={styles.halfField}>{renderInput("city", "City *", "City")}</View>
-        <View style={styles.halfField}>{renderInput("district", "District *", "District")}</View>
-      </View>
-      <View style={styles.row}>
-        <View style={styles.halfField}>{renderSelect("state", "State / UT *", "Select", STATE_OPTIONS)}</View>
-        <View style={styles.halfField}>
-          {renderInput("pinCode", "PIN Code *", "560001", { keyboardType: "numeric", maxLength: 6, transform: sanitizeDigits })}
+  const { pinLoading, ifscLoading, handlePinLookup, handleIfscLookup } = useGstFieldLookups({
+    data,
+    onChange,
+  });
+
+  const renderAddressSection = () => {
+    const hsnClassification = hsnSacPolicy.classify(data?.hsnCode || "");
+    return (
+      <SectionCard
+        iconName="location-outline"
+        title="Principal Place of Business"
+        subtitle="Registered business address & HSN details"
+      >
+        {renderSelect("placeOfBusiness", "Place of Business *", "Select place type", PLACE_OPTIONS)}
+        {renderInput("businessAddress", "Business Address *", "Building, street, locality", { maxLength: 255, onBlurOverride: (v) => updateField("businessAddress", v.trim()) })}
+        <View style={styles.row}>
+          <View style={styles.halfField}>{renderInput("city", "City *", "City", { maxLength: 50, onBlurOverride: (v) => updateField("city", v.trim()) })}</View>
+          <View style={styles.halfField}>{renderInput("district", "District *", "District", { maxLength: 50, onBlurOverride: (v) => updateField("district", v.trim()) })}</View>
         </View>
-      </View>
-      {renderInput("hsnCode", "Primary HSN / SAC Code *", "e.g. 998311", { keyboardType: "numeric", maxLength: 8, transform: sanitizeDigits })}
-    </SectionCard>
-  );
+        <View style={styles.row}>
+          <View style={styles.halfField}>
+            {renderSelect("state", "State / UT *", "Select", STATE_OPTIONS, {
+              searchable: true,
+              searchPlaceholder: "Search state or UT...",
+            })}
+          </View>
+          <View style={styles.halfField}>
+            {renderInput("pinCode", "PIN Code *", "560001", {
+              keyboardType: "numeric",
+              maxLength: 6,
+              transform: sanitizeDigits,
+              onChangeOverride: (pin) => {
+                updateField("pinCode", pin);
+                if (pin.length === 6) handlePinLookup(pin);
+              },
+            })}
+            {pinLoading && <Text style={styles.lookupInfoText}>Looking up PIN code...</Text>}
+          </View>
+        </View>
+        {renderInput("hsnCode", "Primary HSN / SAC Code *", "e.g. 998311", { keyboardType: "numeric", maxLength: 8, transform: sanitizeDigits })}
+        {hsnClassification?.isValid && (
+          <View style={{ marginTop: -8, marginBottom: 12, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: hsnClassification.type === "SAC" ? "#EFF6FF" : "#F0FDF4", alignSelf: "flex-start", borderWidth: 1, borderColor: hsnClassification.type === "SAC" ? "#BFDBFE" : "#BBF7D0" }}>
+            <Text style={{ fontSize: 12, fontWeight: "600", color: hsnClassification.type === "SAC" ? "#1D4ED8" : "#15803D" }}>
+              ✓ {hsnClassification.label}
+            </Text>
+          </View>
+        )}
+      </SectionCard>
+    );
+  };
 
   const renderBankDetails = () => (
-    <View onLayout={(e) => { bankYRef.current = e.nativeEvent.layout.y; }}>
+    <View
+      onLayout={(e) => {
+        const y = e.nativeEvent.layout.y;
+        bankYRef.current = y;
+        onSectionLayout?.("bank", y);
+      }}
+    >
       <AccordionSection
         iconName="wallet-outline"
         title="Bank Details"
         subtitle="Account for refunds & credits"
         isExpanded={isBankExpanded}
+        errorCount={bankErrorCount}
         onToggle={() => {
           const next = !isBankExpanded;
-          setIsBankExpanded(next);
+          setUserToggledBank(next);
           if (next) {
             Keyboard.dismiss();
-            onRequestScrollToSection?.("bank", bankYRef.current);
+            if (bankYRef.current > 0) {
+              onRequestScrollToSection?.("bank", bankYRef.current);
+            }
           }
         }}
       >
-        {renderInput("accountHolderName", "Account Holder Name *", "As per bank records")}
+        {renderInput("accountHolderName", "Account Holder Name *", "As per bank records", { maxLength: 100, onBlurOverride: (v) => updateField("accountHolderName", v.trim()) })}
         {renderInput("bankAccountNumber", "Bank Account Number *", "Enter account number", { keyboardType: "numeric", maxLength: 18, transform: sanitizeDigits })}
         {renderInput("confirmBankAccountNumber", "Confirm Account Number *", "Re-enter account number", { keyboardType: "numeric", maxLength: 18, transform: sanitizeDigits })}
-        {renderInput("ifscCode", "IFSC Code *", "e.g. HDFC0001234", { autoCapitalize: "characters", maxLength: 11, transform: sanitizeAlphanumericUpper })}
+        {renderInput("ifscCode", "IFSC Code *", "e.g. HDFC0001234", {
+          autoCapitalize: "characters",
+          maxLength: 11,
+          transform: sanitizeAlphanumericUpper,
+          onChangeOverride: (code) => {
+            const clean = sanitizeAlphanumericUpper(code);
+            updateField("ifscCode", clean);
+            if (clean.length === 11) handleIfscLookup(clean);
+          },
+        })}
+        {ifscLoading && <Text style={styles.lookupInfoText}>Looking up IFSC code...</Text>}
         <View style={styles.row}>
-          <View style={styles.halfField}>{renderSelect("bankName", "Bank Name *", "Select", BANK_OPTIONS)}</View>
-          <View style={styles.halfField}>{renderInput("branchName", "Branch *", "Branch Name")}</View>
+          <View style={styles.halfField}>
+            {renderSelect("bankName", "Bank Name *", "Select", BANK_OPTIONS, {
+              searchable: true,
+              allowCustom: true,
+              searchPlaceholder: "Search or enter bank...",
+            })}
+          </View>
+          <View style={styles.halfField}>{renderInput("branchName", "Branch *", "Branch Name", { maxLength: 100, onBlurOverride: (v) => updateField("branchName", v.trim()) })}</View>
         </View>
         {renderSelect("accountType", "Account Type *", "Select account type", ACCOUNT_TYPES)}
       </AccordionSection>
@@ -382,35 +397,49 @@ export const GstBusinessStep: React.FC<Props> = ({
   );
 
   const renderSignatoryDetails = () => (
-    <View onLayout={(e) => { signatoryYRef.current = e.nativeEvent.layout.y; }}>
+    <View
+      onLayout={(e) => {
+        const y = e.nativeEvent.layout.y;
+        signatoryYRef.current = y;
+        onSectionLayout?.("signatory", y);
+      }}
+    >
       <AccordionSection
         iconName="person-circle-outline"
         title="Authorised Signatory"
         subtitle="Primary contact & PAN verification"
         isExpanded={isSignatoryExpanded}
+        errorCount={signatoryErrorCount}
         onToggle={() => {
           const next = !isSignatoryExpanded;
-          setIsSignatoryExpanded(next);
+          setUserToggledSignatory(next);
           if (next) {
             Keyboard.dismiss();
-            onRequestScrollToSection?.("signatory", signatoryYRef.current);
+            if (signatoryYRef.current > 0) {
+              onRequestScrollToSection?.("signatory", signatoryYRef.current);
+            }
           }
         }}
       >
-        {renderInput("signatoryName", "Signatory Name *", "Full name")}
+        {renderInput("signatoryName", "Signatory Name *", "Full name", { maxLength: 100, onBlurOverride: (v) => updateField("signatoryName", v.trim()) })}
         <View style={styles.row}>
           <View style={styles.halfField}>
-            {renderInput("signatoryPan", "Signatory PAN *", "ABCDE1234F", { autoCapitalize: "characters", maxLength: 10, transform: sanitizeUpper })}
+            {renderInput("signatoryPan", "Signatory PAN *", "ABCDE1234F", { autoCapitalize: "characters", maxLength: 10, transform: sanitizeAlphanumericUpper })}
           </View>
           <View style={styles.halfField}>{renderDatePicker("signatoryDob", "Date of Birth *")}</View>
         </View>
-        {renderInput("signatoryDesignation", "Designation *", "Proprietor / Director / Partner")}
+        {renderInput("signatoryDesignation", "Designation *", "Proprietor / Director / Partner", { maxLength: 50, onBlurOverride: (v) => updateField("signatoryDesignation", v.trim()) })}
         <View style={styles.row}>
           <View style={styles.halfField}>
             {renderInput("signatoryMobile", "Signatory Mobile *", "10-digit", { keyboardType: "numeric", maxLength: 10, transform: sanitizeDigits })}
           </View>
           <View style={styles.halfField}>
-            {renderInput("signatoryEmail", "Signatory Email *", "email@business.com", { keyboardType: "email-address", autoCapitalize: "none" })}
+            {renderInput("signatoryEmail", "Signatory Email *", "email@business.com", {
+              keyboardType: "email-address",
+              maxLength: 150,
+              autoCapitalize: "none",
+              onBlurOverride: (email) => updateField("signatoryEmail", email.trim()),
+            })}
           </View>
         </View>
       </AccordionSection>
@@ -441,13 +470,15 @@ export const GstBusinessStep: React.FC<Props> = ({
   };
 
   return (
-    <View style={styles.container}>
-      {renderBusinessIdentity()}
-      {renderRegistrationScheme()}
-      {renderAddressSection()}
-      {renderBankDetails()}
-      {renderSignatoryDetails()}
-      {renderConsentSection()}
-    </View>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.container}>
+        {renderBusinessIdentity()}
+        {renderRegistrationScheme()}
+        {renderAddressSection()}
+        {renderBankDetails()}
+        {renderSignatoryDetails()}
+        {renderConsentSection()}
+      </View>
+    </TouchableWithoutFeedback>
   );
 };

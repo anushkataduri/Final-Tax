@@ -79,6 +79,15 @@ const ACCOUNT_TYPE_MAP: Record<string, string> = {
   OD: "CASH_CREDIT_OD",
 };
 
+const PLACE_MAP: Record<string, string> = {
+  ADDITIONAL: "ADDITIONAL_PLACE_OF_BUSINESS",
+  ADDITIONAL_PLACE: "ADDITIONAL_PLACE_OF_BUSINESS",
+  ADDITIONAL_PLACE_OF_BUSINESS: "ADDITIONAL_PLACE_OF_BUSINESS",
+  PRINCIPAL: "PRINCIPAL_PLACE_OF_BUSINESS",
+  PRINCIPAL_PLACE: "PRINCIPAL_PLACE_OF_BUSINESS",
+  PRINCIPAL_PLACE_OF_BUSINESS: "PRINCIPAL_PLACE_OF_BUSINESS",
+};
+
 /**
  * Exception-safe Date Formatter
  */
@@ -122,6 +131,7 @@ export const mapGstRegistrationPayload = (
     const rawNature = normalizeInput(businessData.natureOfBusiness);
     const rawReason = normalizeInput(businessData.reasonForRegistration);
     const rawScheme = normalizeInput(businessData.compositionScheme);
+    const rawPlace = normalizeInput(businessData.placeOfBusiness);
     const resolvedCustomerId = customerId || businessData.customerId || "";
     const resolvedGstId = gstId || businessData.gstId || "";
 
@@ -129,7 +139,7 @@ export const mapGstRegistrationPayload = (
       ...(resolvedGstId ? { gstId: resolvedGstId } : {}),
       ...(resolvedCustomerId ? { customerId: resolvedCustomerId } : {}),
       legalName: businessData.legalName,
-      tradeName: businessData.businessName,
+      tradeName: (businessData.businessName || businessData.legalName || "").trim(),
       constitutionOfBusiness: getMappedValue(
         rawConstitution,
         CONSTITUTION_MAP,
@@ -149,30 +159,34 @@ export const mapGstRegistrationPayload = (
       compositionScheme: rawScheme.includes("YES")
         ? "YES_COMPOSITION_SCHEME"
         : "NO_REGULAR_SCHEME",
-      placeOfBusiness: "PRINCIPAL_PLACE_OF_BUSINESS",
-      businessAddress: businessData.businessAddress,
-      city: businessData.city,
-      district: businessData.district,
+      placeOfBusiness: getMappedValue(
+        rawPlace,
+        PLACE_MAP,
+        "PRINCIPAL_PLACE_OF_BUSINESS",
+      ),
+      businessAddress: (businessData.businessAddress || "").trim(),
+      city: (businessData.city || "").trim(),
+      district: (businessData.district || "").trim(),
       state: businessData.state,
       pinCode: businessData.pinCode,
       hsnSac: businessData.hsnCode,
-      accountHolderName: businessData.accountHolderName,
+      accountHolderName: (businessData.accountHolderName || "").trim(),
       bankAccountNumber: businessData.bankAccountNumber,
       ifscCode: businessData.ifscCode,
       bankName: businessData.bankName,
-      branchName: businessData.branchName,
+      branchName: (businessData.branchName || "").trim(),
       accountType: getMappedValue(
         normalizeInput(businessData.accountType),
         ACCOUNT_TYPE_MAP,
         "CURRENT",
       ),
       authorisedSignatory: businessData.signatoryName ? "YES" : "NO",
-      signatoryName: businessData.signatoryName || businessData.legalName,
+      signatoryName: (businessData.signatoryName || businessData.legalName || "").trim(),
       signatoryPan: businessData.signatoryPan,
       signatoryDob: formatBackendDate(businessData.signatoryDob),
-      designation: businessData.signatoryDesignation || "Owner",
+      designation: (businessData.signatoryDesignation || "Owner").trim(),
       signatoryMobile: businessData.signatoryMobile,
-      signatoryEmail: businessData.signatoryEmail,
+      signatoryEmail: (businessData.signatoryEmail || "").trim(),
     };
   } catch (error) {
     logger.error("[gstRegistrationMapper] Payload Mapping Exception:", { error });

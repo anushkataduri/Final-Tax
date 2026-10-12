@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { BrandColors } from "@/shared/theme";
+import { BrandColors, Colors } from "@/shared/theme";
 import { GstBusinessFormData } from "@/modules/gst/gst-registration/components/GstBusinessStep/GstBusinessStep";
 import { DocumentItem } from "@/modules/gst/gst-registration/components/GstUnifiedDocumentStep/GstUnifiedDocumentStep.types";
 import { GstViewDocumentModal } from "@/modules/gst/components/GstDocumentCard";
@@ -19,6 +19,8 @@ interface GstReviewStepProps {
   declared: boolean;
   onToggleDeclaration: () => void;
   isFetching?: boolean;
+  reviewFetchError?: string | null;
+  onRetry?: () => void;
 }
 
 const ReviewRow = ({
@@ -55,6 +57,8 @@ export const GstReviewStep: React.FC<GstReviewStepProps> = ({
   declared,
   onToggleDeclaration,
   isFetching = false,
+  reviewFetchError = null,
+  onRetry,
 }) => {
   const [previewDoc, setPreviewDoc] = useState<DocumentItem | null>(null);
   const uploadedDocs = documents.filter((d) => Boolean(d.fileUri));
@@ -70,6 +74,25 @@ export const GstReviewStep: React.FC<GstReviewStepProps> = ({
         <Text style={styles.loadingSubtitle}>
           Fetching saved details from database...
         </Text>
+      </View>
+    );
+  }
+
+  if (reviewFetchError && !businessData.legalName) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="alert-circle-outline" size={40} color={Colors.error} />
+        <Text style={[styles.loadingTitle, { marginTop: 12 }]}>Unable to Load Application</Text>
+        <Text style={[styles.loadingSubtitle, { textAlign: "center", marginHorizontal: 24 }]}>{reviewFetchError}</Text>
+        {onRetry && (
+          <TouchableOpacity
+            onPress={onRetry}
+            style={[styles.modalFooterBtn, { width: 180, marginTop: 16 }]}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.modalFooterBtnText}>Retry Loading</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
