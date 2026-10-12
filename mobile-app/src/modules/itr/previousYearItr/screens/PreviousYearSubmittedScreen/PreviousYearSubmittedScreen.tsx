@@ -42,18 +42,18 @@ export const PreviousYearSubmittedScreen: React.FC = () => {
   };
 
   const handleBack = () => {
-    router.replace("/(main)/home");
+    router.replace("/(main)/home" as any);
   };
 
   const handleGoHome = () => {
-    router.replace("/(main)/home");
+    router.replace("/(main)/home" as any);
   };
 
   const handleTrackStatus = () => {
     if (applicationId && applicationId !== "Pending" && !applicationId.includes(" ")) {
-      router.replace(`/application/${applicationId}`);
+      router.replace(`/application/${applicationId}` as any);
     } else {
-      router.replace("/(main)/applications");
+      router.replace("/(main)/applications" as any);
     }
   };
 

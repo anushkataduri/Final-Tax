@@ -81,12 +81,56 @@ export function validatePersonalDetails(personal: PersonalDetails): {
   };
 }
 
+export function validateBusinessDetails(business: any): {
+  isValid: boolean;
+  errors: CustomerFormErrors;
+} {
+  const errors: CustomerFormErrors = {};
+
+  if (!business.legalName || !business.legalName.trim()) {
+    errors["legalName"] = "Legal Name is required";
+  } else {
+    const trimmed = business.legalName.trim();
+    const alphaCount = (trimmed.match(/[a-zA-Z]/g) || []).length;
+    if (alphaCount < 3) {
+      errors["legalName"] = "Legal Name must contain at least 3 letters";
+    } else if (/[^a-zA-Z0-9\s.\-&']/.test(trimmed)) {
+      errors["legalName"] = "Legal Name contains invalid characters or emojis";
+    }
+  }
+
+  if (!business.pan || !business.pan.trim()) {
+    errors["pan"] = "Business PAN is required";
+  } else if (!isValidPan(business.pan)) {
+    errors["pan"] = "Enter valid 10-character PAN";
+  }
+
+  if (business.aadhaar && business.aadhaar.trim()) {
+    if (!isValidAadhaar(business.aadhaar)) {
+      errors["aadhaar"] = "Aadhaar must be a 12-digit number";
+    }
+  } else {
+    errors["aadhaar"] = "Aadhaar Card Number is required";
+  }
+
+  if (!business.mobileNumber || !business.mobileNumber.trim()) {
+    errors["mobileNumber"] = "Mobile number is required";
+  } else if (!isValidMobile(business.mobileNumber)) {
+    errors["mobileNumber"] = "Enter valid 10-digit Indian mobile number";
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}
+
 export function validateCustomerIncomeForm(data: TdsCustomerIncomeFormData): {
   isValid: boolean;
   errors: CustomerFormErrors;
 } {
   const errors: CustomerFormErrors = {};
-  const { personal, bank, income } = data;
+  const { personal, business, bank, income } = data;
 
   // --- 1. PERSONAL DETAILS ---
   const personalValidation = validatePersonalDetails(personal);
@@ -94,6 +138,16 @@ export function validateCustomerIncomeForm(data: TdsCustomerIncomeFormData): {
     Object.entries(personalValidation.errors).forEach(([field, msg]) => {
       errors[`personal.${field}`] = msg;
     });
+  }
+
+  // --- 1.5. BUSINESS DETAILS ---
+  if (business) {
+    const businessValidation = validateBusinessDetails(business);
+    if (!businessValidation.isValid) {
+      Object.entries(businessValidation.errors).forEach(([field, msg]) => {
+        errors[`business.${field}`] = msg;
+      });
+    }
   }
 
   // --- 2. BANK DETAILS ---
@@ -123,55 +177,7 @@ export function validateCustomerIncomeForm(data: TdsCustomerIncomeFormData): {
     errors["bank.bankName"] = "Bank Name required (lookup via IFSC)";
   }
 
-  // --- 3. INCOME & TAX CREDITS ---
-  // Ensure non-negative numbers
-  const salary = parsePositiveNumber(income.salaryIncome);
-  const other = parsePositiveNumber(income.otherIncome);
-  const interest = parsePositiveNumber(income.interestIncome);
-  const tds = parsePositiveNumber(income.totalTdsDeducted);
 
-  if (tds <= 0 && salary <= 0 && other <= 0 && interest <= 0) {
-    errors["income.totalTdsDeducted"] = "Enter TDS deducted or income to proceed";
-  }
-
-  if (income.hasRentalIncome) {
-    const rent = parsePositiveNumber(income.rentalIncome);
-    if (rent <= 0) {
-      errors["income.rentalIncome"] = "Enter annual rental income received";
-    }
-  }
-
-  if (income.hasCapitalGains) {
-    const stcg = parsePositiveNumber(income.shortTermCapitalGains);
-    const ltcg = parsePositiveNumber(income.longTermCapitalGains);
-    if (stcg <= 0 && ltcg <= 0) {
-      errors["income.shortTermCapitalGains"] = "Enter short-term or long-term capital gains";
-    }
-  }
-
-  if (income.hasBusinessIncome) {
-    const profit = parsePositiveNumber(income.netBusinessProfit);
-    if (profit <= 0) {
-      errors["income.netBusinessProfit"] = "Enter net business / professional profit";
-    }
-  }
-
-  if (income.hasHomeLoan) {
-    const loanInterest = parsePositiveNumber(income.homeLoanInterestSec24b);
-    if (loanInterest <= 0) {
-      errors["income.homeLoanInterestSec24b"] = "Enter eligible home loan interest paid";
-    }
-  }
-
-  if (income.hasDeductions) {
-    const d80c = parsePositiveNumber(income.deductions80C);
-    const d80d = parsePositiveNumber(income.deductions80D);
-    const d80g = parsePositiveNumber(income.donations80G);
-    const otherD = parsePositiveNumber(income.otherDeductions);
-    if (d80c <= 0 && d80d <= 0 && d80g <= 0 && otherD <= 0) {
-      errors["income.deductions80C"] = "Enter at least one deduction amount (80C, 80D, etc.)";
-    }
-  }
 
   return {
     isValid: Object.keys(errors).length === 0,

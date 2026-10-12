@@ -39,7 +39,7 @@ export const styles = StyleSheet.create({
     marginTop: 2,
   },
   rightSpacer: {
-    width: 40,
+    width: 75,
   },
   progressBarTrack: {
     height: 3,

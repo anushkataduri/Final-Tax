@@ -7,7 +7,6 @@ import { useServiceAccessGuard } from "@/shared/hooks";
 import { itrService } from "../../services/itrService";
 import { ItrServiceItem } from "../../types/itr.types";
 import { styles } from "./ItrScreen.styles";
-import { toHref } from "@/shared/utils/navigation";
 
 export const ItrScreen: React.FC = () => {
   const router = useRouter();
@@ -20,7 +19,7 @@ export const ItrScreen: React.FC = () => {
 
   const handleCardPress = (item: ItrServiceItem) => {
     if (item.route) {
-      accessService(toHref(item.route));
+      accessService(item.route);
     }
   };
 

@@ -60,7 +60,7 @@ export const ReturnFiledScreen: React.FC = () => {
         {
           text: "Exit",
           style: "destructive",
-          onPress: () => router.replace("/(main)/home"),
+          onPress: () => router.replace("/(main)/home" as any),
         },
       ]
     );
@@ -86,7 +86,7 @@ export const ReturnFiledScreen: React.FC = () => {
     return (
       <VerifiedSplashScreen
         acknowledgementNumber={filingData.acknowledgementNumber}
-        onDone={() => router.replace("/(main)/home")}
+        onDone={() => router.replace("/(main)/home" as any)}
       />
     );
   }

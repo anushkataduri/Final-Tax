@@ -22,7 +22,7 @@ export const ITR_SERVICES: ItrServiceItem[] = [
     iconImage: require("../../../../assets/images/services/itr/tds_refund.png"),
     route: "/service/tds-refund",
   },
-  {
+  /* {
     id: "previous-year-itr",
     title: "Previous Year ITR",
     description: "File pending ITRs for previous years",
@@ -31,7 +31,7 @@ export const ITR_SERVICES: ItrServiceItem[] = [
     iconBg: "#EAF2FF",
     iconImage: require("../../../../assets/images/services/itr/previous_year_itr.png"),
     route: "/service/previous-year-itr",
-  },
+  }, */
   {
     id: "revised-itr",
     title: "Revised ITR",
@@ -42,7 +42,7 @@ export const ITR_SERVICES: ItrServiceItem[] = [
     iconImage: require("../../../../assets/images/services/itr/revised_itr.png"),
     route: "/service/revised-itr",
   },
-  {
+  /* {
     id: "tax-notice-assistance",
     title: "Tax Notice Assistance",
     description: "Get expert help with income tax notices",
@@ -51,5 +51,5 @@ export const ITR_SERVICES: ItrServiceItem[] = [
     iconBg: "#EAF2FF",
     iconImage: require("../../../../assets/images/services/itr/tax_notice_assistance.png"),
     route: "/service/tax-notice-assistance",
-  },
+  }, */
 ];

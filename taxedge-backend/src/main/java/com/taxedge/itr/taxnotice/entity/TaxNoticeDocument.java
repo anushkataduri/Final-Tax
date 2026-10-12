@@ -6,7 +6,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -30,59 +29,48 @@ public class TaxNoticeDocument {
 	@JoinColumn(name = "notice_id", nullable = false)
 	private TaxNoticeAssistance taxNoticeAssistance;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "tax_notice", columnDefinition = "LONGBLOB")
+	@Column(name = "tax_notice", columnDefinition = "bytea")
 	private byte[] taxNotice;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "previous_itr", columnDefinition = "LONGBLOB")
+	@Column(name = "previous_itr", columnDefinition = "bytea")
 	private byte[] previousItr;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "itr_acknowledgement", columnDefinition = "LONGBLOB")
+	@Column(name = "itr_acknowledgement", columnDefinition = "bytea")
 	private byte[] itrAcknowledgement;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "form_16_16a", columnDefinition = "LONGBLOB")
+	@Column(name = "form_16_16a", columnDefinition = "bytea")
 	private byte[] form1616a;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "ais_ay", columnDefinition = "LONGBLOB")
+	@Column(name = "ais_ay", columnDefinition = "bytea")
 	private byte[] aisAy;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "tis", columnDefinition = "LONGBLOB")
+	@Column(name = "tis", columnDefinition = "bytea")
 	private byte[] tis;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "bank_statement", columnDefinition = "LONGBLOB")
+	@Column(name = "bank_statement", columnDefinition = "bytea")
 	private byte[] bankStatement;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "supporting_income_documents", columnDefinition = "LONGBLOB")
+	@Column(name = "supporting_income_documents", columnDefinition = "bytea")
 	private byte[] supportingIncomeDocuments;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "supporting_expense_documents", columnDefinition = "LONGBLOB")
+	@Column(name = "supporting_expense_documents", columnDefinition = "bytea")
 	private byte[] supportingExpenseDocuments;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "previous_tax_responses", columnDefinition = "LONGBLOB")
+	@Column(name = "previous_tax_responses", columnDefinition = "bytea")
 	private byte[] previousTaxResponses;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "other_notice_specific_documents", columnDefinition = "LONGBLOB")
+	@Column(name = "other_notice_specific_documents", columnDefinition = "bytea")
 	private byte[] otherNoticeSpecificDocuments;
 
 	@Column(name = "message")

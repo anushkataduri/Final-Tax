@@ -71,7 +71,7 @@ export const styles = StyleSheet.create({
   progressFill: {
     height: "100%",
     backgroundColor: BrandColors.PRIMARY_ORANGE,
-    width: "20%", // Step 1 of 5
+    width: "25%", // Step 1 of 4
   },
   scrollContent: {
     paddingHorizontal: Spacing.base,
@@ -182,7 +182,8 @@ export const styles = StyleSheet.create({
     color: "#DC2626",
   },
   textInput: {
-    height: 46,
+    minHeight: 46,
+    paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#CBD5E1",

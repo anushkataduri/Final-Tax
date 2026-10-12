@@ -37,7 +37,9 @@ export const styles = StyleSheet.create({
   titleGroup: {
     alignItems: "center",
     justifyContent: "center",
-    flex: 1,
+    position: "absolute",
+    left: 0,
+    right: 0,
   },
   title: {
     fontSize: 18,

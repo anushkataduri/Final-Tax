@@ -25,7 +25,7 @@ import {
 export const TdsRefundStatusScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<TdsRefundStatusScreenParams>();
+  const params = useLocalSearchParams() as unknown as TdsRefundStatusScreenParams;
   const tdsDraft = useApplicationStore((state) => state.tdsDraft);
 
   // Dynamic application summary built functionally - zero loops

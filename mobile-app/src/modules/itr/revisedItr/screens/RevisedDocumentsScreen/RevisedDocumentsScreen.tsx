@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRevisedProgressStore } from "../../store/revisedProgressStore";
@@ -13,13 +14,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { DocumentPreviewModal } from "@/shared/components/documents/DocumentPreviewModal";
+import { DocumentPreviewModal } from "../../../itr-filing/components/DocumentPreviewModal/DocumentPreviewModal";
 import { SharedItrDocumentCard } from "@/modules/itr/components/documents/SharedItrDocumentCard/SharedItrDocumentCard";
-import { DocumentUploadBottomSheet } from "@/shared/components/DocumentUploadBottomSheet";
+import { DocumentUploadBottomSheet } from "@/modules/itr/tds/components/upload/DocumentUploadBottomSheet/DocumentUploadBottomSheet";
+import { RevisedItrApiService } from "../../services/RevisedItrApiService";
 import { RevisedItrHeader } from "../../components/common";
 import { REVISED_SUPPORTING_DOCUMENTS } from "../../mock/revisedItrData";
 import { RevisedDocumentItem } from "../../types/revisedItr.types";
-import { logger } from "@/core/logging/logger";
 import {
   styles,
   getContainerInsetsStyle,
@@ -37,6 +38,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
     assessmentYear?: string;
     revisionReason?: string;
     revisedDetails?: string;
+    isEditing?: string;
   }>();
 
   const assessmentYear = params.assessmentYear || "AY 2025–26";
@@ -89,8 +91,8 @@ export const RevisedDocumentsScreen: React.FC = () => {
 
   const handleFileSelected = (uri: string, name: string, size?: number) => {
     if (!selectedDocForUpload) return;
-    if (size && size > 10 * 1024 * 1024) {
-      Alert.alert("File Too Large", "Maximum supported file size is 10 MB.");
+    if (size && size > 15 * 1024 * 1024) {
+      Alert.alert("File Too Large", "Maximum supported file size is 15 MB.");
       return;
     }
 
@@ -126,8 +128,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
         const asset = result.assets[0];
         handleFileSelected(asset.uri, asset.name, asset.size);
       }
-    } catch (err) {
-      logger.warn("[RevisedDocumentsScreen] Document picker failed:", { error: err });
+    } catch {
       Alert.alert("Upload Error", "Could not open file picker.");
     }
   };
@@ -149,10 +150,9 @@ export const RevisedDocumentsScreen: React.FC = () => {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         const fileName = asset.fileName || `revised_doc_${Date.now()}.jpg`;
-        handleFileSelected(asset.uri, fileName, asset.fileSize);
+        handleFileSelected(asset.uri, fileName, (asset as any).fileSize);
       }
-    } catch (err) {
-      logger.warn("[RevisedDocumentsScreen] Gallery picker failed:", { error: err });
+    } catch {
       Alert.alert("Gallery Error", "Could not open photo gallery. Please try again.");
     }
   };
@@ -173,10 +173,9 @@ export const RevisedDocumentsScreen: React.FC = () => {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         const fileName = asset.fileName || `revised_doc_${Date.now()}.jpg`;
-        handleFileSelected(asset.uri, fileName, asset.fileSize);
+        handleFileSelected(asset.uri, fileName, (asset as any).fileSize);
       }
-    } catch (err) {
-      logger.warn("[RevisedDocumentsScreen] Camera picker failed:", { error: err });
+    } catch {
       Alert.alert("Camera Error", "Could not open camera. Please try again.");
     }
   };
@@ -197,7 +196,10 @@ export const RevisedDocumentsScreen: React.FC = () => {
     );
   };
 
-  const handleContinue = () => {
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { revisedItrId, documentId, setBackendIds, setMaxStepReached } = useRevisedProgressStore();
+
+  const handleContinue = async () => {
     const checkReq = documents.filter((d) => isDocRequired(d.id, params.revisionReason));
     const missing = checkReq.filter((d) => d.status !== "uploaded");
     if (missing.length > 0) {
@@ -205,18 +207,44 @@ export const RevisedDocumentsScreen: React.FC = () => {
       return;
     }
 
-    // Navigate to Screen 5: Review Revised Computation
-    router.push({
-      pathname: "/service/revised-itr-review",
-      params: {
-        acknowledgementNumber: params.acknowledgementNumber,
-        assessmentYear,
-        revisionReason: params.revisionReason,
-        revisedDetails: params.revisedDetails,
-        uploadedDocsCount: uploadedCount.toString(),
-        totalDocsCount: totalCount.toString(),
-      },
-    });
+    if (!revisedItrId) {
+      console.error("Missing revisedItrId. Please start from Step 1.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      if (maxStepReached >= 5 && documentId) {
+        // Edit flow
+        await RevisedItrApiService.updateRevisedDocuments(documentId, documents);
+      } else {
+        // Initial flow
+        const response = await RevisedItrApiService.saveRevisedDocuments(revisedItrId, documents);
+        if (response && response.documentId) {
+          setBackendIds({ documentId: response.documentId });
+        }
+        setMaxStepReached(5);
+      }
+
+      // Navigate to Screen 5: Review Revised Computation
+      router.push({
+        pathname: "/service/revised-itr-review" as any,
+        params: {
+          acknowledgementNumber: params.acknowledgementNumber,
+          assessmentYear,
+          revisionReason: params.revisionReason,
+          revisedDetails: params.revisedDetails,
+          uploadedDocsCount: uploadedCount.toString(),
+          totalDocsCount: totalCount.toString(),
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "Failed to upload documents");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const requiredDocs = documents.filter((d) => isDocRequired(d.id, params.revisionReason));
@@ -342,8 +370,13 @@ export const RevisedDocumentsScreen: React.FC = () => {
           activeOpacity={0.85}
           onPress={handleContinue}
           style={styles.continueButton}
+          disabled={isSubmitting}
         >
-          <Text style={styles.continueButtonText}>{maxStepReached >= 3 ? "Update and Continue" : "Continue"}</Text>
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.continueButtonText}>{params.isEditing === "true" ? "Update and Continue" : "Continue"}</Text>
+          )}
         </TouchableOpacity>
       </View>
 

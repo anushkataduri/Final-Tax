@@ -4,12 +4,11 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  ScrollView,
   StatusBar,
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
-import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -28,7 +27,6 @@ import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
 import { taxNoticeApi } from "../../../services/taxNoticeApi";
-import { logger } from "@/core/logging/logger";
 import {
   styles,
   getContainerInsetsStyle,
@@ -37,7 +35,6 @@ import {
 } from "./UploadNoticeScreen.styles";
 import { validateStep1Data, validateStep2Data } from "./UploadNoticeScreen.utils";
 import { AssessmentYearDropdown, NoticeTypeDropdown } from "./UploadNoticeScreen.components";
-import { getErrorMessage } from "@/core/error-handling/errorMessage";
 
 export const UploadNoticeScreen: React.FC = () => {
   const router = useRouter();
@@ -86,6 +83,7 @@ export const UploadNoticeScreen: React.FC = () => {
     handleDiscardAndExit,
     handleCancel,
   } = useUniversalDraftGuard({
+    saveDestination: "/service/itr",
     discardDestination: "/service/itr",
     isDirty: () =>
       Boolean(
@@ -98,7 +96,7 @@ export const UploadNoticeScreen: React.FC = () => {
       ),
     onSaveDraft: () => {
       saveTaxNoticeDraft({
-        formData: formData as any,
+        formData,
         step: currentStep === 1 ? "DETAILS" : "UPLOAD",
         updatedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       });
@@ -148,7 +146,7 @@ export const UploadNoticeScreen: React.FC = () => {
     try {
       setIsSubmitting(true);
       
-      let noticeId = taxNoticeDraft?.formData?.noticeId ? String((taxNoticeDraft?.formData as any).noticeId) : "";
+      let noticeId = taxNoticeDraft?.formData?.noticeId;
       const payload = {
         pan: formData.pan,
         assessmentYear: formData.assessmentYear,
@@ -157,8 +155,8 @@ export const UploadNoticeScreen: React.FC = () => {
         noticeNumber: formData.noticeNumber,
         responseDueDate: formData.responseDueDate,
         customerExplanation: formData.customerExplanation,
-        noticeFileUri: formData.noticeFileUri || "",
-        noticeFileName: formData.noticeFileName || "",
+        noticeFileUri: "",
+        noticeFileName: "",
         noticeFileType: "application/pdf"
       };
 
@@ -169,10 +167,7 @@ export const UploadNoticeScreen: React.FC = () => {
       }
 
       saveTaxNoticeDraft({
-        formData: {
-          ...formData,
-          noticeId,
-        },
+        formData,
         step: taxNoticeDraft?.step === "REVIEW" ? "REVIEW" : "DOCUMENTS",
         updatedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       });
@@ -180,7 +175,7 @@ export const UploadNoticeScreen: React.FC = () => {
       router.push({
         pathname: (taxNoticeDraft?.step === "REVIEW" ? "/service/tax-notice-preview" : "/service/tax-notice-documents") as any,
         params: {
-          noticeId: String(noticeId),
+          noticeId,
           pan: formData.pan,
           noticeNumber: formData.noticeNumber,
           noticeDate: formData.noticeDate,
@@ -189,9 +184,9 @@ export const UploadNoticeScreen: React.FC = () => {
           assessmentYear: formData.assessmentYear,
         },
       });
-    } catch (err) {
-      logger.error("[UploadNoticeScreen] Tax notice registration failed:", { error: err });
-      Alert.alert("Registration Failed", getErrorMessage(err) || "Could not register tax notice.");
+    } catch (err: any) {
+      console.error("API Error: ", err);
+      Alert.alert("Registration Failed", err.message || "Could not register tax notice.");
     } finally {
       setIsSubmitting(false);
     }
@@ -218,7 +213,7 @@ export const UploadNoticeScreen: React.FC = () => {
       />
 
       {/* Main Form Content */}
-      <KeyboardAwareScrollView
+      <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
           getScrollContentInsetsStyle(insets.bottom),
@@ -356,10 +351,10 @@ export const UploadNoticeScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-      </KeyboardAwareScrollView>
+      </ScrollView>
 
       {/* Sticky Bottom Action Bar */}
-      <KeyboardStickyFooter style={[styles.bottomBar, getBottomBarInsetsStyle(insets.bottom)]}>
+      <View style={[styles.bottomBar, getBottomBarInsetsStyle(insets.bottom)]}>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleStep1Continue}
@@ -372,7 +367,7 @@ export const UploadNoticeScreen: React.FC = () => {
             <Text style={styles.continueButtonText}>{taxNoticeDraft?.step === "REVIEW" ? "Update & Continue" : "Continue to Supporting Documents"}</Text>
           )}
         </TouchableOpacity>
-      </KeyboardStickyFooter>
+      </View>
 
       {/* Universal Draft Confirmation Modal */}
       <UniversalDraftModal

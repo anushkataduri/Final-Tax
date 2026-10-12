@@ -189,6 +189,9 @@ export const Step5TaxSummaryReview: React.FC<Step5TaxSummaryReviewProps> = ({
             <Ionicons name="git-network-outline" size={18} color="#083B75" />
             <Text style={styles.cardHeaderTitle}>Summary & Declared Income</Text>
           </View>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => onEditStep(1)}>
+            <Text style={styles.editLink}>Edit</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.reconciliationTable}>
@@ -403,6 +406,13 @@ export const Step5TaxSummaryReview: React.FC<Step5TaxSummaryReviewProps> = ({
           <Text style={styles.detailLabel}>Residential Status</Text>
           <Text style={styles.detailValue}>{personalInfo.residentialStatus || "Resident"}</Text>
         </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Primary Bank Account</Text>
+          <Text style={styles.detailValue}>
+            {bankDetails.bankName ? `${bankDetails.bankName} (${maskedBankNumber})` : "Not provided"}
+          </Text>
+        </View>
       </View>
 
       {/* 4. Uploaded & Verified Documents */}
@@ -414,7 +424,7 @@ export const Step5TaxSummaryReview: React.FC<Step5TaxSummaryReviewProps> = ({
               Uploaded Documents ({verifiedOrUploadedDocs.length})
             </Text>
           </View>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => onEditStep(3)}>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => onEditStep(2)}>
             <Text style={styles.editLink}>Edit</Text>
           </TouchableOpacity>
         </View>

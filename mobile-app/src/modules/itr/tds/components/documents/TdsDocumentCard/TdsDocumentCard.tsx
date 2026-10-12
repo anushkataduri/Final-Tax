@@ -9,14 +9,16 @@ interface TdsDocumentCardProps {
   onRemove: (id: string) => void;
 }
 
-export const TdsDocumentCard: React.FC<TdsDocumentCardProps> = ({
+export const TdsDocumentCard: React.FC<TdsDocumentCardProps & { variant?: "default" | "inline" }> = ({
   item,
+  variant = "default",
   onUploadSuccess,
   onUploadError, // Note: SharedItrDocumentCard handles its own internal upload error via Alert, but we map the rest
   onRemove,
 }) => {
   return (
     <SharedItrDocumentCard
+      variant={variant}
       item={{
         id: item.id,
         title: item.title,

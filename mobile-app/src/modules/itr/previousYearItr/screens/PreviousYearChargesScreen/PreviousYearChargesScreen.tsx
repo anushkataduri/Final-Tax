@@ -57,7 +57,7 @@ export const PreviousYearChargesScreen: React.FC = () => {
     );
 
     router.push({
-      pathname: "/service/previous-year-success",
+      pathname: "/service/previous-year-success" as any,
       params: {
         applicationId: createdAppId,
         assessmentYear: assessmentYear,

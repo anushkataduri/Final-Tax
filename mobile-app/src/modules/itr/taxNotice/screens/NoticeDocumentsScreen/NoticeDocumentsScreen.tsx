@@ -3,13 +3,12 @@ import {
   View,
   Text,
   TextInput,
+  ScrollView,
   TouchableOpacity,
   StatusBar,
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
-import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -28,8 +27,6 @@ import {
   getBottomBarInsetsStyle,
   getProgressFillWidthStyle,
 } from "./NoticeDocumentsScreen.styles";
-import { getErrorMessage } from "@/core/error-handling/errorMessage";
-import { logger } from "@/core/logging/logger";
 
 export const NoticeDocumentsScreen: React.FC = () => {
   const router = useRouter();
@@ -56,9 +53,9 @@ export const NoticeDocumentsScreen: React.FC = () => {
   // Pure functional initial state: restore from draft or start clean
   const [docs, setDocs] = useState<TaxNoticeSupportingDoc[]>(() => {
     const savedDocs = taxNoticeDraft?.documents;
-    const noticeFile = taxNoticeDraft?.formData?.noticeFileName ? String(taxNoticeDraft.formData.noticeFileName) : undefined;
-    const noticeUri = taxNoticeDraft?.formData?.noticeFileUri ? String(taxNoticeDraft.formData.noticeFileUri) : undefined;
-    const noticeSize = taxNoticeDraft?.formData?.noticeFileSize ? String(taxNoticeDraft.formData.noticeFileSize) : undefined;
+    const noticeFile = taxNoticeDraft?.formData?.noticeFileName;
+    const noticeUri = taxNoticeDraft?.formData?.noticeFileUri;
+    const noticeSize = taxNoticeDraft?.formData?.noticeFileSize;
 
     const savedMap = new Map((savedDocs || []).map((d) => [d.id, d]));
 
@@ -113,6 +110,7 @@ export const NoticeDocumentsScreen: React.FC = () => {
     handleDiscardAndExit,
     handleCancel,
   } = useUniversalDraftGuard({
+    saveDestination: "/service/itr",
     discardDestination: "/service/itr",
     isDirty: () =>
       docs.some((d) => Boolean(d.fileUri || d.status === "uploaded")) ||
@@ -221,7 +219,7 @@ export const NoticeDocumentsScreen: React.FC = () => {
       };
 
       const mappedDocs: Record<string, any> = {};
-      docs.forEach((doc) => {
+      docs.forEach((doc: any) => {
         if (doc.status === "uploaded" && doc.fileUri) {
           const backendKey = docKeyMap[doc.id];
           if (backendKey) {
@@ -251,20 +249,19 @@ export const NoticeDocumentsScreen: React.FC = () => {
       });
 
       router.push({
-        // KNOWN ISSUE: no app/service/tax-notice-preview route exists (typed routes reject it); cast kept, see Wave 6 report.
         pathname: "/service/tax-notice-preview" as any,
         params: {
-          noticeId: String(noticeId),
-          pan: String(params.pan || taxNoticeDraft?.formData?.pan || ""),
-          noticeNumber: String(params.noticeNumber || taxNoticeDraft?.formData?.noticeNumber || ""),
-          noticeDate: String(params.noticeDate || taxNoticeDraft?.formData?.noticeDate || ""),
-          assessmentYear: String(assessmentYear || ""),
-          noticeType: String(params.noticeType || taxNoticeDraft?.formData?.noticeType || ""),
+          noticeId,
+          pan: params.pan || taxNoticeDraft?.formData?.pan,
+          noticeNumber: params.noticeNumber || taxNoticeDraft?.formData?.noticeNumber,
+          noticeDate: params.noticeDate || taxNoticeDraft?.formData?.noticeDate,
+          assessmentYear: assessmentYear,
+          noticeType: params.noticeType || taxNoticeDraft?.formData?.noticeType,
         },
       });
-    } catch (err) {
-      logger.error("[NoticeDocumentsScreen] Document upload failed:", { error: err });
-      Alert.alert("Upload Failed", getErrorMessage(err) || "Failed to upload documents.");
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert("Upload Failed", err.message || "Failed to upload documents.");
     } finally {
       setIsSubmitting(false);
     }
@@ -311,7 +308,7 @@ export const NoticeDocumentsScreen: React.FC = () => {
       />
 
       {/* Main Content */}
-      <KeyboardAwareScrollView
+      <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
           getScrollContentInsetsStyle(insets.bottom),
@@ -362,10 +359,10 @@ export const NoticeDocumentsScreen: React.FC = () => {
           />
           <Text style={styles.charCounter}>{remarks.length}/500</Text>
         </View>
-      </KeyboardAwareScrollView>
+      </ScrollView>
 
       {/* Sticky Bottom Action Button */}
-      <KeyboardStickyFooter style={[styles.bottomBar, getBottomBarInsetsStyle(insets.bottom)]}>
+      <View style={[styles.bottomBar, getBottomBarInsetsStyle(insets.bottom)]}>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleSubmitDocuments}
@@ -378,7 +375,7 @@ export const NoticeDocumentsScreen: React.FC = () => {
             <Text style={styles.submitButtonText}>{taxNoticeDraft?.step === "REVIEW" ? "Update & Continue" : "Submit Documents & Review Response"}</Text>
           )}
         </TouchableOpacity>
-      </KeyboardStickyFooter>
+      </View>
 
       {/* Universal Draft Modal */}
       <UniversalDraftModal

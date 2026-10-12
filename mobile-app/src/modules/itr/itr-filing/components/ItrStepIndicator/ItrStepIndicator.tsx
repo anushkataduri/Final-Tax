@@ -15,7 +15,6 @@ interface ItrStepIndicatorProps {
 const STEP_LABELS = [
   "Personal & Filing Info",
   "Income Sources",
-  "Regime & Deductions",
   "Document Checklist",
   "Tax Summary & Review",
 ];
@@ -36,7 +35,7 @@ export const ItrStepIndicator: React.FC<ItrStepIndicatorProps> = ({
     <View style={styles.container}>
       {/* Top Bar */}
       <View style={styles.topRow}>
-        {currentStep === 4 ? (
+        {currentStep === totalSteps - 1 ? (
           <View style={styles.rightSpacer} /> // Replaces back button with empty spacer for balance
         ) : (
           <TouchableOpacity
@@ -56,15 +55,27 @@ export const ItrStepIndicator: React.FC<ItrStepIndicatorProps> = ({
           </Text>
         </View>
 
-        {currentStep === 4 ? (
+        {currentStep === totalSteps - 1 ? (
           onSaveDraft ? (
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={onSaveDraft}
-              style={styles.circleBtn}
+              style={{
+                height: 34,
+                paddingHorizontal: 12,
+                borderRadius: 17,
+                backgroundColor: "#F8FAFC",
+                borderWidth: 1,
+                borderColor: "#E2E8F0",
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 4
+              }}
               accessibilityLabel="Save Draft"
             >
-              <Ionicons name="save-outline" size={20} color="#64748B" />
+              <Ionicons name="bookmark-outline" size={14} color="#64748B" />
+              <Text style={{ fontSize: 13, fontWeight: "600", color: "#64748B" }}>Draft</Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.rightSpacer} />

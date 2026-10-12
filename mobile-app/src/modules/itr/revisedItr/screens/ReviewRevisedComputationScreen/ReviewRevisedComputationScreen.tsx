@@ -23,7 +23,6 @@ import {
   getScrollContentInsetsStyle,
   getBottomBarInsetsStyle,
 } from "./ReviewRevisedComputationScreen.styles";
-import { logger } from "@/core/logging/logger";
 
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { useCustomerStore } from "@/modules/customer/store/customerStore";
@@ -78,9 +77,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
   if (params.revisedDetails) {
     try {
       formDetails = JSON.parse(params.revisedDetails);
-    } catch (e) {
-      logger.debug("[ReviewRevisedComputationScreen] JSON parse fallback for revisedDetails", { error: e });
-    }
+    } catch {}
   }
 
   const maskPan = (pan?: string): string => {
@@ -109,36 +106,36 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
 
   const handleEditOriginal = () => {
     router.push({
-      pathname: "/service/revised-itr",
+      pathname: "/service/revised-itr" as any,
       params: {
         acknowledgementNumber: ackNo,
         assessmentYear,
         revisionReason: params.revisionReason,
-        revisedDetails: params.revisedDetails,
+        revisedDetails: params.revisedDetails, isEditing: "true",
       },
     });
   };
 
   const handleEditChanges = () => {
     router.push({
-      pathname: "/service/revised-itr-update",
+      pathname: "/service/revised-itr-update" as any,
       params: {
         acknowledgementNumber: ackNo,
         assessmentYear,
         revisionReason: params.revisionReason,
-        revisedDetails: params.revisedDetails,
+        revisedDetails: params.revisedDetails, isEditing: "true",
       },
     });
   };
 
   const handleEditDocs = () => {
     router.push({
-      pathname: "/service/revised-itr-documents",
+      pathname: "/service/revised-itr-documents" as any,
       params: {
         acknowledgementNumber: ackNo,
         assessmentYear,
         revisionReason: params.revisionReason,
-        revisedDetails: params.revisedDetails,
+        revisedDetails: params.revisedDetails, isEditing: "true",
       },
     });
   };
@@ -171,7 +168,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
 
     // Navigate to Application Received / Success screen with Revised ITR details
     router.push({
-      pathname: "/service/itr-success",
+      pathname: "/service/itr-success" as any,
       params: {
         serviceType: "revised",
         serviceTitle,

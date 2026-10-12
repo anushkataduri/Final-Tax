@@ -45,22 +45,18 @@ export const ReviewNoticeResponseScreen: React.FC = () => {
 
   const customerName =
     customer?.name || authUser?.name || "Assessee";
-  const pan = String(
-    params.pan || taxNoticeDraft?.formData?.pan || customer?.pan || "AXTPD4419K"
-  );
-  const noticeNumber = String(
+  const pan =
+    params.pan || taxNoticeDraft?.formData?.pan || customer?.pan || "AXTPD4419K";
+  const noticeNumber =
     params.noticeNumber ||
     taxNoticeDraft?.formData?.noticeNumber ||
-    "CPC/2526/A3/284419260"
-  );
-  const noticeDate = String(
-    params.noticeDate || taxNoticeDraft?.formData?.noticeDate || "18 August 2026"
-  );
-  const assessmentYear = String(
+    "CPC/2526/A3/284419260";
+  const noticeDate =
+    params.noticeDate || taxNoticeDraft?.formData?.noticeDate || "18 August 2026";
+  const assessmentYear =
     params.assessmentYear ||
     taxNoticeDraft?.formData?.assessmentYear ||
-    "AY 2025–26"
-  );
+    "AY 2025–26";
 
   // Checked by default matching reference screenshot
   const [isChecked, setIsChecked] = useState(true);
@@ -129,7 +125,7 @@ Meera Iyer, Tax Executive`;
 
     // Navigate to Screen 6: Response Submission & Notice Status
     router.push({
-      pathname: "/service/tax-notice-status",
+      pathname: "/service/tax-notice-status" as any,
       params: {
         applicationId: createdAppId,
         noticeNumber,

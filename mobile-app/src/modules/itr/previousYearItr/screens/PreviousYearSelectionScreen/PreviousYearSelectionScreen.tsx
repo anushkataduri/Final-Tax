@@ -26,29 +26,28 @@ export const PreviousYearSelectionScreen: React.FC = () => {
 
   // AY 2023-24 is selected by default as in the design specification
   const [selectedYearId, setSelectedYearId] = useState<string>(() => {
-    return (previousYearDraft?.formData?.selectedYearId as string) || "ay-2023-24";
+    return previousYearDraft?.formData?.selectedYearId || "ay-2023-24";
   });
 
   useEffect(() => {
     if (previousYearDraft) {
       if (previousYearDraft.formData?.selectedYearId) {
-        setSelectedYearId(String(previousYearDraft.formData.selectedYearId));
+        setSelectedYearId(previousYearDraft.formData.selectedYearId);
       }
-      const ayParam = String(previousYearDraft.assessmentYear || "AY 2023–24");
       if (previousYearDraft.step === 3) {
         router.push({
-          pathname: "/service/previous-year-documents",
-          params: { assessmentYear: ayParam },
+          pathname: "/service/previous-year-documents" as any,
+          params: { assessmentYear: previousYearDraft.assessmentYear || "AY 2023–24" },
         });
       } else if (previousYearDraft.step === 2) {
         router.push({
-          pathname: "/service/previous-year-charges",
-          params: { assessmentYear: ayParam },
+          pathname: "/service/previous-year-charges" as any,
+          params: { assessmentYear: previousYearDraft.assessmentYear || "AY 2023–24" },
         });
       } else if (previousYearDraft.step === 1) {
         router.push({
-          pathname: "/service/previous-year-itr-details",
-          params: { assessmentYear: ayParam },
+          pathname: "/service/previous-year-itr-details" as any,
+          params: { assessmentYear: previousYearDraft.assessmentYear || "AY 2023–24" },
         });
       }
     }
@@ -72,7 +71,7 @@ export const PreviousYearSelectionScreen: React.FC = () => {
     });
 
     router.push({
-      pathname: "/service/previous-year-itr-details",
+      pathname: "/service/previous-year-itr-details" as any,
       params: {
         assessmentYear: ay,
       },

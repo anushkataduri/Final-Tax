@@ -67,31 +67,6 @@ export const TDS_REQUIRED_DOCUMENTS: TdsDocumentItem[] = [
     iconType: "aadhaar",
   },
   {
-    id: "form16",
-    title: "Form 16 /\nForm 16A",
-    iconType: "form16",
-  },
-  {
-    id: "ais",
-    title: "AIS\nStatement",
-    iconType: "chart",
-  },
-  {
-    id: "tis",
-    title: "TIS\nStatement",
-    iconType: "document",
-  },
-  {
-    id: "bank",
-    title: "Bank\nStatement",
-    iconType: "bank",
-  },
-  {
-    id: "salary",
-    title: "Salary Slip\n(if applicable)",
-    iconType: "salary",
-  },
-  {
     id: "more",
     title: "More",
     iconType: "more",

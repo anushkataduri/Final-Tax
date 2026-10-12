@@ -1,28 +1,29 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   Alert,
+  BackHandler,
 } from "react-native";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Step0CategorySelect } from "../../components/Step0CategorySelect/Step0CategorySelect";
 import { ItrStepIndicator } from "../../components/ItrStepIndicator/ItrStepIndicator";
 import { Step1PersonalInfo } from "../../components/Step1PersonalInfo/Step1PersonalInfo";
 import { Step2IncomeSources } from "../../components/Step2IncomeSources/Step2IncomeSources";
-import { Step3RegimeAndDeductions } from "../../components/Step3RegimeAndDeductions/Step3RegimeAndDeductions";
 import { Step4DocumentChecklist } from "../../components/Step4DocumentChecklist/Step4DocumentChecklist";
 import { Step5TaxSummaryReview } from "../../components/Step5TaxSummaryReview/Step5TaxSummaryReview";
 import { useITRStore } from "@/modules/itr/store/itrStore";
 import { useApplicationStore } from "@/store/applicationStore";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
+import { ItrApiService } from "../../services/ItrApiService";
 import { styles } from "./ItrFilingScreen.styles";
-import { getErrorMessage } from "@/core/error-handling/errorMessage";
 
 export const ItrFilingScreen: React.FC = () => {
   const router = useRouter();
@@ -34,6 +35,7 @@ export const ItrFilingScreen: React.FC = () => {
   const currentStep = useITRStore((state) => state.currentStep);
   const maxStepReached = useITRStore((state) => state.maxStepReached);
   const setStep = useITRStore((state) => state.setStep);
+  const setBackendIds = useITRStore((state) => state.setBackendIds);
   const formData = useITRStore((state) => state.formData);
 
   const setCategory = useITRStore((state) => state.setCategory);
@@ -72,6 +74,7 @@ export const ItrFilingScreen: React.FC = () => {
   } = useUniversalDraftGuard({
     saveDestination: "/service/itr",
     discardDestination: "/service/itr",
+
     isDirty: () => {
       const hasIncome = formData.calculation.grossTotalIncome > 0;
       const hasDocs = formData.documents.some((d) => Boolean(d.fileUri));
@@ -123,6 +126,112 @@ export const ItrFilingScreen: React.FC = () => {
       setIsCategoryConfirmed(false);
     }
   };
+
+  const handleStep1Continue = async () => {
+    try {
+      setIsSubmitting(true);
+      if (maxStepReached >= 3) {
+        if (formData.itrId) {
+          await ItrApiService.updatePersonalInfo(formData.itrId, formData);
+        }
+        setStep(3);
+      } else {
+        if (!formData.itrId) {
+          const response = await ItrApiService.savePersonalInfo(formData);
+          // Assuming backend returns an object containing { itrId: "ITR..." }
+          if (response && response.itrId) {
+            setBackendIds({ itrId: response.itrId });
+          }
+        } else {
+          await ItrApiService.updatePersonalInfo(formData.itrId, formData);
+        }
+        setStep(1);
+      }
+    } catch (e) {
+      Alert.alert("Error", "Failed to save personal information to the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleStep2Continue = async () => {
+    try {
+      setIsSubmitting(true);
+      if (maxStepReached >= 3) {
+        if (formData.incomeId) {
+          await ItrApiService.updateSalaryIncome(formData.incomeId, formData);
+        }
+        setStep(3);
+      } else {
+        if (formData.itrId && !formData.incomeId) {
+          const response = await ItrApiService.saveSalaryIncome(formData.itrId, formData);
+          // Assuming backend returns { incomeId: "INC..." }
+          if (response && response.incomeId) {
+            setBackendIds({ incomeId: response.incomeId });
+          }
+        } else if (formData.incomeId) {
+          await ItrApiService.updateSalaryIncome(formData.incomeId, formData);
+        }
+        setStep(2);
+      }
+    } catch (e) {
+      Alert.alert("Error", "Failed to save income information to the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleStep3Continue = async () => {
+    try {
+      setIsSubmitting(true);
+      if (maxStepReached >= 3) {
+        if (formData.documentId) {
+          await ItrApiService.updateDocuments(formData.documentId, formData);
+        }
+        setStep(3);
+      } else {
+        if (formData.itrId && !formData.documentId) {
+          const response = await ItrApiService.saveDocuments(formData.itrId, formData);
+          // Assuming backend returns { documentId: "DOC..." }
+          if (response && response.documentId) {
+            setBackendIds({ documentId: response.documentId });
+          }
+        } else if (formData.documentId) {
+          await ItrApiService.updateDocuments(formData.documentId, formData);
+        }
+        setStep(3);
+      }
+    } catch (e) {
+      Alert.alert("Error", "Failed to save document information to the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (!isCategoryConfirmed) {
+          const hasData = formData.calculation.grossTotalIncome > 0 || formData.documents.some((d) => Boolean(d.fileUri));
+          if (hasData) {
+            openDraftModal();
+            return true;
+          }
+          return false;
+        }
+        if (currentStep > 0) {
+          setStep(currentStep - 1);
+          return true;
+        } else {
+          setIsCategoryConfirmed(false);
+          return true;
+        }
+      };
+
+      const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => subscription.remove();
+    }, [currentStep, isCategoryConfirmed, formData, openDraftModal])
+  );
 
   const handleSubmitApplication = async () => {
     setIsSubmitting(true);
@@ -198,7 +307,7 @@ export const ItrFilingScreen: React.FC = () => {
 
       // Navigate to Success Screen with synchronized parameters
       router.replace({
-        pathname: "/service/itr-success",
+        pathname: "/service/itr-success" as any,
         params: {
           applicationId: generatedAppId,
           serviceTitle,
@@ -211,9 +320,9 @@ export const ItrFilingScreen: React.FC = () => {
           refundBank: maskedBank,
         },
       });
-    } catch (err) {
+    } catch (err: any) {
       setIsSubmitting(false);
-      Alert.alert("Submission Error", getErrorMessage(err) || "Could not submit application. Please try again.");
+      Alert.alert("Submission Error", err?.message || "Could not submit application. Please try again.");
     }
   };
 
@@ -272,7 +381,7 @@ export const ItrFilingScreen: React.FC = () => {
       {/* Top Header & Step Progress Bar */}
       <ItrStepIndicator
         currentStep={currentStep}
-        totalSteps={5}
+        totalSteps={4}
         stepTitle={formData.determinedForm.form}
         onBack={handleBack}
         onSettings={() =>
@@ -282,8 +391,8 @@ export const ItrFilingScreen: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <ScrollView
-        ref={scrollViewRef}
+      <KeyboardAwareScrollView
+        ref={scrollViewRef as any}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: insets.bottom + 40 },
@@ -292,7 +401,7 @@ export const ItrFilingScreen: React.FC = () => {
       >
         {/* Step 1: Personal Information, AY & Bank (Pre-filled from DB/GST) */}
         {currentStep === 0 && (
-          <Step1PersonalInfo isEditing={maxStepReached > 0}
+          <Step1PersonalInfo isEditing={maxStepReached >= 3}
             personalInfo={formData.personalInfo}
             onUpdatePersonalInfo={setPersonalInfo}
             bankDetails={formData.bankDetails}
@@ -302,13 +411,13 @@ export const ItrFilingScreen: React.FC = () => {
             priorItrNotice={formData.priorItrNotice}
             onUpdatePriorItrNotice={setPriorItrNotice}
             onImportPriorItrData={importPriorItrData}
-            onContinue={() => maxStepReached >= 4 ? setStep(4) : setStep(1)}
+            onContinue={handleStep1Continue}
           />
         )}
 
         {/* Step 2: Income Sources & Smart ITR Form Determination */}
         {currentStep === 1 && (
-          <Step2IncomeSources isEditing={maxStepReached > 1}
+          <Step2IncomeSources isEditing={maxStepReached >= 3}
             sources={formData.incomeSources}
             determinedForm={formData.determinedForm}
             gstReconciliation={formData.gstReconciliation}
@@ -319,34 +428,21 @@ export const ItrFilingScreen: React.FC = () => {
             onUpdateBusiness={setIncomeBusiness}
             onUpdateCapitalGains={setIncomeCapitalGains}
             onUpdateOtherSources={setIncomeOtherSources}
-            onContinue={() => maxStepReached >= 4 ? setStep(4) : setStep(2)}
+            onContinue={handleStep2Continue}
           />
         )}
 
-        {/* Step 3: Tax Regime & Structured Deductions */}
+        {/* Step 3: Dynamic Document Checklist & Upload */}
         {currentStep === 2 && (
-          <Step3RegimeAndDeductions isEditing={maxStepReached > 2}
-            regime={formData.regime}
-            onChangeRegime={setRegime}
-            deductions={formData.deductions}
-            onChangeDeductions={setDeductions}
-            calculation={formData.calculation}
-            assessmentYear={formData.personalInfo.assessmentYear}
-            onContinue={() => maxStepReached >= 4 ? setStep(4) : setStep(3)}
-          />
-        )}
-
-        {/* Step 4: Dynamic Document Checklist & Upload */}
-        {currentStep === 3 && (
-          <Step4DocumentChecklist isEditing={maxStepReached > 3}
+          <Step4DocumentChecklist isEditing={maxStepReached >= 3}
             documents={formData.documents}
             onUpdateDocument={updateDocument}
-            onContinue={() => setStep(4)}
+            onContinue={handleStep3Continue}
           />
         )}
 
-        {/* Step 5: Tax Calculation Engine & Pre-Submission Review */}
-        {currentStep === 4 && (
+        {/* Step 4: Tax Calculation Engine & Pre-Submission Review */}
+        {currentStep === 3 && (
           <Step5TaxSummaryReview
             formData={formData}
             isSubmitting={isSubmitting}
@@ -355,7 +451,7 @@ export const ItrFilingScreen: React.FC = () => {
             onSubmit={handleSubmitApplication}
           />
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Universal Draft Guard Modal */}
       <UniversalDraftModal

@@ -1,54 +1,263 @@
-﻿import { apiClient } from "../../../../core/api/apiClient";
+import { apiClient } from "../../../../core/api/apiClient";
 import { TdsCustomerIncomeFormData } from "../types/customerIncome.types";
+import { TdsDocumentItem } from "../types/tdsDocuments.types";
 import { parsePositiveNumber } from "../utils/tdsValidation";
 import {
+  TdsRefundDto,
   RefundBankAccountDto,
   IncomeTaxInfoDto,
   TdsTaxesPaidDto,
 } from "./tdsApiTypes";
+import { readFileAsBase64 } from "./tdsDocumentsApiService";
 
-// Helper: Extract generated ID from Spring backend string responses like "Saved. ID: TDS-12345"
-const extractIdFromResponse = (responseMsg: string): string | null => {
-  if (!responseMsg || typeof responseMsg !== "string") return null;
+// Helper: Extract generated ID from Spring backend string responses like "Saved. ID: TDS-12345" or "TDS12345"
+const extractIdFromResponse = (responseMsg: unknown): string | null => {
+  if (!responseMsg) return null;
+  if (typeof responseMsg === "object" && (responseMsg as any).id) {
+    return String((responseMsg as any).id);
+  }
+  if (typeof responseMsg !== "string") return String(responseMsg);
   const match = responseMsg.match(/ID:\s*([A-Za-z0-9_-]+)/i);
-  return match ? match[1] : null;
+  if (match) return match[1];
+  const trimmed = responseMsg.trim().replace(/^["']|["']$/g, "");
+  return trimmed || null;
 };
 
 export const tdsBankAndIncomeApiService = {
   // ----------------------------------------------------
-  // 1. BANK ACCOUNT API
+  // 1. TDS REFUND / BANK ACCOUNT API (@RequestMapping("/tds-refund"))
   // ----------------------------------------------------
+  buildTdsRefundPayload: async (
+    bankData: TdsCustomerIncomeFormData["bank"] | TdsRefundDto,
+    custId?: string,
+    businessData?: TdsCustomerIncomeFormData["business"],
+    documents?: TdsDocumentItem[],
+    personalData?: TdsCustomerIncomeFormData["personal"],
+  ): Promise<TdsRefundDto> => {
+    let panBase64: string | null = null;
+    let aadhaarBase64: string | null = null;
+
+    if (documents && Array.isArray(documents)) {
+      const panDoc =
+        documents.find(
+          (d) =>
+            d.id === "pan" ||
+            String(d.id || "").toLowerCase().includes("pan") ||
+            String(d.title || "").toLowerCase().includes("pan") ||
+            (d as any).iconType === "pan",
+        ) || documents[0];
+      const aadhaarDoc =
+        documents.find(
+          (d) =>
+            d.id === "aadhaar" ||
+            String(d.id || "").toLowerCase().includes("aadhaar") ||
+            String(d.title || "").toLowerCase().includes("aadhaar"),
+        ) || documents[1];
+
+      const panUri = panDoc?.fileUri || (panDoc as any)?.uri || (panDoc as any)?.fileUrl || (panDoc as any)?.url;
+      const aadhaarUri = aadhaarDoc?.fileUri || (aadhaarDoc as any)?.uri || (aadhaarDoc as any)?.fileUrl || (aadhaarDoc as any)?.url;
+
+      if (panUri) {
+        panBase64 = await readFileAsBase64(panUri);
+      }
+      if (aadhaarUri) {
+        aadhaarBase64 = await readFileAsBase64(aadhaarUri);
+      }
+    }
+
+    // Fallback: check saved draft storage if not in memory
+    if (!panBase64 || !aadhaarBase64) {
+      try {
+        const { tdsDraftService } = await import("./tdsDraftService");
+        const draftDocs = await tdsDraftService.getDocumentsDraft();
+        if (draftDocs && Array.isArray(draftDocs)) {
+          const draftPan =
+            draftDocs.find((d) => String(d.id || "").toLowerCase().includes("pan") || String(d.title || "").toLowerCase().includes("pan")) || draftDocs[0];
+          const draftAadhaar =
+            draftDocs.find((d) => String(d.id || "").toLowerCase().includes("aadhaar") || String(d.title || "").toLowerCase().includes("aadhaar")) || draftDocs[1];
+          if (!panBase64 && (draftPan?.fileUri || (draftPan as any)?.uri)) {
+            panBase64 = await readFileAsBase64(draftPan.fileUri || (draftPan as any).uri);
+          }
+          if (!aadhaarBase64 && (draftAadhaar?.fileUri || (draftAadhaar as any)?.uri)) {
+            aadhaarBase64 = await readFileAsBase64(draftAadhaar.fileUri || (draftAadhaar as any).uri);
+          }
+        }
+      } catch (draftErr) {
+        console.warn("[TDS API] Draft docs fallback check warning:", draftErr);
+      }
+    }
+
+    console.log("📄 [TDS API] Documents processed -> PAN bytes length:", panBase64?.length || 0, "Aadhaar bytes length:", aadhaarBase64?.length || 0);
+
+    const isDirectDto = "legalBusinessName" in bankData;
+
+    const legalBusinessName = isDirectDto
+      ? (bankData as TdsRefundDto).legalBusinessName
+      : (businessData?.legalName || personalData?.fullName || bankData.accountHolderName || "").trim();
+
+    const businessPan = isDirectDto
+      ? (bankData as TdsRefundDto).businessPan
+      : (businessData?.pan || personalData?.pan || "").trim().toUpperCase();
+
+    const aadhaarNumber = isDirectDto
+      ? (bankData as TdsRefundDto).aadhaarNumber
+      : (businessData?.aadhaar || personalData?.aadhaar || "").replace(/\D/g, "");
+
+    const mobileNumber = isDirectDto
+      ? (bankData as TdsRefundDto).mobileNumber
+      : (businessData?.mobileNumber || personalData?.mobileNumber || custId || "").replace(/\D/g, "").slice(-10);
+
+    const accountHolderName = isDirectDto
+      ? (bankData as TdsRefundDto).accountHolderName
+      : (bankData.accountHolderName || personalData?.fullName || "").trim();
+
+    const accountNumber = isDirectDto
+      ? (bankData as TdsRefundDto).accountNumber
+      : (bankData.accountNumber || "").trim();
+
+    const confirmAccountNumber = isDirectDto
+      ? (bankData as TdsRefundDto).confirmAccountNumber
+      : (bankData.confirmAccountNumber || bankData.accountNumber || "").trim();
+
+    const ifscCode = isDirectDto
+      ? (bankData as TdsRefundDto).ifscCode
+      : (bankData.ifscCode || "").trim().toUpperCase();
+
+    const bankName = isDirectDto
+      ? (bankData as TdsRefundDto).bankName
+      : (bankData.bankName || "").trim();
+
+    const branchName = isDirectDto
+      ? (bankData as TdsRefundDto).branchName
+      : (bankData.branchName || "").trim();
+
+    const accountType = isDirectDto
+      ? (bankData as TdsRefundDto).accountType
+      : (bankData.accountType?.toUpperCase() === "CURRENT" ? "CURRENT" : "SAVINGS");
+
+    return {
+      legalBusinessName,
+      businessPan,
+      businessPanDocument: isDirectDto ? (bankData as TdsRefundDto).businessPanDocument : (panBase64 || undefined),
+      aadhaarNumber,
+      aadhaarDocument: isDirectDto ? (bankData as TdsRefundDto).aadhaarDocument : (aadhaarBase64 || undefined),
+      mobileNumber,
+      accountHolderName,
+      accountNumber,
+      confirmAccountNumber,
+      ifscCode,
+      bankName: bankName || undefined,
+      branchName: branchName || undefined,
+      accountType,
+    };
+  },
+
+  /**
+   * Save new TDS Refund / Bank Account (@PostMapping("/save"))
+   */
   saveBankAccount: async (
-    bankData: TdsCustomerIncomeFormData["bank"],
+    bankData: TdsCustomerIncomeFormData["bank"] | TdsRefundDto,
     custId: string,
     existingId?: string,
+    businessData?: TdsCustomerIncomeFormData["business"],
+    documents?: TdsDocumentItem[],
+    personalData?: TdsCustomerIncomeFormData["personal"],
   ): Promise<string> => {
-    const payload: RefundBankAccountDto = {
-      id: existingId || undefined,
-      custId: custId || "CUST-DEFAULT",
-      accountHolderName: bankData.accountHolderName || "",
-      accountNumber: bankData.accountNumber || "",
-      confirmAccountNumber:
-        bankData.confirmAccountNumber || bankData.accountNumber || "",
-      ifscCode: bankData.ifscCode || "",
-      bankName: bankData.bankName || "",
-      branchName: bankData.branchName || "",
-      accountType: (bankData.accountType?.toUpperCase() === "CURRENT"
-        ? "CURRENT"
-        : "SAVINGS"),
-    };
+    if (existingId) {
+      return await tdsBankAndIncomeApiService.updateBankAccount(
+        existingId,
+        bankData,
+        custId,
+        businessData,
+        documents,
+        personalData,
+      );
+    }
 
-    const res = await apiClient.post<string>(
-      "/itr/refund-bank-account/save",
-      payload,
+    const payload = await tdsBankAndIncomeApiService.buildTdsRefundPayload(
+      bankData,
+      custId,
+      businessData,
+      documents,
+      personalData,
     );
-    const extractedId = extractIdFromResponse(res) || existingId || "";
+
+    console.log("🌐 [TDS API] Calling POST /tds-refund/save with payload:", {
+      ...payload,
+      businessPanDocument: payload.businessPanDocument ? `[base64: ${payload.businessPanDocument.length} chars]` : undefined,
+      aadhaarDocument: payload.aadhaarDocument ? `[base64: ${payload.aadhaarDocument.length} chars]` : undefined,
+    });
+
+    const res = await apiClient.post<string>("/tds-refund/save", payload);
+    const extractedId =
+      extractIdFromResponse(res) || (typeof res === "string" ? res : null) || "";
     return extractedId;
+  },
+
+  /**
+   * Update existing TDS Refund / Bank Account (@PutMapping("/update/{id}"))
+   */
+  updateBankAccount: async (
+    id: string,
+    bankData: TdsCustomerIncomeFormData["bank"] | TdsRefundDto,
+    custId?: string,
+    businessData?: TdsCustomerIncomeFormData["business"],
+    documents?: TdsDocumentItem[],
+    personalData?: TdsCustomerIncomeFormData["personal"],
+  ): Promise<string> => {
+    const payload = await tdsBankAndIncomeApiService.buildTdsRefundPayload(
+      bankData,
+      custId,
+      businessData,
+      documents,
+      personalData,
+    );
+
+    console.log(`🌐 [TDS API] Calling PUT /tds-refund/update/${id} with payload:`, {
+      ...payload,
+      businessPanDocument: payload.businessPanDocument ? `[base64: ${payload.businessPanDocument.length} chars]` : undefined,
+      aadhaarDocument: payload.aadhaarDocument ? `[base64: ${payload.aadhaarDocument.length} chars]` : undefined,
+    });
+
+    let res: string;
+    try {
+      res = await apiClient.put<string>(`/tds-refund/update/${id}`, payload);
+    } catch (err) {
+      console.warn(`[TDS API] PUT /tds-refund/update/${id} failed, falling back to /tds-refund/save:`, err);
+      res = await apiClient.post<string>("/tds-refund/save", payload);
+    }
+
+    const extractedId =
+      extractIdFromResponse(res) || (typeof res === "string" ? res : null) || id;
+    return extractedId;
+  },
+
+  /**
+   * Update directly with DTO (@PutMapping("/update/{id}"))
+   */
+  updateTdsRefund: async (id: string, dto: TdsRefundDto): Promise<string> => {
+    console.log(`🌐 [TDS API] Calling PUT /tds-refund/update/${id}`);
+    const res = await apiClient.put<string>(`/tds-refund/update/${id}`, dto);
+    return extractIdFromResponse(res) || (typeof res === "string" ? res : id);
+  },
+
+  saveTdsRefund: async (dto: TdsRefundDto, existingId?: string): Promise<string> => {
+    if (existingId) {
+      return await tdsBankAndIncomeApiService.updateTdsRefund(existingId, dto);
+    }
+    const res = await apiClient.post<string>("/tds-refund/save", dto);
+    return extractIdFromResponse(res) || (typeof res === "string" ? res : "");
+  },
+
+  getTdsRefund: async (id: string): Promise<TdsRefundDto> => {
+    return await apiClient.get<TdsRefundDto>(
+      `/tds-refund/get/${id}`,
+    );
   },
 
   getBankAccount: async (id: string): Promise<RefundBankAccountDto> => {
     return await apiClient.get<RefundBankAccountDto>(
-      `/itr/refund-bank-account/${id}`,
+      `/tds-refund/get/${id}`,
     );
   },
 
@@ -57,7 +266,7 @@ export const tdsBankAndIncomeApiService = {
   ): Promise<RefundBankAccountDto | null> => {
     try {
       return await apiClient.get<RefundBankAccountDto>(
-        `/itr/refund-bank-account/customer/${custId}`,
+        `/tds-refund/get-by-customer/${custId}`,
       );
     } catch {
       return null;

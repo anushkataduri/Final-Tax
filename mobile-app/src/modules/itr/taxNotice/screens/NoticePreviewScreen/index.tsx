@@ -17,7 +17,6 @@ import { TaxNoticeHeader } from "../../components/common";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { logger } from "@/core/logging/logger";
 import { styles } from "./NoticePreviewScreen.styles";
 
 export interface NoticeDocument {
@@ -32,7 +31,7 @@ const NoticePreviewScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const taxNoticeDraft = useApplicationStore((state) => state.taxNoticeDraft);
 
-  const formData = (taxNoticeDraft?.formData || {}) as Record<string, any>;
+  const formData = taxNoticeDraft?.formData || {};
   const documents: NoticeDocument[] = taxNoticeDraft?.documents || [];
   const uploadedDocs = documents.filter(
     (d) => d.status === "uploaded" || d.fileUri,
@@ -46,6 +45,7 @@ const NoticePreviewScreen: React.FC = () => {
     handleDiscardAndExit,
     handleCancel,
   } = useUniversalDraftGuard({
+    saveDestination: "/service/itr",
     discardDestination: "/service/itr",
     isDirty: () => true,
     onSaveDraft: () => {
@@ -61,7 +61,7 @@ const NoticePreviewScreen: React.FC = () => {
     try {
       router.push("/service/tax-notice-assistance");
     } catch (error) {
-      logger.warn("[NoticePreviewScreen] Navigation Error to tax-notice-assistance:", { error });
+      console.error("Navigation Error:", error);
     }
   };
 
@@ -69,7 +69,7 @@ const NoticePreviewScreen: React.FC = () => {
     try {
       router.push("/service/tax-notice-documents");
     } catch (error) {
-      logger.warn("[NoticePreviewScreen] Navigation Error to tax-notice-documents:", { error });
+      console.error("Navigation Error:", error);
     }
   };
 
@@ -78,17 +78,17 @@ const NoticePreviewScreen: React.FC = () => {
       router.push({
         pathname: "/service/tax-notice-review",
         params: {
-          noticeId: String(formData.noticeId || ""),
-          pan: String(formData.pan || ""),
-          noticeNumber: String(formData.noticeNumber || ""),
-          noticeDate: String(formData.noticeDate || ""),
-          responseDueDate: String(formData.responseDueDate || ""),
-          noticeType: String(formData.noticeType || ""),
-          assessmentYear: String(formData.assessmentYear || ""),
+          noticeId: formData.noticeId,
+          pan: formData.pan,
+          noticeNumber: formData.noticeNumber,
+          noticeDate: formData.noticeDate,
+          responseDueDate: formData.responseDueDate,
+          noticeType: formData.noticeType,
+          assessmentYear: formData.assessmentYear,
         },
       });
     } catch (error) {
-      logger.warn("[NoticePreviewScreen] Navigation Error to tax-notice-review:", { error });
+      console.error("Navigation Error:", error);
     }
   };
 

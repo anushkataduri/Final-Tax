@@ -43,7 +43,7 @@ export const NoticeSummaryScreen: React.FC = () => {
   const taxNoticeDraft = useApplicationStore((state) => state.taxNoticeDraft);
   const saveTaxNoticeDraft = useApplicationStore((state) => state.saveTaxNoticeDraft);
 
-  const draftData = (taxNoticeDraft?.formData || {}) as Record<string, any>;
+  const draftData = taxNoticeDraft?.formData || {};
 
   const noticeNumber = params.noticeNumber || draftData.noticeNumber || "CPC/2526/A3/284419260";
   const noticeDate = params.noticeDate || draftData.noticeDate || "18 Aug 2026";
@@ -89,7 +89,7 @@ export const NoticeSummaryScreen: React.FC = () => {
   const handleContinue = () => {
     // Navigate to Screen 4: Additional Documents Required & Customer Upload
     router.push({
-      pathname: "/service/tax-notice-documents",
+      pathname: "/service/tax-notice-documents" as any,
       params: {
         pan,
         noticeNumber,

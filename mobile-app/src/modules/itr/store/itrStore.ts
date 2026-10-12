@@ -6,7 +6,6 @@ import { useAuthStore } from "@/store/authStore";
 import { useApplicationStore } from "@/store/applicationStore";
 import { authStorage } from "@/modules/authentication/services/authStorage";
 import { addDraftToIndex, removeDraftFromIndex } from "@/shared/hooks/useServiceDraft";
-import { logger } from "@/core/logging/logger";
 import {
   ItrFilingFormData,
   ItrPersonalInfo,
@@ -375,9 +374,7 @@ export const useITRStore = create<ITRState>((set, get) => ({
         documents: formData.documents,
         updatedAt: draft.updatedAt,
       })
-    ).catch((err) => {
-      logger.warn("[itrStore] Failed to persist ITR draft to storage", { error: err });
-    });
+    ).catch(() => {});
   },
   restoreItrDraft: async () => {
     try {
@@ -420,8 +417,7 @@ export const useITRStore = create<ITRState>((set, get) => ({
         return true;
       }
       return false;
-    } catch (err) {
-      logger.warn("[itrStore] Failed to restore ITR draft from storage", { error: err });
+    } catch {
       return false;
     }
   },
@@ -435,9 +431,7 @@ export const useITRStore = create<ITRState>((set, get) => ({
       "user";
     const clean = String(mobile).replace(/\D/g, "") || "user";
     removeDraftFromIndex(clean, "itr-filing");
-    AsyncStorage.removeItem(`@taxedge_draft_${clean}_itr-filing`).catch((err) => {
-      logger.debug("[itrStore] Failed to remove ITR draft item", { error: err });
-    });
+    AsyncStorage.removeItem(`@taxedge_draft_${clean}_itr-filing`).catch(() => {});
   },
   resetForm: () =>
     set({
@@ -480,8 +474,8 @@ export const useITRStore = create<ITRState>((set, get) => ({
           },
         }));
       }
-    } catch (err) {
-      logger.debug("[itrStore] Profile populate fallback", { error: err });
+    } catch {
+      // Graceful fallback to existing state
     }
   },
 }));

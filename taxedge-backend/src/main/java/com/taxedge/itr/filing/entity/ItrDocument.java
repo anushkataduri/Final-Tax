@@ -6,7 +6,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -31,28 +30,23 @@ public class ItrDocument {
     @JoinColumn(name = "itr_id", nullable = false)
     private ItrFiling itrFiling;
 
-    @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "form_16_part_a_part_b", columnDefinition = "LONGBLOB")
+    @Column(name = "form_16_part_a_part_b", columnDefinition = "bytea")
     private byte[] form16PartAPartB;
 
-    @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "form_26as", columnDefinition = "LONGBLOB")
+    @Column(name = "form_26as", columnDefinition = "bytea")
     private byte[] form26as;
 
-    @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "ais_tis", columnDefinition = "LONGBLOB")
+    @Column(name = "ais_tis", columnDefinition = "bytea")
     private byte[] aisTis;
 
-    @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "bank_account_statement", columnDefinition = "LONGBLOB")
+    @Column(name = "bank_account_statement", columnDefinition = "bytea")
     private byte[] bankAccountStatement;
 
-    @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "salary_payslips", columnDefinition = "LONGBLOB")
+    @Column(name = "salary_payslips", columnDefinition = "bytea")
     private byte[] salaryPayslips;
 }

@@ -304,6 +304,9 @@ export interface MissingInfoItem {
 }
 
 export interface ItrFilingFormData {
+  itrId?: string;
+  incomeId?: string;
+  documentId?: string;
   personalInfo: ItrPersonalInfo;
   bankDetails: ItrBankDetails;
   bankAccountsList: ItrSelectableBank[];

@@ -4,9 +4,9 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
-import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
-import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
@@ -17,6 +17,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { RevisedItrHeader } from "../../components/common";
 import { ReturnSummaryCard } from "../../components/find";
 import { useApplicationStore } from "@/store/applicationStore";
+import { useAuthStore } from "@/modules/authentication/store/authStore";
+import { RevisedItrApiService } from "../../services/RevisedItrApiService";
 import { OriginalReturnDetails } from "../../types/revisedItr.types";
 import {
   styles,
@@ -27,7 +29,7 @@ import {
 
 export const FindOriginalReturnScreen: React.FC = () => {
   const router = useRouter();
-  const params = useLocalSearchParams<{ acknowledgementNumber?: string; assessmentYear?: string }>();
+  const params = useLocalSearchParams<{ acknowledgementNumber?: string; assessmentYear?: string; isEditing?: string }>();
   const maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
   const insets = useSafeAreaInsets();
   const applications = useApplicationStore((state) => state.applications);
@@ -50,7 +52,7 @@ export const FindOriginalReturnScreen: React.FC = () => {
   } = useUniversalDraftGuard({
     saveDestination: "/service/itr",
     discardDestination: "/service/itr",
-    isDirty: () => true,
+    isDirty: () => ackNumber.trim().length > 0 || foundReturn !== null,
     onSaveDraft: () => {
       useApplicationStore.getState().saveRevisedItrDraft({ step: 0 });
     },
@@ -65,16 +67,15 @@ export const FindOriginalReturnScreen: React.FC = () => {
   useEffect(() => {
     const draft = useApplicationStore.getState().revisedItrDraft;
     if (draft) {
-      const step = Number(draft.step ?? draft.currentStep ?? 0);
-      const params = (draft.formData as Record<string, string>) || {};
+      const step = draft.step ?? draft.currentStep ?? 0;
       if (step >= 4) {
-        router.push({ pathname: "/service/revised-itr-review", params });
+        router.push({ pathname: "/service/revised-itr-review" as any, params: draft.formData || {} });
       } else if (step === 3) {
-        router.push({ pathname: "/service/revised-itr-documents", params });
+        router.push({ pathname: "/service/revised-itr-documents" as any, params: draft.formData || {} });
       } else if (step === 2) {
-        router.push({ pathname: "/service/revised-itr-update", params });
+        router.push({ pathname: "/service/revised-itr-update" as any, params: draft.formData || {} });
       } else if (step === 1) {
-        router.push({ pathname: "/service/revised-itr-reason", params });
+        router.push({ pathname: "/service/revised-itr-reason" as any, params: draft.formData || {} });
       }
     }
   }, []);
@@ -122,20 +123,52 @@ export const FindOriginalReturnScreen: React.FC = () => {
     }
   };
 
-  const handleContinue = () => {
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { revisedItrId, setBackendIds, setMaxStepReached } = useRevisedProgressStore();
+  const { customer, authenticatedUser } = useAuthStore();
+
+  const handleContinue = async () => {
     if (!foundReturn) {
       handleFindReturn();
       return;
     }
 
-    // Navigate to Screen 2: Reason for Revision
-    router.push({
-      pathname: "/service/revised-itr-reason",
-      params: {
-        acknowledgementNumber: foundReturn.acknowledgementNumber,
-        assessmentYear: foundReturn.assessmentYear,
-      },
-    });
+    try {
+      setIsSubmitting(true);
+      const customerId = customer?.customerId || (authenticatedUser as any)?.customerId || "CUST-12345";
+      
+      const payload = {
+        customerId,
+        itrAcknowledgementNumber: foundReturn.acknowledgementNumber,
+        assessmentYear: foundReturn.assessmentYear.replace("AY ", "").trim() // Convert "AY 2025-26" to "2025-26"
+      };
+
+      if (maxStepReached >= 2 && revisedItrId) {
+        // Edit flow
+        await RevisedItrApiService.updateRevisedItr(revisedItrId, payload);
+      } else {
+        // Initial flow
+        const response = await RevisedItrApiService.saveRevisedItr(payload);
+        if (response && response.revisedItrId) {
+          setBackendIds({ revisedItrId: response.revisedItrId });
+        }
+        setMaxStepReached(2);
+      }
+
+      // Navigate to Screen 2: Reason for Revision
+      router.push({
+        pathname: "/service/revised-itr-reason" as any,
+        params: {
+          acknowledgementNumber: foundReturn.acknowledgementNumber,
+          assessmentYear: foundReturn.assessmentYear,
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      // Optional: Add an Alert.alert here
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -146,7 +179,7 @@ export const FindOriginalReturnScreen: React.FC = () => {
       <RevisedItrHeader subtitle="Find Original Return" />
 
       {/* Main Content */}
-      <KeyboardAwareScrollView
+      <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
           getScrollContentInsetsStyle(insets.bottom),
@@ -227,10 +260,10 @@ export const FindOriginalReturnScreen: React.FC = () => {
 
         {/* Return Summary Card if Found */}
         {foundReturn && <ReturnSummaryCard details={foundReturn} />}
-      </KeyboardAwareScrollView>
+      </ScrollView>
 
       {/* Sticky Bottom Action Button */}
-      <KeyboardStickyFooter
+      <View
         style={[
           styles.bottomBar,
           getBottomBarInsetsStyle(insets.bottom),
@@ -240,11 +273,25 @@ export const FindOriginalReturnScreen: React.FC = () => {
           activeOpacity={0.85}
           onPress={foundReturn ? handleContinue : handleFindReturn}
           style={styles.ctaButton}
+          disabled={isSubmitting}
         >
-          <Text style={styles.ctaButtonText}>{maxStepReached >= 3 ? "Update and Continue" : "Continue"}</Text>
-          <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Text style={styles.ctaButtonText}>{params.isEditing === "true" ? "Update and Continue" : "Continue"}</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </>
+          )}
         </TouchableOpacity>
-      </KeyboardStickyFooter>
+      </View>
+
+      <UniversalDraftModal
+        visible={showDraftModal}
+        onCancel={handleCancel}
+        onSaveAndExit={handleSaveAndExit}
+        onDiscardAndExit={handleDiscardAndExit}
+      />
     </View>
   );
 };

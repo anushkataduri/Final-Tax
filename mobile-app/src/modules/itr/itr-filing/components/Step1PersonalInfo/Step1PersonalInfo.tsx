@@ -4,6 +4,8 @@ import {
   Text,
   TouchableOpacity,
   Alert,
+  TextInput,
+  Modal,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
@@ -88,6 +90,9 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({ isEditing,
 }) => {
   const [showBankModal, setShowBankModal] = useState(false);
   const [isPreviousItrExpanded, setIsPreviousItrExpanded] = useState(false);
+  const [showCustomAy, setShowCustomAy] = useState(false);
+  const [isCustomYearInputMode, setIsCustomYearInputMode] = useState(false);
+  const [customYearText, setCustomYearText] = useState("");
 
   useEffect(() => {
     useITRStore.getState().fetchAndPopulateUserProfile();
@@ -140,7 +145,6 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({ isEditing,
 
   return (
     <View style={styles.container}>
-      {/* 1. Verified Identity (Auto-filled from TaxEdge Profile) */}
       <View style={styles.card}>
         <View style={styles.cardHeaderRow}>
           <View style={styles.cardHeaderLeft}>
@@ -218,37 +222,69 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({ isEditing,
         </Text>
 
         <View style={styles.pickerRow}>
-          {supportedAYs.map((ay) => {
-            const isSelected = personalInfo.assessmentYear === ay.id;
-            return (
-              <TouchableOpacity
-                key={ay.id}
-                activeOpacity={0.8}
-                style={[styles.pickerPill, isSelected && styles.pickerPillSelected]}
-                onPress={() => onUpdatePersonalInfo({ assessmentYear: ay.id })}
-              >
-                <Text
-                  style={[
-                    styles.pickerPillText,
-                    isSelected && styles.pickerPillTextSelected,
-                  ]}
-                >
-                  {ay.label}
-                </Text>
-                <Text
-                  style={[
-                    styles.pickerPillSubText,
-                    isSelected && styles.pickerPillSubTextSelected,
-                  ]}
-                >
-                  FY {ay.financialYear}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+          {(() => {
+            const localAYs = [...supportedAYs];
+            if (personalInfo.assessmentYear && !localAYs.find(a => a.id === personalInfo.assessmentYear)) {
+              const parts = personalInfo.assessmentYear.split("-");
+              const yr = parseInt(parts[0], 10);
+              if (!isNaN(yr)) {
+                localAYs.push({
+                  id: personalInfo.assessmentYear,
+                  label: `AY ${personalInfo.assessmentYear}`,
+                  sub: `FY ${yr-1}-${String(yr).slice(-2)} (Custom)`,
+                  financialYear: `${yr-1}-${yr}`,
+                  isCurrent: false
+                });
+              }
+            }
+            return localAYs
+              .sort((a, b) => a.id.localeCompare(b.id))
+              .filter((ay) => !ay.sub.includes("Advance") || showCustomAy)
+              .map((ay) => {
+                const isSelected = personalInfo.assessmentYear === ay.id;
+                return (
+                  <TouchableOpacity
+                    key={ay.id}
+                    activeOpacity={0.8}
+                    style={[styles.pickerPill, isSelected && styles.pickerPillSelected, { position: 'relative' }]}
+                    onPress={() => onUpdatePersonalInfo({ assessmentYear: ay.id })}
+                  >
+                    <Text
+                      style={[
+                        styles.pickerPillText,
+                        isSelected && styles.pickerPillTextSelected,
+                      ]}
+                    >
+                      {ay.label}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.pickerPillSubText,
+                        isSelected && styles.pickerPillSubTextSelected,
+                      ]}
+                    >
+                      FY {ay.financialYear}
+                    </Text>
+                    
+                    {ay.sub.includes("Custom") && (
+                      <TouchableOpacity
+                        style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#DC2626', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#FFF' }}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          onUpdatePersonalInfo({ assessmentYear: supportedAYs[0].id });
+                        }}
+                      >
+                        <Ionicons name="close" size={14} color="white" />
+                      </TouchableOpacity>
+                    )}
+                  </TouchableOpacity>
+                );
+              });
+          })()}
         </View>
-      </View>
 
+      </View>
+      
       {/* 3. Residential Status Confirmation */}
       <View style={styles.card}>
         <View style={styles.cardHeaderRow}>

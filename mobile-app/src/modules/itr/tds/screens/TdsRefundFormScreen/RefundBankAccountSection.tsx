@@ -28,7 +28,7 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
   onIfscChange,
 }) => (
   <View style={styles.sectionCard}>
-    <SectionHeader number={2} title="Refund Bank Account" />
+    <SectionHeader number={3} title="Refund Bank Account" />
 
     {/* Account Holder Name */}
     <View style={styles.fieldGroup}>

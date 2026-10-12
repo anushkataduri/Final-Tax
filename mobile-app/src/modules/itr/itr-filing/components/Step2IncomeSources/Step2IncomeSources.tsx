@@ -1,4 +1,4 @@
-import { Step2SalaryIncome } from "./components/Step2SalaryIncome";
+﻿import { Step2SalaryIncome } from "./components/Step2SalaryIncome";
 import { Step2HousePropertyIncome } from "./components/Step2HousePropertyIncome";
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
@@ -350,10 +350,11 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({ isEditin
         onPress={handleProceed}
       >
         <Text style={styles.continueButtonText}>
-          Confirm & Continue to Deductions
+          {isEditing ? "Update & Continue" : "Confirm & Continue to Deductions"}
         </Text>
         <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
   );
 };
+

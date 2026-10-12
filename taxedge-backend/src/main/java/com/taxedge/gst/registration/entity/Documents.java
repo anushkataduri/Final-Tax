@@ -10,7 +10,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
@@ -35,37 +34,31 @@ public class Documents {
 	@JoinColumn(name = "gst_id", nullable = false, unique = true)
 	private Business business;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "pan_card", columnDefinition = "LONGBLOB")
+	@Column(name = "pan_card", columnDefinition = "bytea")
 	private byte[] panCard;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "aadhaar_card", columnDefinition = "LONGBLOB")
+	@Column(name = "aadhaar_card", columnDefinition = "bytea")
 	private byte[] aadhaarCard;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "business_registration_proof", columnDefinition = "LONGBLOB")
+	@Column(name = "business_registration_proof", columnDefinition = "bytea")
 	private byte[] businessRegistrationProof;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "principal_place_address_type", length = 50)
 	private PrincipalPlaceAddressType principalPlaceAddressType;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "principal_place_address_proof", columnDefinition = "LONGBLOB")
+	@Column(name = "principal_place_address_proof", columnDefinition = "bytea")
 	private byte[] principalPlaceAddressProof;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "bank_passbook_or_cancelled_cheque", columnDefinition = "LONGBLOB")
+	@Column(name = "bank_passbook_or_cancelled_cheque", columnDefinition = "bytea")
 	private byte[] bankPassbookOrCancelledCheque;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "passport_size_photograph", columnDefinition = "LONGBLOB")
+	@Column(name = "passport_size_photograph", columnDefinition = "bytea")
 	private byte[] passportSizePhotograph;
 }

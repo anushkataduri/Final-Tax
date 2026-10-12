@@ -1,6 +1,12 @@
-export interface RefundBankAccountDto {
+export interface TdsRefundDto {
   id?: string;
-  custId: string;
+  custId?: string;
+  legalBusinessName: string;
+  businessPan: string;
+  businessPanDocument?: string | null;
+  aadhaarNumber: string;
+  aadhaarDocument?: string | null;
+  mobileNumber: string;
   accountHolderName: string;
   accountNumber: string;
   confirmAccountNumber?: string;
@@ -8,7 +14,10 @@ export interface RefundBankAccountDto {
   bankName?: string;
   branchName?: string;
   accountType: "SAVINGS" | "CURRENT";
+  createdAt?: string;
 }
+
+export type RefundBankAccountDto = TdsRefundDto;
 
 export interface IncomeTaxInfoDto {
   id?: number;

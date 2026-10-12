@@ -5,8 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.springframework.dao.DataIntegrityViolationException;
-import com.taxedge.security.otp.proof.RegistrationProofException;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -53,38 +51,9 @@ public class GlobalExceptionHandler {
 
         log.warn("Failed authentication attempt");
 
-        Map<String, Object> body = errorBody(HttpStatus.UNAUTHORIZED, "Invalid credentials", request);
-        body.put("code", "INVALID_CREDENTIALS");
-        if (ex.getRemainingAttempts() != null) {
-            body.put("remainingAttempts", ex.getRemainingAttempts());
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
-    }
-
-    @ExceptionHandler(RegistrationProofException.class)
-    public ResponseEntity<Map<String, Object>> handleRegistrationProof(
-            RegistrationProofException ex, WebRequest request) {
-
-        log.warn("Registration refused: {}", ex.getCode());
-
-        Map<String, Object> body = errorBody(HttpStatus.FORBIDDEN, ex.getMessage(), request);
-        body.put("code", ex.getCode());
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
-    }
-
-    @ExceptionHandler(AccountLockedException.class)
-    public ResponseEntity<Map<String, Object>> handleAccountLocked(
-            AccountLockedException ex, WebRequest request) {
-
-        log.warn("Login refused: account temporarily locked");
-
-        Map<String, Object> body = errorBody(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request);
-        body.put("code", "PASSCODE_LOCKED");
-        body.put("retryAfterSeconds", ex.getRetryAfterSeconds());
-        body.put("remainingAttempts", 0);
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()))
-                .body(body);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(errorBody(HttpStatus.UNAUTHORIZED,
+                        "Invalid credentials", request));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

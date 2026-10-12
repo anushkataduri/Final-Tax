@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { Alert } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { authStorage } from "@/modules/authentication/services/authStorage";
 import { useCustomerStore } from "@/modules/customer/store/customerStore";
 import { useTdsProgressStore } from "../../store/tdsProgressStore";
 import { authApi } from "@/modules/authentication/services/authApi";
-import { ifscService } from "@/shared/services/lookup/ifscService";
+import { ifscService } from "@/modules/gst/services/ifscService";
+import type { Customer } from "@/shared/types/domain";
 import {
   TdsCustomerIncomeFormData,
   PersonalDetails,
@@ -23,17 +24,9 @@ import {
 } from "../../services/tdsDraftService";
 import { tdsApiService } from "../../services/tdsApiService";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
-import { logger } from "@/core/logging/logger";
 import { ApiError } from "@/core/api/apiError";
 import { UpdateBankField, UpdateIncomeField } from "./TdsRefundFormSections.types";
-import {
-  mergeFetchedCustomer,
-  buildPersonalDetails,
-  buildCustomerFromPersonal,
-  buildCustomerProfileUpdate,
-  type CustomerProfileRecord,
-} from "./useTdsRefundForm.helpers";
-import { getErrorMessage } from "@/core/error-handling/errorMessage";
+import { useTdsProfileSync } from "./useTdsProfileSync";
 
 const describeSaveError = (err: unknown): string => {
   if (err instanceof ApiError) {
@@ -55,13 +48,21 @@ export const useTdsRefundForm = () => {
   const [formData, setFormData] = useState<TdsCustomerIncomeFormData>(INITIAL_TDS_FORM_DATA);
   const [errors, setErrors] = useState<CustomerFormErrors>({});
   const [isIfscLoading, setIsIfscLoading] = useState(false);
+  const { isEditing: isEditingParam, id: paramId, applicationId: paramAppId } = useLocalSearchParams<{
+    isEditing?: string;
+    id?: string;
+    applicationId?: string;
+  }>();
+  const [isEditing, setIsEditing] = useState(isEditingParam === "true");
   const [ifscError, setIfscError] = useState<string | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(false);
-  const [profileFetchError, setProfileFetchError] = useState<string | null>(null);
+
+  const { isProfileLoading, profileFetchError, fetchAndPopulateProfile } = useTdsProfileSync(setFormData);
 
   const initialSnapshotRef = useRef<string | null>(null);
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const isSavingRef = useRef(false);
+
+  const documentsRef = useRef<any[]>([]);
 
   const draftGuard = useUniversalDraftGuard({
     isDirty: () => {
@@ -71,83 +72,16 @@ export const useTdsRefundForm = () => {
     },
     onSaveDraft: async () => {
       await tdsDraftService.saveFormDraft(formData);
+      await tdsDraftService.saveDocumentsDraft(documentsRef.current);
     },
     onDiscardDraft: async () => {
       await tdsDraftService.clearDraft();
     },
+    saveDestination: "/service/itr",
+    discardDestination: "/service/itr",
   });
 
-  const fetchAndPopulateProfile = async (): Promise<PersonalDetails | null> => {
-    setIsProfileLoading(true);
-    setProfileFetchError(null);
-    try {
-      useAuthStore.getState().syncFromDevAuth();
-      const currentAuthUser = useAuthStore.getState().authenticatedUser;
-      let currentCustomer = useAuthStore.getState().customer;
 
-      const activeMobile =
-        currentCustomer?.mobile ||
-        currentAuthUser?.mobileNumber ||
-        currentAuthUser?.mobile ||
-        authStorage.getSession().activeMobile ||
-        useAuthStore.getState().mobileNumber;
-
-      const activeCustId =
-        currentCustomer?.customerId ||
-        currentAuthUser?.customerId ||
-        currentAuthUser?.custId;
-
-      const cleanMob = activeMobile ? String(activeMobile).replace(/\D/g, "").slice(-10) : "";
-
-      let apiRes: CustomerProfileRecord | null = null;
-      const lookupId = activeCustId || cleanMob;
-      if (lookupId) {
-        const backendRes = await authApi.getCustomerDetails(lookupId);
-        if (backendRes.success && backendRes.data) {
-          apiRes = backendRes.data;
-        }
-      }
-
-      if (!apiRes) {
-        apiRes = (cleanMob ? authStorage.getUserByMobile(cleanMob) : null) || authStorage.getUser();
-      }
-
-      if (apiRes && (apiRes.name || apiRes.fullName || apiRes.mobileNumber || apiRes.mobile || apiRes.pan || apiRes.aadhaar)) {
-        const mergedCust = mergeFetchedCustomer(apiRes, currentCustomer, currentAuthUser, activeMobile, activeCustId);
-        currentCustomer = mergedCust;
-        useAuthStore.setState({ customer: mergedCust, profileCompleted: true });
-        try {
-          useCustomerStore.getState().setProfile(mergedCust);
-        } catch (err) {
-          logger.debug("[useTdsRefundForm] CustomerStore profile sync fallback", { error: err });
-        }
-      }
-
-      if (!currentCustomer && !currentAuthUser && !apiRes) {
-        setProfileFetchError("Unable to load your profile information.");
-        return null;
-      }
-
-      const populatedPersonal = buildPersonalDetails(apiRes, currentCustomer, currentAuthUser);
-      const rawName = populatedPersonal.fullName;
-
-      setFormData((prev) => ({
-        ...prev,
-        personal: populatedPersonal,
-        bank: {
-          ...prev.bank,
-          accountHolderName: prev.bank.accountHolderName || rawName,
-        },
-      }));
-
-      return populatedPersonal;
-    } catch (e) {
-      setProfileFetchError(getErrorMessage(e) || "Failed to load profile.");
-      return null;
-    } finally {
-      setIsProfileLoading(false);
-    }
-  };
 
   useEffect(() => {
     async function loadData() {
@@ -160,49 +94,57 @@ export const useTdsRefundForm = () => {
 
       const custId = getTdsCustId(freshPersonal?.mobileNumber);
 
-      try {
-        const existingAppId = await tdsDraftService.getApplicationId();
-        const backendApp = custId
-          ? await tdsApiService.fetchFullTdsApplication(custId, existingAppId || undefined)
-          : null;
-        if (backendApp && backendApp.bank) {
-          if (backendApp.tdsRefundId) {
-            await tdsDraftService.saveApplicationId(backendApp.tdsRefundId);
-          }
-          setFormData((prev) => ({
-            ...prev,
-            bank: { ...prev.bank, ...backendApp.bank },
-            income: { ...prev.income, ...backendApp.income },
-            personal: freshPersonal || prev.personal,
-          }));
-          initialSnapshotRef.current = JSON.stringify({ bank: backendApp.bank, income: backendApp.income });
-          return;
-        }
-      } catch (err) {
-        logger.warn("[useTdsRefundForm] Backend fetch warning:", { error: err });
-      }
-
+      let draftBank = null;
+      let draftIncome = null;
+      let draftBusiness = null;
       const savedDraft = await tdsDraftService.getFormDraft();
+      
       if (savedDraft) {
         const isSameCustomer = !savedDraft.personal?.mobileNumber ||
           !currentMobile ||
           savedDraft.personal.mobileNumber.replace(/\D/g, "") === currentMobile.replace(/\D/g, "");
 
         if (isSameCustomer) {
-          setFormData((prev) => ({
-            ...prev,
-            bank: savedDraft.bank || prev.bank,
-            income: savedDraft.income || prev.income,
-            personal: freshPersonal || prev.personal,
-          }));
-          initialSnapshotRef.current = JSON.stringify({ bank: savedDraft.bank, income: savedDraft.income });
-          return;
+          draftBank = savedDraft.bank;
+          draftIncome = savedDraft.income;
+          draftBusiness = savedDraft.business;
         } else {
           await tdsDraftService.clearDraft();
         }
       }
 
-      initialSnapshotRef.current = JSON.stringify({ bank: INITIAL_TDS_FORM_DATA.bank, income: INITIAL_TDS_FORM_DATA.income });
+      let backendApp: any = null;
+      try {
+        const routeAppId = (paramId || paramAppId) as string | undefined;
+        const existingAppId = routeAppId || (await tdsDraftService.getApplicationId());
+        if (existingAppId) {
+          await tdsDraftService.saveApplicationId(existingAppId);
+        }
+        backendApp = custId
+          ? await tdsApiService.fetchFullTdsApplication(custId, existingAppId || undefined)
+          : null;
+        if (backendApp?.tdsRefundId) {
+          await tdsDraftService.saveApplicationId(backendApp.tdsRefundId);
+        }
+      } catch (err) {
+        console.warn("[TDS Screen] Backend fetch warning:", err);
+      }
+
+      setFormData((prev) => {
+        const mergedBank = { ...prev.bank, ...(backendApp?.bank || {}), ...(draftBank || {}) };
+        const mergedIncome = { ...prev.income, ...(backendApp?.income || {}), ...(draftIncome || {}) };
+        const mergedBusiness = { ...prev.business, ...(backendApp?.business || {}), ...(draftBusiness || {}) };
+        
+        initialSnapshotRef.current = JSON.stringify({ bank: mergedBank, income: mergedIncome, business: mergedBusiness });
+        
+        return {
+          ...prev,
+          bank: mergedBank,
+          income: mergedIncome,
+          business: mergedBusiness,
+          personal: freshPersonal || prev.personal,
+        };
+      });
     }
     loadData();
   }, []);
@@ -228,14 +170,30 @@ export const useTdsRefundForm = () => {
     const currentCust = useAuthStore.getState().customer;
     const currentAuthUser = useAuthStore.getState().authenticatedUser;
 
-    const updatedCustomer = buildCustomerFromPersonal(normalizedPersonal, cleanMob, currentCust, currentAuthUser);
+    const updatedCustomer: Customer = {
+      name: normalizedPersonal.fullName,
+      email: normalizedPersonal.email,
+      mobile: cleanMob || normalizedPersonal.mobileNumber,
+      pan: normalizedPersonal.pan,
+      aadhaar: normalizedPersonal.aadhaar,
+      dob: normalizedPersonal.dob,
+      customerType: currentCust?.customerType || "Individual",
+      addressLine1: normalizedPersonal.residentialAddress,
+      addressLine2: currentCust?.addressLine2 || "",
+      city: normalizedPersonal.city,
+      state: normalizedPersonal.state,
+      pincode: normalizedPersonal.pinCode,
+      address: `${normalizedPersonal.residentialAddress}, ${normalizedPersonal.city}, ${normalizedPersonal.state} - ${normalizedPersonal.pinCode}`,
+      customerId: currentCust?.customerId || (currentAuthUser as any)?.customerId || (currentAuthUser as any)?.custId || "",
+      avatarUri: currentCust?.avatarUri || null,
+      profileCompleted: true,
+      hasPasscode: currentCust?.hasPasscode ?? Boolean(currentAuthUser?.passcode),
+    };
 
     useAuthStore.setState({ customer: updatedCustomer, profileCompleted: true });
     try {
       useCustomerStore.getState().setProfile(updatedCustomer);
-    } catch (err) {
-      logger.debug("[useTdsRefundForm] CustomerStore profile sync fallback", { error: err });
-    }
+    } catch {}
 
     try {
       const existingUser = authStorage.getUser() || {};
@@ -263,21 +221,33 @@ export const useTdsRefundForm = () => {
           activeMobile: cleanMob,
         });
       }
-    } catch (err) {
-      logger.warn("[useTdsRefundForm] Storage user save fallback", { error: err });
-    }
+    } catch {}
 
     try {
-      logger.debug("[useTdsRefundForm] Calling authApi.updateCustomerProfile", { hasMobile: !!updatedCustomer.mobile });
-      const updateResult = await authApi.updateCustomerProfile(buildCustomerProfileUpdate(updatedCustomer));
+      console.log("🚀 [TDS Form] Calling authApi.updateCustomerProfile for customer:", updatedCustomer.mobile);
+      const updateResult = await authApi.updateCustomerProfile({
+        custId: updatedCustomer.customerId || undefined,
+        name: updatedCustomer.name,
+        email: updatedCustomer.email,
+        mobileNumber: updatedCustomer.mobile,
+        pan: updatedCustomer.pan,
+        aadhaar: updatedCustomer.aadhaar,
+        dob: updatedCustomer.dob,
+        addressLine1: updatedCustomer.addressLine1,
+        addressLine2: updatedCustomer.addressLine2,
+        city: updatedCustomer.city,
+        state: updatedCustomer.state,
+        pincode: updatedCustomer.pincode,
+        address: updatedCustomer.address,
+      });
 
       if (updateResult.success) {
-        logger.debug("[useTdsRefundForm] Customer profile updated successfully on backend");
+        console.log("✅ [TDS Form] Customer profile updated successfully on backend!");
       } else {
-        logger.warn("[useTdsRefundForm] Customer profile update warning from backend:", { message: updateResult.message });
+        console.warn("⚠️ [TDS Form] Customer profile update warning from backend:", updateResult.message);
       }
-    } catch (err) {
-      logger.warn("[useTdsRefundForm] Error sending customer update to backend:", { error: getErrorMessage(err) });
+    } catch (err: any) {
+      console.warn("⚠️ [TDS Form] Error sending customer update to backend:", err?.message);
     }
 
     await tdsDraftService.saveFormDraft(nextFormState);
@@ -337,8 +307,7 @@ export const useTdsRefundForm = () => {
           },
         }));
         setIfscError(null);
-      } catch (err) {
-        logger.debug("[useTdsRefundForm] IFSC lookup fallback", { error: err });
+      } catch {
         setIfscError("Invalid IFSC code. Please check branch details.");
         updateBank("isIfscVerified", false);
       } finally {
@@ -357,14 +326,46 @@ export const useTdsRefundForm = () => {
     }
   };
 
+  const updateBusiness = (field: string, value: string) => {
+    setHasUserEdited(true);
+    setFormData((prev) => ({
+      ...prev,
+      business: { ...prev.business, [field]: value },
+    }));
+
+    const errorKey = `business.${field}` as keyof CustomerFormErrors;
+    if (errors[errorKey]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[errorKey];
+        return next;
+      });
+    }
+  };
+
   const handleContinue = async () => {
+    const activeDocs =
+      documentsRef.current && documentsRef.current.length > 0
+        ? documentsRef.current
+        : documents;
+
     const validation = validateCustomerIncomeForm(formData);
-    if (!validation.isValid) {
-      setErrors(validation.errors);
-      Alert.alert(
-        "Incomplete Information",
-        "Please complete all required fields correctly to proceed to document upload."
-      );
+    const hasMissingMandatoryDocs = activeDocs.some((doc) => doc.isMandatory && doc.status !== 'uploaded');
+
+    if (!validation.isValid || hasMissingMandatoryDocs) {
+      if (!validation.isValid) setErrors(validation.errors);
+      
+      if (hasMissingMandatoryDocs) {
+        Alert.alert(
+          "Incomplete Documents",
+          "Please upload all mandatory documents (PAN and Aadhaar) to proceed."
+        );
+      } else {
+        Alert.alert(
+          "Incomplete Information",
+          "Please complete all required fields correctly to proceed."
+        );
+      }
       return;
     }
 
@@ -372,20 +373,73 @@ export const useTdsRefundForm = () => {
     isSavingRef.current = true;
 
     await tdsDraftService.saveFormDraft(formData);
+    await tdsDraftService.saveDocumentsDraft(activeDocs);
 
     try {
       const custId = getTdsCustId(formData.personal.mobileNumber);
-      const existingAppId = await tdsDraftService.getApplicationId();
+      const draftAppId = await tdsDraftService.getApplicationId();
+      let targetId = ((paramId || paramAppId || draftAppId) as string | undefined)?.trim();
 
-      const savedTdsId = await tdsApiService.saveFullTdsApplication(
-        formData,
-        [],
-        custId,
-        existingAppId || undefined
-      );
-      await tdsDraftService.saveApplicationId(savedTdsId);
+      // Fallback: If editing and no targetId found, attempt lookup by custId
+      if (!targetId && custId) {
+        try {
+          const existingDb = await tdsApiService.getBankAccountByCustId(custId);
+          if (existingDb?.id) {
+            targetId = existingDb.id;
+            await tdsDraftService.saveApplicationId(targetId);
+          }
+        } catch (findErr) {
+          console.warn("[TDS Form] Cust ID lookup fallback warning:", findErr);
+        }
+      }
+
+      console.log(`🚀 [TDS Form] handleContinue -> isEditing: ${isEditing}, targetId: ${targetId}`);
+
+      let savedTdsId: string;
+      if (isEditing && targetId) {
+        console.log(`🌐 [TDS Form] Updating record via PUT /tds-refund/update/${targetId}`);
+        savedTdsId = await tdsApiService.updateBankAccount(
+          targetId,
+          formData.bank,
+          custId,
+          formData.business,
+          activeDocs as any,
+          formData.personal,
+        );
+
+        // Auxiliary updates
+        try {
+          await tdsApiService.saveIncomeTaxInfo(formData.income, targetId);
+        } catch (e) {
+          console.warn("[TDS Form] saveIncomeTaxInfo auxiliary update warning:", e);
+        }
+        try {
+          await tdsApiService.saveTdsTaxesPaid(formData.income, custId, targetId);
+        } catch (e) {
+          console.warn("[TDS Form] saveTdsTaxesPaid auxiliary update warning:", e);
+        }
+        const hasUploadedDocs = (activeDocs as any[]).some(
+          (d) => d.status === "uploaded" || Boolean(d.fileUri),
+        );
+        if (hasUploadedDocs) {
+          try {
+            await tdsApiService.saveDocuments(activeDocs as any, targetId);
+          } catch (e) {
+            console.warn("[TDS Form] saveDocuments auxiliary update warning:", e);
+          }
+        }
+      } else {
+        savedTdsId = await tdsApiService.saveFullTdsApplication(
+          formData,
+          activeDocs as any,
+          custId,
+          targetId,
+        );
+      }
+
+      await tdsDraftService.saveApplicationId(savedTdsId || targetId || "");
     } catch (err) {
-      logger.error("[useTdsRefundForm] Backend save failed:", { error: err });
+      console.error("[TDS Screen] Backend update/save failed:", err);
       Alert.alert("Unable to Save Application", describeSaveError(err));
       return;
     } finally {
@@ -395,12 +449,55 @@ export const useTdsRefundForm = () => {
     draftGuard.markSubmitted();
     
       if (useTdsProgressStore.getState().maxStepReached >= 3) {
-        router.push("/service/tds-estimate");
+        router.push("/service/tds-estimate" as any);
       } else {
-        useTdsProgressStore.getState().setMaxStepReached(2);
-        router.push("/service/tds-checklist");
+        useTdsProgressStore.getState().setMaxStepReached(3); // Setting to 3 to simulate passing documents
+        router.push("/service/tds-estimate" as any);
       }
-            
+
+  };
+
+  const [documents, setDocuments] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadDocs() {
+      const { INITIAL_TDS_DOCUMENTS } = await import("../../constants/tdsDocuments.constants");
+      const draftDocs = await tdsDraftService.getDocumentsDraft();
+      if (draftDocs && draftDocs.length > 0) {
+        const mergedDocs = INITIAL_TDS_DOCUMENTS.map(initialDoc => {
+          const draftDoc = draftDocs.find((d: any) => d.id === initialDoc.id);
+          return draftDoc ? { ...initialDoc, ...draftDoc, title: initialDoc.title, subtitle: initialDoc.subtitle } : initialDoc;
+        });
+        setDocuments(mergedDocs);
+        documentsRef.current = mergedDocs;
+      } else {
+        setDocuments(INITIAL_TDS_DOCUMENTS);
+        documentsRef.current = INITIAL_TDS_DOCUMENTS;
+      }
+    }
+    loadDocs();
+  }, []);
+
+  const handleUploadSuccess = (id: string, payload: any) => {
+    setDocuments((prev) => {
+      const next = prev.map((doc) => doc.id === id ? { ...doc, status: "uploaded", fileUri: payload.uri, fileName: payload.name } : doc);
+      documentsRef.current = next;
+      return next;
+    });
+  };
+  const handleUploadError = (id: string, errorMessage: string) => {
+    setDocuments((prev) => {
+      const next = prev.map((doc) => doc.id === id ? { ...doc, status: "not_uploaded", errorMessage } : doc);
+      documentsRef.current = next;
+      return next;
+    });
+  };
+  const handleRemove = (id: string) => {
+    setDocuments((prev) => {
+      const next = prev.map((doc) => doc.id === id ? { ...doc, status: "not_uploaded", fileUri: undefined } : doc);
+      documentsRef.current = next;
+      return next;
+    });
   };
 
   return {
@@ -409,14 +506,21 @@ export const useTdsRefundForm = () => {
     isIfscLoading,
     ifscError,
     isProfileLoading,
+    isEditing,
     profileFetchError,
     fetchAndPopulateProfile,
     handleSaveProfile,
+    updateBusiness,
     updateBank,
     updateIncome,
     handleIfscChange,
     handleContinue,
     draftGuard,
+    documents,
+    handleUploadSuccess,
+    handleUploadError,
+    handleRemove,
   };
+
 };
 

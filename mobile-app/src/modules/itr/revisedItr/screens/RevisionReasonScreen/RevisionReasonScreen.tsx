@@ -4,14 +4,15 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
-import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
-import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useRevisedProgressStore } from "../../store/revisedProgressStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { RevisedItrApiService } from "../../services/RevisedItrApiService";
 import { RevisedItrHeader } from "../../components/common";
 import { RevisionReasonCard } from "../../components/reason";
 import { REVISION_REASONS } from "../../mock/revisedItrData";
@@ -27,20 +28,34 @@ export const RevisionReasonScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
+  const storedReason = useRevisedProgressStore((s) => s.revisionReason);
+  const setRevisionReason = useRevisedProgressStore((s) => s.setRevisionReason);
+  const setDocuments = useRevisedProgressStore((s) => s.setDocuments);
+  const setFormData = useRevisedProgressStore((s) => s.setFormData);
+
   const params = useLocalSearchParams<{
     acknowledgementNumber?: string;
     assessmentYear?: string;
+    isEditing?: string;
   }>();
 
   // "missed_income" is selected by default matching the reference screenshot
   const [selectedReason, setSelectedReason] =
-    useState<RevisionReasonId>("missed_income");
+    useState<RevisionReasonId>((storedReason as RevisionReasonId) || "missed_income");
   const [otherReasonText, setOtherReasonText] = useState("");
   const [otherError, setOtherError] = useState<string | null>(null);
 
   const selectedReasonObj = REVISION_REASONS.find((r) => r.id === selectedReason);
 
-  const handleContinue = () => {
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { revisedItrId, revisionReasonId, setBackendIds, setMaxStepReached } = useRevisedProgressStore();
+
+  const mapReasonToEnum = (id: string) => {
+    if (id === "incorrect_bank") return "INCORRECT_BANK_DETAILS";
+    return id.toUpperCase();
+  };
+
+  const handleContinue = async () => {
     if (selectedReason === "other" && !otherReasonText.trim()) {
       setOtherError("Please specify the reason for revision.");
       return;
@@ -48,16 +63,53 @@ export const RevisionReasonScreen: React.FC = () => {
 
     setOtherError(null);
 
-    // Navigate to Screen 3: Update Changed Details
-    router.push({
-      pathname: "/service/revised-itr-update",
-      params: {
-        acknowledgementNumber: params.acknowledgementNumber,
-        assessmentYear: params.assessmentYear || "AY 2025–26",
-        revisionReason: selectedReason,
-        otherReasonText: selectedReason === "other" ? otherReasonText : undefined,
-      },
-    });
+    if (selectedReason !== storedReason) {
+      setDocuments(null);
+      setFormData({});
+      setRevisionReason(selectedReason);
+    }
+
+    if (!revisedItrId) {
+      console.error("Missing revisedItrId. Please start from Step 1.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const payload = {
+        revisedItrId: revisedItrId,
+        reason: mapReasonToEnum(selectedReason),
+        otherReason: selectedReason === "other" ? otherReasonText : undefined
+      };
+
+      if (maxStepReached >= 3 && revisionReasonId) {
+        // Edit flow
+        await RevisedItrApiService.updateRevisionReason(revisionReasonId, payload);
+      } else {
+        // Initial flow
+        const response = await RevisedItrApiService.saveRevisionReason(payload);
+        if (response && response.revisionReasonId) {
+          setBackendIds({ revisionReasonId: response.revisionReasonId });
+        }
+        setMaxStepReached(3);
+      }
+
+      // Navigate to Screen 3: Update Changed Details
+      router.push({
+        pathname: "/service/revised-itr-update" as any,
+        params: {
+          acknowledgementNumber: params.acknowledgementNumber,
+          assessmentYear: params.assessmentYear || "AY 2025–26",
+          revisionReason: selectedReason,
+          otherReasonText: selectedReason === "other" ? otherReasonText : undefined,
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      // Optional: Add an Alert here
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -68,7 +120,7 @@ export const RevisionReasonScreen: React.FC = () => {
       <RevisedItrHeader subtitle="Reason for Revision" />
 
       {/* Main Content */}
-      <KeyboardAwareScrollView
+      <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
           getScrollContentInsetsStyle(insets.bottom),
@@ -119,10 +171,10 @@ export const RevisionReasonScreen: React.FC = () => {
             ) : null}
           </View>
         )}
-      </KeyboardAwareScrollView>
+      </ScrollView>
 
       {/* Sticky Bottom Action Button */}
-      <KeyboardStickyFooter
+      <View
         style={[
           styles.bottomBar,
           getBottomBarInsetsStyle(insets.bottom),
@@ -132,10 +184,15 @@ export const RevisionReasonScreen: React.FC = () => {
           activeOpacity={0.85}
           onPress={handleContinue}
           style={styles.continueButton}
+          disabled={isSubmitting}
         >
-          <Text style={styles.continueButtonText}>{maxStepReached >= 3 ? "Update and Continue" : "Continue"}</Text>
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.continueButtonText}>{params.isEditing === "true" ? "Update and Continue" : "Continue"}</Text>
+          )}
         </TouchableOpacity>
-      </KeyboardStickyFooter>
+      </View>
     </View>
   );
 };

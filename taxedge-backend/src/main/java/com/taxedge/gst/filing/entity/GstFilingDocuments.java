@@ -6,7 +6,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -30,63 +29,51 @@ public class GstFilingDocuments {
 	@JoinColumn(name = "filing_id", nullable = false, unique = true)
 	private GstFiling gstFiling;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "sales_invoice", columnDefinition = "LONGBLOB")
+	@Column(name = "sales_invoice", columnDefinition = "bytea")
 	private byte[] salesInvoice;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "purchase_invoices", columnDefinition = "LONGBLOB")
+	@Column(name = "purchase_invoices", columnDefinition = "bytea")
 	private byte[] purchaseInvoices;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "gstr2b_itc_statement", columnDefinition = "LONGBLOB")
+	@Column(name = "gstr2b_itc_statement", columnDefinition = "bytea")
 	private byte[] gstr2bItcStatement;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "credit_notes", columnDefinition = "LONGBLOB")
+	@Column(name = "credit_notes", columnDefinition = "bytea")
 	private byte[] creditNotes;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "debit_notes", columnDefinition = "LONGBLOB")
+	@Column(name = "debit_notes", columnDefinition = "bytea")
 	private byte[] debitNotes;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "e_invoice_data", columnDefinition = "LONGBLOB")
+	@Column(name = "e_invoice_data", columnDefinition = "bytea")
 	private byte[] eInvoiceData;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "e_way_bill_data", columnDefinition = "LONGBLOB")
+	@Column(name = "e_way_bill_data", columnDefinition = "bytea")
 	private byte[] eWayBillData;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "expense_invoices_and_vouchers", columnDefinition = "LONGBLOB")
+	@Column(name = "expense_invoices_and_vouchers", columnDefinition = "bytea")
 	private byte[] expenseInvoicesAndVouchers;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "bank_statement", columnDefinition = "LONGBLOB")
+	@Column(name = "bank_statement", columnDefinition = "bytea")
 	private byte[] bankStatement;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "previous_gst_returns", columnDefinition = "LONGBLOB")
+	@Column(name = "previous_gst_returns", columnDefinition = "bytea")
 	private byte[] previousGstReturns;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "previous_filing_acknowledgement", columnDefinition = "LONGBLOB")
+	@Column(name = "previous_filing_acknowledgement", columnDefinition = "bytea")
 	private byte[] previousFilingAcknowledgement;
 
-	@Lob
 	@Basic(fetch = FetchType.LAZY)
-	@Column(name = "other_supporting_documents", columnDefinition = "LONGBLOB")
+	@Column(name = "other_supporting_documents", columnDefinition = "bytea")
 	private byte[] otherSupportingDocuments;
 }

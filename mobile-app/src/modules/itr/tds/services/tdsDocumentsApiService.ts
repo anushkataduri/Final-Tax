@@ -3,67 +3,98 @@ import * as FileSystem from "expo-file-system";
 import { TdsDocumentItem } from "../types/tdsDocuments.types";
 import { INITIAL_TDS_DOCUMENTS } from "../constants/tdsDocuments.constants";
 import { TdsDocumentsDto } from "./tdsApiTypes";
-import { logger } from "../../../../core/logging/logger";
 
-// Helper: Read file URI as Base64 string for REST JSON transport
+// Helper: Read file URI as Base64 string for REST JSON transport (handles file://, content://, http://, data:)
 export const readFileAsBase64 = async (uri?: string): Promise<string | null> => {
   if (!uri || typeof uri !== "string") return null;
   const cleanUri = uri.trim();
   if (!cleanUri) return null;
 
+  // 1. Data URI prefix
   if (cleanUri.startsWith("data:")) {
     const commaIdx = cleanUri.indexOf(",");
-    return commaIdx !== -1 ? cleanUri.substring(commaIdx + 1) : null;
+    return commaIdx !== -1 ? cleanUri.substring(commaIdx + 1).trim() : null;
   }
 
-  if (cleanUri.startsWith("http://") || cleanUri.startsWith("https://")) {
-    try {
-      const response = await fetch(cleanUri);
-      const blob = await response.blob();
-      return await new Promise<string | null>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const res = reader.result as string;
-          resolve(res && res.includes(",") ? res.split(",")[1] : res || null);
-        };
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(blob);
-      });
-    } catch (err) {
-      logger.warn("[tdsDocumentsApiService] Error fetching web URL as Base64", { error: err });
-      return null;
+  // 2. Already raw base64 string
+  if (
+    !cleanUri.startsWith("file:") &&
+    !cleanUri.startsWith("content:") &&
+    !cleanUri.startsWith("http:") &&
+    !cleanUri.startsWith("https:") &&
+    !cleanUri.startsWith("ph:") &&
+    !cleanUri.startsWith("/")
+  ) {
+    if (cleanUri.length > 50 && /^[A-Za-z0-9+/=\s]+$/.test(cleanUri)) {
+      return cleanUri.replace(/\s+/g, "");
     }
   }
 
-  if (!cleanUri.startsWith("file:") && !cleanUri.startsWith("content:") && !cleanUri.startsWith("ph:") && !cleanUri.startsWith("/")) {
-    return cleanUri;
-  }
-
+  // 3. Strategy A: expo-file-system/legacy readAsStringAsync (official Expo SDK 57 legacy API)
   try {
-    const base64 = await FileSystem.readAsStringAsync(cleanUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    if (base64 && base64.trim().length > 0) {
-      return base64.trim();
-    }
-  } catch (fsErr) {
-    logger.debug("[tdsDocumentsApiService] Direct FileSystem read failed, attempting cache copy fallback", { error: fsErr });
-    try {
-      const ext = cleanUri.split(".").pop()?.split("?")[0] || "bin";
-      const cacheDir = (FileSystem as any).cacheDirectory || (FileSystem as any).documentDirectory || "";
-      const cachePath = `${cacheDir}upload_cache_${Date.now()}.${ext}`;
-      await FileSystem.copyAsync({ from: cleanUri, to: cachePath });
-      const base64 = await FileSystem.readAsStringAsync(cachePath, {
-        encoding: FileSystem.EncodingType.Base64,
+    const FileSystemLegacy = await import("expo-file-system/legacy");
+    if (FileSystemLegacy && typeof FileSystemLegacy.readAsStringAsync === "function") {
+      const base64 = await FileSystemLegacy.readAsStringAsync(cleanUri, {
+        encoding: FileSystemLegacy.EncodingType?.Base64 || ("base64" as any),
       });
       if (base64 && base64.trim().length > 0) {
         return base64.trim();
       }
-    } catch (copyErr) {
-      logger.warn("[tdsDocumentsApiService] Error reading file as Base64 fallback", { error: copyErr });
     }
+  } catch (legacyErr) {
+    console.debug("[TDS API] FileSystemLegacy.readAsStringAsync attempt:", legacyErr);
   }
 
+  // 4. Strategy B: React Native native fetch() -> Blob -> FileReader (handles content://, file://, http://)
+  try {
+    const response = await fetch(cleanUri);
+    const blob = await response.blob();
+    const base64Data = await new Promise<string | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const res = reader.result as string;
+        if (!res) return resolve(null);
+        const commaIdx = res.indexOf(",");
+        resolve(commaIdx !== -1 ? res.substring(commaIdx + 1).trim() : res.trim());
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+
+    if (base64Data && base64Data.length > 0) {
+      return base64Data;
+    }
+  } catch (fetchErr) {
+    console.debug("[TDS API] fetch -> blob -> FileReader attempt:", fetchErr);
+  }
+
+  // 5. Strategy C: expo-file-system next File class
+  try {
+    const { File: ExpoFile } = await import("expo-file-system");
+    if (ExpoFile) {
+      const file = new ExpoFile(cleanUri);
+      if (typeof (file as any).base64 === "function") {
+        const b64 = await (file as any).base64();
+        if (b64 && b64.trim().length > 0) return b64.trim();
+      }
+      if (typeof file.arrayBuffer === "function") {
+        const buf = await file.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        let binary = "";
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        if (typeof btoa === "function") {
+          return btoa(binary);
+        }
+      }
+    }
+  } catch (expoFileErr) {
+    console.debug("[TDS API] ExpoFile attempt:", expoFileErr);
+  }
+
+  console.warn("⚠️ [TDS API] Could not convert document URI to Base64:", cleanUri);
   return null;
 };
 
@@ -76,7 +107,7 @@ export const tdsDocumentsApiService = {
         if (!hasUri) return false;
 
         const id = (d.id || "").toLowerCase();
-        const icon = (d.iconType || "").toLowerCase();
+        const icon = ((d as any).iconType || "").toLowerCase();
         const type = ((d as any).type || "").toLowerCase();
         const title = (d.title || "").toLowerCase();
 
@@ -108,14 +139,17 @@ export const tdsDocumentsApiService = {
       tdsRefundId, panFile, form16File, form16aFile, aisFile, tisFile, bankStatementsFile, prevItrFile, tdsCertsFile, incomeProofsFile,
     };
 
+    const existing = await tdsDocumentsApiService.getDocuments(tdsRefundId);
+    if (existing && existing.id) {
+      return await apiClient.put<string>("/itr/tds-documents/update/" + existing.id, payload);
+    }
     return await apiClient.post<string>("/itr/tds-documents/save", payload);
   },
 
   getDocuments: async (tdsRefundId: string): Promise<TdsDocumentsDto | null> => {
     try {
       return await apiClient.get<TdsDocumentsDto>(`/itr/tds-documents/${tdsRefundId}`);
-    } catch (err) {
-      logger.debug("[tdsDocumentsApiService] Documents fetch fallback to null", { tdsRefundId, error: err });
+    } catch {
       return null;
     }
   },

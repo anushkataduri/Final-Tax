@@ -68,8 +68,16 @@ export interface IncomeTaxDetails {
   selfAssessmentTaxPaid: string;
 }
 
+export interface BusinessDetails {
+  legalName: string;
+  pan: string;
+  aadhaar: string;
+  mobileNumber: string;
+}
+
 export interface TdsCustomerIncomeFormData {
   personal: PersonalDetails;
+  business: BusinessDetails;
   bank: BankRefundDetails;
   income: IncomeTaxDetails;
 }

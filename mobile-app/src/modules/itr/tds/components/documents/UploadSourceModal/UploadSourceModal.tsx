@@ -1,5 +1,5 @@
 import React from "react";
-import { DocumentUploadBottomSheet } from "@/shared/components/DocumentUploadBottomSheet";
+import { DocumentUploadBottomSheet } from "@/modules/itr/tds/components/upload/DocumentUploadBottomSheet/DocumentUploadBottomSheet";
 
 export interface UploadSourceModalProps {
   visible: boolean;

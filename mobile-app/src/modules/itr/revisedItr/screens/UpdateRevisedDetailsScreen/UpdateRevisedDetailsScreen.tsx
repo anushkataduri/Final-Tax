@@ -2,18 +2,19 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRevisedProgressStore } from "../../store/revisedProgressStore";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { RevisedItrApiService } from "../../services/RevisedItrApiService";
 import { RevisedItrHeader } from "../../components/common";
 import { RevisedFormField } from "../../components/update";
 import { DEFAULT_REVISED_FORM_FIELDS } from "../../mock/revisedItrData";
 import { RevisedFormFields } from "../../types/revisedItr.types";
-import { logger } from "@/core/logging/logger";
 import {
   styles,
   getContainerInsetsStyle,
@@ -31,6 +32,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
       revisionReason?: string;
       otherReasonText?: string;
       revisedDetails?: string;
+      isEditing?: string;
     }>();
 
   const reason = params.revisionReason || "missed_income";
@@ -43,9 +45,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
     if (params.revisedDetails) {
       try {
         return JSON.parse(params.revisedDetails);
-      } catch (e) {
-        logger.debug("[UpdateRevisedDetailsScreen] JSON parse fallback for revisedDetails", { error: e });
-      }
+      } catch (e) {}
     }
     return storeFormData || DEFAULT_REVISED_FORM_FIELDS;
   };
@@ -128,32 +128,70 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleContinue = () => {
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const { revisedItrId, detailsId, setBackendIds, setMaxStepReached } = useRevisedProgressStore();
+
+  const handleContinue = async () => {
     if (!validate()) return;
 
-    if (maxStepReached >= 3) {
-      router.push({
-        pathname: "/service/revised-itr-review",
-        params: {
-          acknowledgementNumber: params.acknowledgementNumber,
-          assessmentYear: params.assessmentYear || "AY 2025—26",
-          revisionReason: params.revisionReason,
+    if (!revisedItrId) {
+      console.error("Missing revisedItrId. Please start from Step 1.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const payload = {
+        revisedItrId,
+        salaryBusinessIncome: form.salaryBusinessIncome || "0",
+        otherIncome: form.otherIncome || "0",
+        deduction80C: form.sec80c || "0",
+        deduction80D: form.sec80d || "0",
+        homeLoanInterest: form.homeLoanInterest || "0",
+        taxableIncome: form.taxableIncome || "0",
+        bankAccountForRefund: form.bankAccount || "1234567890", // fallback for testing
+        ifscCode: form.ifsc || "SBIN0001234"
+      };
+
+      if (maxStepReached >= 4 && detailsId) {
+        // Edit flow
+        await RevisedItrApiService.updateRevisedDetails(detailsId, payload);
+        
+        router.push({
+          pathname: "/service/revised-itr-review" as any,
+          params: {
+            acknowledgementNumber: params.acknowledgementNumber,
+            assessmentYear: params.assessmentYear || "AY 2025—26",
+            revisionReason: params.revisionReason,
             revisedDetails: JSON.stringify(form),
           }
         });
         return;
+      } else {
+        // Initial flow
+        const response = await RevisedItrApiService.saveRevisedDetails(payload);
+        if (response && response.detailsId) {
+          setBackendIds({ detailsId: response.detailsId });
+        }
+        setMaxStepReached(4);
       }
 
-    // Navigate to Screen 4: Upload Supporting Documents
-    router.push({
-      pathname: "/service/revised-itr-documents",
-      params: {
-        acknowledgementNumber: params.acknowledgementNumber,
-        assessmentYear: params.assessmentYear || "AY 2025—26",
-        revisionReason: params.revisionReason,
-        revisedDetails: JSON.stringify(form),
-      },
-    });
+      // Navigate to Screen 4: Upload Supporting Documents
+      router.push({
+        pathname: "/service/revised-itr-documents" as any,
+        params: {
+          acknowledgementNumber: params.acknowledgementNumber,
+          assessmentYear: params.assessmentYear || "AY 2025—26",
+          revisionReason: params.revisionReason,
+          revisedDetails: JSON.stringify(form),
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      // Optional: Alert
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -164,7 +202,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
       <RevisedItrHeader subtitle="Update Details" />
 
       {/* Main Content */}
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.scrollContent,
           getScrollContentInsetsStyle(insets.bottom),
@@ -313,7 +351,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
             />
           </View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Sticky Bottom Action Button */}
       <View
@@ -326,8 +364,13 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
           activeOpacity={0.85}
           onPress={handleContinue}
           style={styles.continueButton}
+          disabled={isSubmitting}
         >
-          <Text style={styles.continueButtonText}>{maxStepReached >= 3 ? "Update and Continue" : "Continue"}</Text>
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.continueButtonText}>{params.isEditing === "true" ? "Update and Continue" : "Continue"}</Text>
+          )}
         </TouchableOpacity>
       </View>
     </View>

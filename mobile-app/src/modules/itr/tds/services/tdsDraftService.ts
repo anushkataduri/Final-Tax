@@ -3,15 +3,13 @@ import { TdsCustomerIncomeFormData } from "../types/customerIncome.types";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { authStorage } from "@/modules/authentication/services/authStorage";
 import { addDraftToIndex, removeDraftFromIndex } from "@/shared/hooks/useServiceDraft";
-import { logger } from "@/core/logging/logger";
-import { getErrorMessage } from "@/core/error-handling/errorMessage";
 
 function getAuthMobile(): string {
   const state = useAuthStore.getState();
   return String(
     state.customer?.mobile ||
     state.authenticatedUser?.mobileNumber ||
-    state.authenticatedUser?.mobile ||
+    (state.authenticatedUser as any)?.mobile ||
     authStorage.getSession().activeMobile ||
     state.mobileNumber ||
     ""
@@ -32,6 +30,7 @@ const getStorageKeyDocs = () => `@taxedge_draft_${getCleanMobile()}_tds_docs`;
 const getStorageKeyAppId = () => `@taxedge_draft_${getCleanMobile()}_tds_app_id`;
 
 export const INITIAL_TDS_FORM_DATA: TdsCustomerIncomeFormData = {
+  business: { legalName: "", pan: "", aadhaar: "", mobileNumber: "" },
   personal: {
     fullName: "",
     pan: "",
@@ -101,7 +100,7 @@ export const tdsDraftService = {
       await AsyncStorage.setItem(getStorageKeyForm(), JSON.stringify(payload));
       await addDraftToIndex(cleanMobile, "tds-refund");
     } catch (err) {
-      logger.warn("[TdsDraftService] Failed to save TDS form draft", { error: getErrorMessage(err) });
+      console.error("Failed to save TDS form draft:", err);
     }
   },
 
@@ -112,13 +111,14 @@ export const tdsDraftService = {
         const parsed = JSON.parse(raw);
         const data = parsed.formData || parsed;
         return {
+          business: { ...INITIAL_TDS_FORM_DATA.business, ...(data.business || {}) },
           personal: { ...INITIAL_TDS_FORM_DATA.personal, ...(data.personal || {}) },
           bank: { ...INITIAL_TDS_FORM_DATA.bank, ...(data.bank || {}) },
           income: { ...INITIAL_TDS_FORM_DATA.income, ...(data.income || {}) },
         };
       }
     } catch (err) {
-      logger.warn("[TdsDraftService] Failed to read TDS form draft", { error: getErrorMessage(err) });
+      console.error("Failed to read TDS form draft:", err);
     }
     return INITIAL_TDS_FORM_DATA;
   },
@@ -133,9 +133,7 @@ export const tdsDraftService = {
           updatedAt: parsed.updatedAt,
         };
       }
-    } catch (err) {
-      logger.debug("[TdsDraftService] Failed to read draft metadata", { error: getErrorMessage(err) });
-    }
+    } catch {}
     return null;
   },
 
@@ -159,7 +157,7 @@ export const tdsDraftService = {
       );
       await addDraftToIndex(cleanMobile, "tds-refund");
     } catch (err) {
-      logger.warn("[TdsDraftService] Failed to save TDS documents draft", { error: getErrorMessage(err) });
+      console.error("Failed to save TDS documents draft:", err);
     }
   },
 
@@ -170,7 +168,7 @@ export const tdsDraftService = {
         return JSON.parse(raw);
       }
     } catch (err) {
-      logger.warn("[TdsDraftService] Failed to read TDS documents draft", { error: getErrorMessage(err) });
+      console.error("Failed to read TDS documents draft:", err);
     }
     return null;
   },
@@ -179,15 +177,14 @@ export const tdsDraftService = {
     try {
       await AsyncStorage.setItem(getStorageKeyAppId(), appId);
     } catch (err) {
-      logger.warn("[TdsDraftService] Failed to save application ID", { error: getErrorMessage(err) });
+      console.error("Failed to save application ID:", err);
     }
   },
 
   getApplicationId: async (): Promise<string | null> => {
     try {
       return await AsyncStorage.getItem(getStorageKeyAppId());
-    } catch (err) {
-      logger.debug("[TdsDraftService] Failed to get application ID", { error: getErrorMessage(err) });
+    } catch {
       return null;
     }
   },
@@ -199,9 +196,7 @@ export const tdsDraftService = {
       await AsyncStorage.removeItem(getStorageKeyDocs());
       await AsyncStorage.removeItem(getStorageKeyAppId());
       await removeDraftFromIndex(cleanMobile, "tds-refund");
-    } catch (err) {
-      logger.warn("[TdsDraftService] Failed to clear draft", { error: getErrorMessage(err) });
-    }
+    } catch {}
   },
 };
 

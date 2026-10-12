@@ -25,8 +25,6 @@ import { tdsDraftService } from "../../services/tdsDraftService";
 import { FeeSummaryCard } from "../../components/payment/FeeSummaryCard";
 import { PaymentMethodCard } from "../../components/payment/PaymentMethodCard";
 import { styles } from "./TdsPaymentSubmissionScreen.styles";
-import { getErrorMessage } from "@/core/error-handling/errorMessage";
-import { logger } from "@/core/logging/logger";
 
 const PAYMENT_METHODS: PaymentOptionItem[] = [
   {
@@ -79,7 +77,7 @@ export const TdsPaymentSubmissionScreen: React.FC = () => {
 
   // Prevent leaving while payment is in-flight
   useEffect(() => {
-    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+    const unsubscribe = (navigation as any).addListener("beforeRemove", (e: any) => {
       if (processingState === "processing") {
         e.preventDefault();
         Alert.alert(
@@ -135,21 +133,23 @@ export const TdsPaymentSubmissionScreen: React.FC = () => {
 
       // Navigate to Screen 5 (Application Status)
       router.replace({
-        pathname: "/service/tds-status",
+        pathname: "/service/tds-status" as any,
         params: {
           applicationId: response?.applicationId || targetAppId,
           refundAmount: formatCurrency(refundEstimate),
           isAdditionalPayable: isAdditionalPayable ? "1" : "0",
         },
       });
-    } catch (err) {
-      logger.warn("Payment API error", { error: getErrorMessage(err) });
-      if (getErrorMessage(err)?.toLowerCase().includes("network")) {
+    } catch (err: any) {
+      if (__DEV__) {
+        console.warn("Payment API error:", err);
+      }
+      if (err?.message?.toLowerCase().includes("network")) {
         setProcessingState("network_error");
         setErrorMessage("Network error connecting to payment gateway. Please check your internet connection.");
       } else {
         setProcessingState("network_error");
-        setErrorMessage(getErrorMessage(err) || "Payment could not be processed. Please try again.");
+        setErrorMessage(err?.message || "Payment could not be processed. Please try again.");
       }
     }
   };
@@ -173,7 +173,7 @@ export const TdsPaymentSubmissionScreen: React.FC = () => {
 
         <View style={styles.headerTitleGroup}>
           <Text style={styles.headerTitle}>Pay & Submit</Text>
-          <Text style={styles.headerSubtitle}>Step 4 of 5: Payment</Text>
+          <Text style={styles.headerSubtitle}>Step 3 of 4: Payment</Text>
         </View>
 
         <View style={styles.headerRightSpacer} />

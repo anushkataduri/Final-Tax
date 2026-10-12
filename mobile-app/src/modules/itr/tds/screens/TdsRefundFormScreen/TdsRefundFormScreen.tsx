@@ -9,6 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -18,11 +19,12 @@ import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { formatCurrency } from "../../utils/tdsValidation";
 import {
   PersonalInfoSection,
+  BusinessDetailsSection,
   RefundBankAccountSection,
-  IncomeTaxInfoSection,
-  TdsTaxesPaidSection,
   TdsFormInputRefs,
+  SectionHeader,
 } from "./TdsRefundFormSections";
+import { TdsDocumentCard } from "../../components/documents";
 import { useTdsProgressStore } from "../../store/tdsProgressStore";
 import { styles } from "./TdsRefundFormScreen.styles";
 import { useTdsRefundForm } from "./useTdsRefundForm";
@@ -41,12 +43,18 @@ export const TdsRefundFormScreen: React.FC = () => {
     profileFetchError,
     fetchAndPopulateProfile,
     handleSaveProfile,
+    updateBusiness,
     updateBank,
     updateIncome,
     handleIfscChange,
     handleContinue,
     draftGuard,
-  } = useTdsRefundForm();
+    documents,
+    handleUploadSuccess,
+    handleUploadError,
+    handleRemove,
+      isEditing,
+    } = useTdsRefundForm();
 
   const {
     showDraftModal,
@@ -85,10 +93,10 @@ export const TdsRefundFormScreen: React.FC = () => {
   const liveCalculation = tdsCalculationService.calculate(formData);
 
   return (
-    <KeyboardAvoidingView
+    <View
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
+
+
     >
       <FocusAwareStatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
@@ -104,7 +112,7 @@ export const TdsRefundFormScreen: React.FC = () => {
 
         <View style={styles.headerTitleGroup}>
           <Text style={styles.headerTitle}>TDS Refund</Text>
-          <Text style={styles.headerSubtitle}>Step 1 of 5: Customer & Income</Text>
+          <Text style={styles.headerSubtitle}>Step 1 of 4: Application Details</Text>
         </View>
 
         <View style={styles.headerRightSpacer} />
@@ -116,7 +124,7 @@ export const TdsRefundFormScreen: React.FC = () => {
       </View>
 
       {/* Main Form Content */}
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: insets.bottom + 85 },
@@ -151,6 +159,16 @@ export const TdsRefundFormScreen: React.FC = () => {
           onSaveProfile={handleSaveProfile}
         />
 
+        <BusinessDetailsSection
+          business={formData.business}
+          errors={errors}
+          updateBusiness={updateBusiness}
+          documents={documents}
+          onUploadSuccess={handleUploadSuccess}
+          onUploadError={handleUploadError}
+          onRemove={handleRemove}
+        />
+
         <RefundBankAccountSection
           bank={formData.bank}
           errors={errors}
@@ -161,15 +179,11 @@ export const TdsRefundFormScreen: React.FC = () => {
           onIfscChange={handleIfscChange}
         />
 
-        <IncomeTaxInfoSection income={formData.income} inputs={inputRefs} updateIncome={updateIncome} />
+        
 
-        <TdsTaxesPaidSection
-          income={formData.income}
-          errors={errors}
-          inputs={inputRefs}
-          updateIncome={updateIncome}
-        />
-      </ScrollView>
+
+
+      </KeyboardAwareScrollView>
 
       {/* Sticky Bottom CTA */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 14 }]}>
@@ -178,7 +192,7 @@ export const TdsRefundFormScreen: React.FC = () => {
           onPress={handleContinue}
           style={styles.ctaButton}
         >
-          <Text style={styles.ctaButtonText}>{maxStepReached >= 3 ? "Update & Continue" : "Continue to Documents"}</Text>
+          <Text style={styles.ctaButtonText}>{isEditing ? "Update & Continue" : "Review & Continue"}</Text>
           <Ionicons name="arrow-forward" size={18} color={BrandColors.WHITE} />
         </TouchableOpacity>
       </View>
@@ -195,7 +209,7 @@ export const TdsRefundFormScreen: React.FC = () => {
         onDiscardAndExit={handleDiscardAndExit}
         onCancel={handleCancel}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 

@@ -23,12 +23,3 @@ export interface BusinessDocumentItem {
   fileSize?: string;
   mimeType?: string;
 }
-
-/** A picked file ready for upload (shared by the TDS and tax-notice flows). */
-export interface DocumentUploadPayload {
-  uri: string;
-  name: string;
-  size: string;
-  mimeType?: string;
-  fileTypeLabel?: string;
-}

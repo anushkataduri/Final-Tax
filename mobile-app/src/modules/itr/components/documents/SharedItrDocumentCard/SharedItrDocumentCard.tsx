@@ -15,7 +15,7 @@ import { ViewDocumentModal } from "@/modules/itr/tds/components/documents/ViewDo
 import { styles } from "./SharedItrDocumentCard.styles";
 
 const DEFAULT_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "doc", "docx", "xls", "xlsx", "json"];
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
 
 export interface SharedDocumentItem {
   id: string;
@@ -33,6 +33,7 @@ export interface SharedDocumentItem {
 
 interface SharedItrDocumentCardProps {
   item: SharedDocumentItem;
+  variant?: "default" | "inline";
   onUploadSuccess: (
     id: string,
     payload: { uri: string; name: string; size: string; mimeType?: string; fileTypeLabel?: string }
@@ -42,6 +43,7 @@ interface SharedItrDocumentCardProps {
 
 export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
   item,
+  variant = "default",
   onUploadSuccess,
   onRemove,
 }) => {
@@ -134,6 +136,81 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
     setShowRemoveModal(false);
     onRemove(item.id);
   };
+
+  const renderModals = () => (
+    <>
+      <UploadSourceModal
+        visible={showSourceModal}
+        documentTitle={item.title}
+        maxSizeText="Maximum file size: 10 MB"
+        onChooseFiles={handleChooseFiles}
+        onSelectGallery={() => {}}
+        onTakePhoto={handleTakePhoto}
+        onClose={() => setShowSourceModal(false)}
+      />
+
+      <RemoveConfirmModal
+        visible={showRemoveModal}
+        title={item.title}
+        onConfirm={handleConfirmRemove}
+        onCancel={() => setShowRemoveModal(false)}
+      />
+
+      {item.fileUri && (
+        <ViewDocumentModal
+          visible={showViewModal}
+          fileUri={item.fileUri}
+          title={item.title}
+          onClose={() => setShowViewModal(false)}
+        />
+      )}
+    </>
+  );
+
+  if (variant === "inline") {
+    return (
+      <View style={{ flexDirection: "column" }}>
+        {!isUploaded ? (
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={() => setShowSourceModal(true)}
+            style={[styles.uploadButton, { alignSelf: 'center', marginLeft: 0, marginVertical: 0, paddingVertical: 4, paddingHorizontal: 12, minWidth: 0, height: 32, borderRadius: 16 }]}
+          >
+            <Ionicons name="arrow-up" size={14} color="#4338CA" />
+            <Text style={[styles.uploadButtonText, { fontSize: 12 }]}>Upload</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+            <Text numberOfLines={1} style={{ fontSize: 11, color: '#059669', maxWidth: 100 }}>
+              {item.fileName || "Uploaded"}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <TouchableOpacity onPress={() => setShowViewModal(true)} style={[styles.viewButton, { paddingHorizontal: 8, paddingVertical: 4, height: 32, borderRadius: 16 }]}>
+                <Ionicons name="eye-outline" size={14} color="#1E3A8A" />
+              </TouchableOpacity>
+  
+              <TouchableOpacity onPress={() => setShowSourceModal(true)} style={[styles.changeButton, { paddingHorizontal: 8, paddingVertical: 4, height: 32, borderRadius: 16 }]}>
+                <Ionicons name="swap-horizontal" size={14} color="#D97706" />
+              </TouchableOpacity>
+  
+              <TouchableOpacity onPress={() => setShowRemoveModal(true)} style={[styles.trashButton, { width: 32, height: 32, borderRadius: 10 }]}>
+                <Ionicons name="trash-outline" size={14} color="#DC2626" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {hasError && (
+          <View style={[styles.inlineErrorRow, { paddingHorizontal: 0, marginTop: 4, borderTopWidth: 0, paddingTop: 0 }]}>
+            <Ionicons name="alert-circle" size={14} color="#DC2626" style={styles.errorIcon} />
+            <Text style={styles.inlineErrorText}>{item.errorMessage || "Error uploading."}</Text>
+          </View>
+        )}
+
+        {renderModals()}
+      </View>
+    );
+  }
 
   return (
     <View

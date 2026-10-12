@@ -47,7 +47,7 @@ export const RevisedItrHeader: React.FC<RevisedItrHeaderProps> = ({
         <View style={{ width: 38, height: 38 }} />
       )}
 
-      <View style={styles.titleGroup}>
+      <View style={styles.titleGroup} pointerEvents="none">
         <Text style={styles.title}>Revised ITR</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
@@ -57,21 +57,22 @@ export const RevisedItrHeader: React.FC<RevisedItrHeaderProps> = ({
           activeOpacity={0.7}
           onPress={onSaveDraft}
           style={{
-            width: 38,
-            height: 38,
-            borderRadius: 19,
-            backgroundColor: "#F8FAFC",
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 14,
+            paddingVertical: 6,
+            borderRadius: 20,
+            backgroundColor: "#FFFFFF",
             borderWidth: 1,
             borderColor: "#E2E8F0",
-            justifyContent: "center",
-            alignItems: "center",
           }}
           accessibilityLabel="Save Draft"
         >
-          <Ionicons name="save-outline" size={20} color="#64748B" />
+          <Ionicons name="bookmark-outline" size={16} color="#64748B" style={{ marginRight: 6 }} />
+          <Text style={{ fontSize: 14, fontWeight: "600", color: "#64748B" }}>Draft</Text>
         </TouchableOpacity>
       ) : (
-        <View style={{ width: 38, height: 38 }} />
+        <View style={{ width: 80, height: 38 }} />
       )}
     </View>
   );
