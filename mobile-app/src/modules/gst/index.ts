@@ -21,3 +21,4 @@ export * from "./store/gstStore";
 export * from "./types/gst.types";
 export * from "./types/gstDocumentConfig";
 export * from "./validation/gstSchema";
+export * from "./utils/hsnSacPolicy";
