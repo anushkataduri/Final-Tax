@@ -46,7 +46,11 @@ export const ServerConfigModal: React.FC<ServerConfigModalProps> = ({
       setUrl(target);
     }
     if (!target.startsWith("http://") && !target.startsWith("https://")) {
-      target = `https://${target}`;
+      if (/^(\d{1,3}\.){3}\d{1,3}/.test(target) || target.startsWith("localhost")) {
+        target = `http://${target}`;
+      } else {
+        target = `https://${target}`;
+      }
     }
     if (target.endsWith("/")) {
       target = target.slice(0, -1);
@@ -57,7 +61,7 @@ export const ServerConfigModal: React.FC<ServerConfigModalProps> = ({
 
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 4000);
+      const timer = setTimeout(() => controller.abort(), 6000);
       const res = await fetch(`${target}/actuator/health`, {
         signal: controller.signal,
       });
@@ -82,6 +86,14 @@ export const ServerConfigModal: React.FC<ServerConfigModalProps> = ({
     let clean = url.trim();
     if (clean.includes(":8081")) {
       clean = clean.replace(":8081", ":8086");
+      setUrl(clean);
+    }
+    if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+      if (/^(\d{1,3}\.){3}\d{1,3}/.test(clean) || clean.startsWith("localhost")) {
+        clean = `http://${clean}`;
+      } else {
+        clean = `https://${clean}`;
+      }
       setUrl(clean);
     }
     if (!clean) {

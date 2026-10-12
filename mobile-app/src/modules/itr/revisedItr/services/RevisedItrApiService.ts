@@ -1,7 +1,8 @@
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { tokenManager } from "@/core/authentication/tokenManager";
+import { getDefaultBaseUrl } from "@/core/api/apiConfig";
 
-const BASE_URL = "http://192.168.29.65:8086/api/v1/itr/revised";
+const getBaseUrl = () => `${getDefaultBaseUrl()}/api/v1/itr/revised`;
 
 const fetchApi = async (url: string, method: string, body?: any, isMultipart = false) => {
   const headers: any = {};
@@ -37,7 +38,7 @@ export const RevisedItrApiService = {
   // Step 1: Base Revised ITR
   saveRevisedItr: async (data: any) => {
     try {
-      const result = await fetchApi(`${BASE_URL}/register`, "POST", data);
+      const result = await fetchApi(`${getBaseUrl()}/register`, "POST", data);
       return { revisedItrId: extractId(result) };
     } catch (error) {
       console.error("Error saving Revised ITR:", error);
@@ -46,7 +47,7 @@ export const RevisedItrApiService = {
   },
   updateRevisedItr: async (revisedItrId: string, data: any) => {
     try {
-      return await fetchApi(`${BASE_URL}/update/${revisedItrId}`, "PUT", data);
+      return await fetchApi(`${getBaseUrl()}/update/${revisedItrId}`, "PUT", data);
     } catch (error) {
       console.error("Error updating Revised ITR:", error);
       throw error;
@@ -56,7 +57,7 @@ export const RevisedItrApiService = {
   // Step 2: Revision Reason
   saveRevisionReason: async (data: any) => {
     try {
-      const result = await fetchApi(`${BASE_URL}/reason/register`, "POST", data);
+      const result = await fetchApi(`${getBaseUrl()}/reason/register`, "POST", data);
       return { revisionReasonId: extractId(result) };
     } catch (error) {
       console.error("Error saving Revision Reason:", error);
@@ -65,7 +66,7 @@ export const RevisedItrApiService = {
   },
   updateRevisionReason: async (revisionReasonId: string, data: any) => {
     try {
-      return await fetchApi(`${BASE_URL}/reason/update/${revisionReasonId}`, "PUT", data);
+      return await fetchApi(`${getBaseUrl()}/reason/update/${revisionReasonId}`, "PUT", data);
     } catch (error) {
       console.error("Error updating Revision Reason:", error);
       throw error;
@@ -75,7 +76,7 @@ export const RevisedItrApiService = {
   // Step 3: Revised Details
   saveRevisedDetails: async (data: any) => {
     try {
-      const result = await fetchApi(`${BASE_URL}/details/register`, "POST", data);
+      const result = await fetchApi(`${getBaseUrl()}/details/register`, "POST", data);
       return { detailsId: extractId(result) };
     } catch (error) {
       console.error("Error saving Revised Details:", error);
@@ -84,7 +85,7 @@ export const RevisedItrApiService = {
   },
   updateRevisedDetails: async (detailsId: string, data: any) => {
     try {
-      return await fetchApi(`${BASE_URL}/details/update/${detailsId}`, "PUT", data);
+      return await fetchApi(`${getBaseUrl()}/details/update/${detailsId}`, "PUT", data);
     } catch (error) {
       console.error("Error updating Revised Details:", error);
       throw error;
@@ -143,7 +144,7 @@ export const RevisedItrApiService = {
       }
       
       const token = await tokenManager.getAccessToken();
-      const response = await fetch(`${BASE_URL}/${revisedItrId}/document/register`, {
+      const response = await fetch(`${getBaseUrl()}/${revisedItrId}/document/register`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -209,7 +210,7 @@ export const RevisedItrApiService = {
       }
       
       const token = await tokenManager.getAccessToken();
-      const response = await fetch(`${BASE_URL}/document/update/${documentId}`, {
+      const response = await fetch(`${getBaseUrl()}/document/update/${documentId}`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`

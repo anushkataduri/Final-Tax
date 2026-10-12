@@ -2,8 +2,10 @@ import { ItrFilingFormData } from "../types/itrFiling.types";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { tokenManager } from "@/core/authentication/tokenManager";
 
+import { getDefaultBaseUrl } from "@/core/api/apiConfig";
+
 // Base URL points to the backend running locally.
-const BASE_URL = "http://192.168.29.65:8086/api/v1/itr";
+const getBaseUrl = () => `${getDefaultBaseUrl()}/api/v1/itr`;
 
 const fetchApi = async (url: string, method: string, body?: any, isMultipart = false) => {
   const headers: any = {};
@@ -21,7 +23,7 @@ const fetchApi = async (url: string, method: string, body?: any, isMultipart = f
     headers,
     body: isMultipart ? body : JSON.stringify(body),
   });
-  
+
   if (!response.ok) {
     const errText = await response.text();
     console.error(`Backend Error Response (${response.status}):`, errText);
@@ -53,7 +55,7 @@ const mapToFilingDto = (data: ItrFilingFormData) => {
 
 const mapToSalaryIncomeDto = (data: ItrFilingFormData) => {
   const inc = data.incomeSources;
-  
+
   let incomeSource = "Salary / Pension";
   if (inc.salary?.enabled) incomeSource = "Salary / Pension";
   else if (inc.houseProperty?.enabled) incomeSource = "House Property";
@@ -74,9 +76,9 @@ const mapToSalaryIncomeDto = (data: ItrFilingFormData) => {
     howDoYouReportThisBusiness: "PRESUMPTIVE",
     grossTurnover: String(inc.business?.grossTurnover || 0),
     declaredNetProfit: String(inc.business?.declaredProfit || 0),
-    assetType: inc.capitalGains?.hasPropertyAssets ? "REAL_ESTATE_LAND" : 
-               inc.capitalGains?.hasFnoIntraday ? "F_AND_O_INTRADAY_TRADING" : 
-               inc.capitalGains?.hasCryptoVda ? "CRYPTO_VDA" : "EQUITY_MUTUAL_FUNDS",
+    assetType: inc.capitalGains?.hasPropertyAssets ? "REAL_ESTATE_LAND" :
+      inc.capitalGains?.hasFnoIntraday ? "F_AND_O_INTRADAY_TRADING" :
+        inc.capitalGains?.hasCryptoVda ? "CRYPTO_VDA" : "EQUITY_MUTUAL_FUNDS",
     shortTermGains: String(inc.capitalGains?.shortTermGains || 0),
     longTermGains: String(inc.capitalGains?.longTermGains || 0),
     savingsInterest: String(inc.otherSources?.savingsInterest || 0),
@@ -90,17 +92,17 @@ export const ItrApiService = {
   // Step 1: Personal Info
   savePersonalInfo: async (data: ItrFilingFormData) => {
     try {
-      const result = await fetchApi(`${BASE_URL}/filing/register`, "POST", mapToFilingDto(data));
-      return { itrId: extractId(result) }; 
+      const result = await fetchApi(`${getBaseUrl()}/filing/register`, "POST", mapToFilingDto(data));
+      return { itrId: extractId(result) };
     } catch (error) {
       console.error("Error saving Personal Info:", error);
       throw error;
     }
   },
-  
+
   updatePersonalInfo: async (itrId: string, data: ItrFilingFormData) => {
     try {
-      const result = await fetchApi(`${BASE_URL}/filing/update/${itrId}`, "PUT", mapToFilingDto(data));
+      const result = await fetchApi(`${getBaseUrl()}/filing/update/${itrId}`, "PUT", mapToFilingDto(data));
       return result;
     } catch (error) {
       console.error("Error updating Personal Info:", error);
@@ -111,8 +113,8 @@ export const ItrApiService = {
   // Step 2: Income Sources (Salary)
   saveSalaryIncome: async (itrId: string, data: ItrFilingFormData) => {
     try {
-      const result = await fetchApi(`${BASE_URL}/${itrId}/salary-income/register`, "POST", mapToSalaryIncomeDto(data));
-      return { incomeId: extractId(result) }; 
+      const result = await fetchApi(`${getBaseUrl()}/${itrId}/salary-income/register`, "POST", mapToSalaryIncomeDto(data));
+      return { incomeId: extractId(result) };
     } catch (error) {
       console.error("Error saving Salary Income:", error);
       throw error;
@@ -121,7 +123,7 @@ export const ItrApiService = {
 
   updateSalaryIncome: async (incomeId: string, data: ItrFilingFormData) => {
     try {
-      return await fetchApi(`${BASE_URL}/salary-income/update/${incomeId}`, "PUT", mapToSalaryIncomeDto(data));
+      return await fetchApi(`${getBaseUrl()}/salary-income/update/${incomeId}`, "PUT", mapToSalaryIncomeDto(data));
     } catch (error) {
       console.error("Error updating Salary Income:", error);
       throw error;
@@ -133,8 +135,8 @@ export const ItrApiService = {
     try {
       const formData = new FormData();
       await populateFormDataWithDocuments(formData, data.documents);
-      
-      const result = await fetchApi(`${BASE_URL}/${itrId}/documents/register`, "POST", formData, true);
+
+      const result = await fetchApi(`${getBaseUrl()}/${itrId}/documents/register`, "POST", formData, true);
       return { documentId: extractId(result) };
     } catch (error) {
       console.error("Error saving Documents:", error);
@@ -146,8 +148,8 @@ export const ItrApiService = {
     try {
       const formData = new FormData();
       await populateFormDataWithDocuments(formData, data.documents);
-      
-      return await fetchApi(`${BASE_URL}/documents/update/${documentId}`, "PUT", formData, true);
+
+      return await fetchApi(`${getBaseUrl()}/documents/update/${documentId}`, "PUT", formData, true);
     } catch (error) {
       console.error("Error updating Documents:", error);
       throw error;
@@ -172,7 +174,7 @@ const populateFormDataWithDocuments = async (formData: FormData, documents: ItrF
       try {
         const response = await fetch(doc.fileUri);
         const rawBlob = await response.blob();
-        
+
         let mimeType = doc.mimeType;
         let extension = "pdf";
 
@@ -189,7 +191,7 @@ const populateFormDataWithDocuments = async (formData: FormData, documents: ItrF
 
         const fileBlob = new Blob([rawBlob], { type: mimeType });
         const finalFileName = doc.fileName || `${doc.id}.${extension}`;
-        
+
         formData.append(paramName, fileBlob, finalFileName);
         hasUploadedAny = true;
       } catch (err) {
@@ -197,7 +199,7 @@ const populateFormDataWithDocuments = async (formData: FormData, documents: ItrF
       }
     }
   }
-  
+
   // If no documents were selected, we must still send at least one dummy file
   // to avoid the backend throwing a 400 'At least one document is required' error.
   if (!hasUploadedAny) {
