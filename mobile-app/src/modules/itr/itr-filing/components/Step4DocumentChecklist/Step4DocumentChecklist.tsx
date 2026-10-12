@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
@@ -17,16 +18,21 @@ import { DocumentPreviewModal } from "../DocumentPreviewModal/DocumentPreviewMod
 import { styles, getProgressBarFill } from "./Step4DocumentChecklist.styles";
 
 interface Step4DocumentChecklistProps {
+  isLoading?: boolean;
   isEditing?: boolean;
   documents: ItrDocumentItem[];
   onUpdateDocument: (docId: string, fileInfo: UploadedFileInfo | null) => void;
   onContinue: () => void;
+  onUpdateAndContinue?: () => void;
 }
 
-export const Step4DocumentChecklist: React.FC<Step4DocumentChecklistProps> = ({ isEditing, 
+export const Step4DocumentChecklist: React.FC<Step4DocumentChecklistProps> = ({
+  isLoading = false,
+  isEditing, 
   documents,
   onUpdateDocument,
   onContinue,
+  onUpdateAndContinue,
 }) => {
   const [activeUploadDoc, setActiveUploadDoc] = useState<ItrDocumentItem | null>(null);
   const [previewDoc, setPreviewDoc] = useState<ItrDocumentItem | null>(null);
@@ -176,15 +182,42 @@ export const Step4DocumentChecklist: React.FC<Step4DocumentChecklistProps> = ({ 
         </View>
       )}
 
-      {/* Continue Button */}
-      <TouchableOpacity
-        activeOpacity={0.85}
-        style={styles.continueButton}
-        onPress={handleContinuePress}
-      >
-        <Text style={styles.continueButtonText}>{isEditing ? "Update and Continue" : "Confirm & Continue to Review"}</Text>
-        <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-      </TouchableOpacity>
+      {/* 2 Distinct Buttons for Update (PUT) and Create (POST) */}
+      {isEditing ? (
+        /* Separate Button 1: Update & Continue (PUT Method) */
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.continueButton}
+          onPress={onUpdateAndContinue || handleContinuePress}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Text style={styles.continueButtonText}>Update & Continue</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </>
+          )}
+        </TouchableOpacity>
+      ) : (
+        /* Separate Button 2: Continue (POST Method) */
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.continueButton}
+          onPress={handleContinuePress}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Text style={styles.continueButtonText}>Confirm & Continue to Review</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </>
+          )}
+        </TouchableOpacity>
+      )}
 
       {/* Upload Modal */}
       {activeUploadDoc && (

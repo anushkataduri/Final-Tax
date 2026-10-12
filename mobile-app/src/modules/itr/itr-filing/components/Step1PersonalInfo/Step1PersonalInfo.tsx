@@ -6,6 +6,7 @@ import {
   Alert,
   TextInput,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
@@ -22,8 +23,10 @@ import { BankSelectorModal } from "../../../components/BankSelectorModal";
 import { useITRStore } from "../../../store/itrStore";
 import { styles } from "./Step1PersonalInfo.styles";
 import { Step1PriorItrImport } from "./components/Step1PriorItrImport";
+import { Step1TaxpayerIdentityCard } from "./components/Step1TaxpayerIdentityCard";
 
 interface Step1PersonalInfoProps {
+  isLoading?: boolean;
   isEditing?: boolean;
   personalInfo: ItrPersonalInfo;
   onUpdatePersonalInfo: (info: Partial<ItrPersonalInfo>) => void;
@@ -41,6 +44,7 @@ interface Step1PersonalInfoProps {
     filing?: boolean;
   }) => void;
   onContinue: () => void;
+  onUpdateAndContinue?: () => void;
 }
 
 const RESIDENTIAL_STATUS_OPTIONS: { id: ResidentialStatus; label: string }[] = [
@@ -76,7 +80,9 @@ const FILING_TYPES: { id: FilingType; title: string; section: string; sub: strin
   },
 ];
 
-export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({ isEditing, 
+export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
+  isLoading = false,
+  isEditing,
   personalInfo,
   onUpdatePersonalInfo,
   bankDetails,
@@ -87,6 +93,7 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({ isEditing,
   onUpdatePriorItrNotice,
   onImportPriorItrData,
   onContinue,
+  onUpdateAndContinue,
 }) => {
   const [showBankModal, setShowBankModal] = useState(false);
   const [isPreviousItrExpanded, setIsPreviousItrExpanded] = useState(false);
@@ -99,21 +106,6 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({ isEditing,
   }, []);
 
   const supportedAYs = getSupportedAssessmentYears();
-
-  const maskedAadhaar = personalInfo.aadhaar
-    ? `•••• •••• ${personalInfo.aadhaar.slice(-4)}`
-    : "Not provided";
-
-  const formattedMobile = personalInfo.mobile
-    ? personalInfo.mobile.startsWith("+")
-      ? personalInfo.mobile
-      : `+91 ${personalInfo.mobile}`
-    : "Not provided";
-
-  const formattedAddress =
-    personalInfo.address ||
-    [personalInfo.city, personalInfo.state].filter(Boolean).join(", ") ||
-    "Not provided";
 
   const handleValidateAndContinue = () => {
     if (!personalInfo.residentialStatus) {
@@ -145,68 +137,8 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({ isEditing,
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.cardHeaderRow}>
-          <View style={styles.cardHeaderLeft}>
-            <Ionicons name="person-circle" size={20} color="#083B75" />
-            <Text style={styles.cardTitle}>Taxpayer Identity</Text>
-          </View>
-          <View style={styles.verifiedTag}>
-            <Ionicons name="shield-checkmark" size={13} color="#166534" />
-            <Text style={styles.verifiedTagText}>Auto-Verified</Text>
-          </View>
-        </View>
-
-        <Text style={styles.cardDescription}>
-          Information verified from your TaxEdge profile. Please verify your legal PAN, Aadhaar, and registered details.
-        </Text>
-
-        <View style={styles.readOnlyGrid}>
-          <View style={styles.readOnlyRow}>
-            <Text style={styles.fieldLabel}>PAN Number</Text>
-            <Text style={styles.fieldValueHighlight}>{personalInfo.pan || "Not provided"}</Text>
-          </View>
-          <View style={styles.readOnlyRow}>
-            <Text style={styles.fieldLabel}>Aadhaar Number</Text>
-            <Text style={styles.fieldValue}>{maskedAadhaar}</Text>
-          </View>
-          <View style={styles.readOnlyRow}>
-            <Text style={styles.fieldLabel}>Full Legal Name</Text>
-            <Text style={styles.fieldValue}>{personalInfo.name || "Not provided"}</Text>
-          </View>
-          {Boolean(personalInfo.dob) && (
-            <View style={styles.readOnlyRow}>
-              <Text style={styles.fieldLabel}>Date of Birth</Text>
-              <Text style={styles.fieldValue}>{personalInfo.dob}</Text>
-            </View>
-          )}
-          <View style={styles.readOnlyRow}>
-            <Text style={styles.fieldLabel}>Mobile Number</Text>
-            <Text style={styles.fieldValue}>{formattedMobile}</Text>
-          </View>
-          <View style={styles.readOnlyRow}>
-            <Text style={styles.fieldLabel}>Email Address</Text>
-            <Text style={styles.fieldValue}>{personalInfo.email || "Not provided"}</Text>
-          </View>
-          <View style={styles.readOnlyRow}>
-            <Text style={styles.fieldLabel}>Registered Address</Text>
-            <Text style={styles.fieldValue}>{formattedAddress}</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          activeOpacity={0.7}
-          style={styles.editProfileBtn}
-          onPress={() =>
-            Alert.alert(
-              "Update Profile Details",
-              "To change your legal name, PAN, or address, update your TaxEdge profile or contact support."
-            )
-          }
-        >
-          <Text style={styles.editProfileText}>Edit / Update Profile</Text>
-        </TouchableOpacity>
-      </View>
+      {/* 1. Taxpayer Identity Confirmation Card (From Profile) */}
+      <Step1TaxpayerIdentityCard personalInfo={personalInfo} />
 
       {/* 2. Assessment Year & Rule Version Selection */}
       <View style={styles.card}>
@@ -471,15 +403,42 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({ isEditing,
         onImportPriorItrData={onImportPriorItrData}
       />
 
-      {/* Continue Button */}
-      <TouchableOpacity
-        activeOpacity={0.85}
-        style={styles.continueButton}
-        onPress={handleValidateAndContinue}
-      >
-        <Text style={styles.continueButtonText}>{isEditing ? "Update and Continue" : "Confirm & Continue to Income"}</Text>
-        <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-      </TouchableOpacity>
+      {/* 2 Distinct Buttons for Update (PUT) and Create (POST) */}
+      {isEditing ? (
+        /* Separate Button 1: Update & Continue (PUT Method) */
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.continueButton}
+          onPress={onUpdateAndContinue || handleValidateAndContinue}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Text style={styles.continueButtonText}>Update & Continue</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </>
+          )}
+        </TouchableOpacity>
+      ) : (
+        /* Separate Button 2: Continue (POST Method) */
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.continueButton}
+          onPress={handleValidateAndContinue}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Text style={styles.continueButtonText}>Confirm & Continue to Income</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </>
+          )}
+        </TouchableOpacity>
+      )}
 
       {/* Select Refund Bank Account Modal */}
       <BankSelectorModal

@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
@@ -131,11 +132,12 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { revisedItrId, detailsId, setBackendIds, setMaxStepReached } = useRevisedProgressStore();
 
+  // POST Method - Normal Flow (Continue)
   const handleContinue = async () => {
     if (!validate()) return;
 
     if (!revisedItrId) {
-      console.error("Missing revisedItrId. Please start from Step 1.");
+      Alert.alert("Error", "Missing revised ITR ID. Please start from Step 1.");
       return;
     }
 
@@ -149,32 +151,15 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
         deduction80D: form.sec80d || "0",
         homeLoanInterest: form.homeLoanInterest || "0",
         taxableIncome: form.taxableIncome || "0",
-        bankAccountForRefund: form.bankAccount || "1234567890", // fallback for testing
+        bankAccountForRefund: form.bankAccount || "1234567890",
         ifscCode: form.ifsc || "SBIN0001234"
       };
 
-      if (maxStepReached >= 4 && detailsId) {
-        // Edit flow
-        await RevisedItrApiService.updateRevisedDetails(detailsId, payload);
-        
-        router.push({
-          pathname: "/service/revised-itr-review" as any,
-          params: {
-            acknowledgementNumber: params.acknowledgementNumber,
-            assessmentYear: params.assessmentYear || "AY 2025—26",
-            revisionReason: params.revisionReason,
-            revisedDetails: JSON.stringify(form),
-          }
-        });
-        return;
-      } else {
-        // Initial flow
-        const response = await RevisedItrApiService.saveRevisedDetails(payload);
-        if (response && response.detailsId) {
-          setBackendIds({ detailsId: response.detailsId });
-        }
-        setMaxStepReached(4);
+      const response = await RevisedItrApiService.saveRevisedDetails(payload);
+      if (response && response.detailsId) {
+        setBackendIds({ detailsId: response.detailsId });
       }
+      setMaxStepReached(4);
 
       // Navigate to Screen 4: Upload Supporting Documents
       router.push({
@@ -187,8 +172,51 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
         },
       });
     } catch (e) {
-      console.error(e);
-      // Optional: Alert
+      console.error("Error saving revised details:", e);
+      Alert.alert("Error", "Failed to save revised details.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // PUT Method - Editing Flow (Update & Continue)
+  const handleUpdateAndContinue = async () => {
+    if (!validate()) return;
+
+    if (!detailsId) {
+      Alert.alert("Error", "No revised details ID found to update.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const payload = {
+        revisedItrId,
+        salaryBusinessIncome: form.salaryBusinessIncome || "0",
+        otherIncome: form.otherIncome || "0",
+        deduction80C: form.sec80c || "0",
+        deduction80D: form.sec80d || "0",
+        homeLoanInterest: form.homeLoanInterest || "0",
+        taxableIncome: form.taxableIncome || "0",
+        bankAccountForRefund: form.bankAccount || "1234567890",
+        ifscCode: form.ifsc || "SBIN0001234"
+      };
+
+      await RevisedItrApiService.updateRevisedDetails(detailsId, payload);
+      
+      // Redirect back to Review screen
+      router.push({
+        pathname: "/service/revised-itr-review" as any,
+        params: {
+          acknowledgementNumber: params.acknowledgementNumber,
+          assessmentYear: params.assessmentYear || "AY 2025—26",
+          revisionReason: params.revisionReason,
+          revisedDetails: JSON.stringify(form),
+        }
+      });
+    } catch (e) {
+      console.error("Error updating revised details:", e);
+      Alert.alert("Error", "Failed to update revised details.");
     } finally {
       setIsSubmitting(false);
     }
@@ -199,7 +227,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
       <FocusAwareStatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Screen Header */}
-      <RevisedItrHeader subtitle="Update Details" />
+      <RevisedItrHeader subtitle="Update Details" hideBackButton={params.isEditing === "true"} />
 
       {/* Main Content */}
       <KeyboardAwareScrollView
@@ -360,18 +388,35 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
           getBottomBarInsetsStyle(insets.bottom),
         ]}
       >
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleContinue}
-          style={styles.continueButton}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.continueButtonText}>{params.isEditing === "true" ? "Update and Continue" : "Continue"}</Text>
-          )}
-        </TouchableOpacity>
+        {params.isEditing === "true" ? (
+          /* Separate Button 1: Update & Continue (PUT Method) */
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleUpdateAndContinue}
+            style={styles.continueButton}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.continueButtonText}>Update & Continue</Text>
+            )}
+          </TouchableOpacity>
+        ) : (
+          /* Separate Button 2: Continue (POST Method) */
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleContinue}
+            style={styles.continueButton}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.continueButtonText}>Continue</Text>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

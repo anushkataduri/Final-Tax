@@ -1,13 +1,16 @@
 import { ItrFilingFormData } from "../types/itrFiling.types";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { tokenManager } from "@/core/authentication/tokenManager";
-
 import { getDefaultBaseUrl } from "@/core/api/apiConfig";
 
-// Base URL points to the backend running locally.
 const getBaseUrl = () => `${getDefaultBaseUrl()}/api/v1/itr`;
 
-const fetchApi = async (url: string, method: string, body?: any, isMultipart = false) => {
+const fetchApi = async (
+  url: string,
+  method: string,
+  body?: any,
+  isMultipart = false,
+) => {
   const headers: any = {};
   if (!isMultipart) {
     headers["Content-Type"] = "application/json";
@@ -27,7 +30,9 @@ const fetchApi = async (url: string, method: string, body?: any, isMultipart = f
   if (!response.ok) {
     const errText = await response.text();
     console.error(`Backend Error Response (${response.status}):`, errText);
-    throw new Error(`HTTP error! Status: ${response.status}. Details: ${errText}`);
+    throw new Error(
+      `HTTP error! Status: ${response.status}. Details: ${errText}`,
+    );
   }
   return response.text();
 };
@@ -38,9 +43,16 @@ const extractId = (response: string) => {
 };
 
 const mapToFilingDto = (data: ItrFilingFormData) => {
-  const customerId = useAuthStore.getState().customer?.customerId || useAuthStore.getState().authenticatedUser?.customerId || "CUST-12345";
-  const accountNumber = data.bankDetails?.accountNumber?.trim() || "";
-  const ifscCode = data.bankDetails?.ifscCode?.trim() || "";
+  const authState = useAuthStore.getState();
+  const customerId =
+    authState.customer?.customerId ||
+    authState.customer?.mobile ||
+    authState.authenticatedUser?.customerId ||
+    authState.authenticatedUser?.mobileNumber ||
+    authState.mobileNumber ||
+    "CUST-12345";
+  const accountNumber = String(data.bankDetails?.accountNumber || "").trim();
+  const ifscCode = String(data.bankDetails?.ifscCode || "").trim();
 
   return {
     customerId,
@@ -48,8 +60,12 @@ const mapToFilingDto = (data: ItrFilingFormData) => {
     residentialStatus: data.personalInfo.residentialStatus,
     filingType: data.personalInfo.filingType,
     bankName: data.bankDetails?.bankName || "Pending",
-    accountNumber: /^[0-9]{9,18}$/.test(accountNumber) ? accountNumber : "000000000",
-    ifscCode: /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifscCode) ? ifscCode : "ABCD0123456"
+    accountNumber: /^[0-9]{9,18}$/.test(accountNumber)
+      ? accountNumber
+      : "000000000",
+    ifscCode: /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifscCode)
+      ? ifscCode
+      : "ABCD0123456",
   };
 };
 
@@ -69,22 +85,29 @@ const mapToSalaryIncomeDto = (data: ItrFilingFormData) => {
     grossSalary: String(inc.salary?.grossSalary || "0"),
     exemptAllowances: String(inc.salary?.allowances || "0"),
     tdsDeductedByEmployer: String(inc.salary?.tdsDeducted || "0"),
-    propertyClassification: inc.houseProperty?.propertyType === "let_out" ? "LET_OUT_RENTED" : "SELF_OCCUPIED",
+    propertyClassification:
+      inc.houseProperty?.propertyType === "let_out"
+        ? "LET_OUT_RENTED"
+        : "SELF_OCCUPIED",
     homeLoanInterestPaid: String(inc.houseProperty?.homeLoanInterest || "0"),
     annualRentReceived: String(inc.houseProperty?.annualRentReceived || 0),
     municipalTaxesPaid: String(inc.houseProperty?.municipalTaxesPaid || 0),
     howDoYouReportThisBusiness: "PRESUMPTIVE",
     grossTurnover: String(inc.business?.grossTurnover || 0),
     declaredNetProfit: String(inc.business?.declaredProfit || 0),
-    assetType: inc.capitalGains?.hasPropertyAssets ? "REAL_ESTATE_LAND" :
-      inc.capitalGains?.hasFnoIntraday ? "F_AND_O_INTRADAY_TRADING" :
-        inc.capitalGains?.hasCryptoVda ? "CRYPTO_VDA" : "EQUITY_MUTUAL_FUNDS",
+    assetType: inc.capitalGains?.hasPropertyAssets
+      ? "REAL_ESTATE_LAND"
+      : inc.capitalGains?.hasFnoIntraday
+        ? "F_AND_O_INTRADAY_TRADING"
+        : inc.capitalGains?.hasCryptoVda
+          ? "CRYPTO_VDA"
+          : "EQUITY_MUTUAL_FUNDS",
     shortTermGains: String(inc.capitalGains?.shortTermGains || 0),
     longTermGains: String(inc.capitalGains?.longTermGains || 0),
     savingsInterest: String(inc.otherSources?.savingsInterest || 0),
     fdTermInterest: String(inc.otherSources?.fdInterest || 0),
     dividendIncome: String(inc.otherSources?.dividendIncome || 0),
-    otherMiscellaneous: String(inc.otherSources?.otherIncome || 0)
+    otherMiscellaneous: String(inc.otherSources?.otherIncome || 0),
   };
 };
 
@@ -92,7 +115,11 @@ export const ItrApiService = {
   // Step 1: Personal Info
   savePersonalInfo: async (data: ItrFilingFormData) => {
     try {
-      const result = await fetchApi(`${getBaseUrl()}/filing/register`, "POST", mapToFilingDto(data));
+      const result = await fetchApi(
+        `${getBaseUrl()}/filing/register`,
+        "POST",
+        mapToFilingDto(data),
+      );
       return { itrId: extractId(result) };
     } catch (error) {
       console.error("Error saving Personal Info:", error);
@@ -102,7 +129,11 @@ export const ItrApiService = {
 
   updatePersonalInfo: async (itrId: string, data: ItrFilingFormData) => {
     try {
-      const result = await fetchApi(`${getBaseUrl()}/filing/update/${itrId}`, "PUT", mapToFilingDto(data));
+      const result = await fetchApi(
+        `${getBaseUrl()}/filing/update/${itrId}`,
+        "PUT",
+        mapToFilingDto(data),
+      );
       return result;
     } catch (error) {
       console.error("Error updating Personal Info:", error);
@@ -113,7 +144,11 @@ export const ItrApiService = {
   // Step 2: Income Sources (Salary)
   saveSalaryIncome: async (itrId: string, data: ItrFilingFormData) => {
     try {
-      const result = await fetchApi(`${getBaseUrl()}/${itrId}/salary-income/register`, "POST", mapToSalaryIncomeDto(data));
+      const result = await fetchApi(
+        `${getBaseUrl()}/${itrId}/salary-income/register`,
+        "POST",
+        mapToSalaryIncomeDto(data),
+      );
       return { incomeId: extractId(result) };
     } catch (error) {
       console.error("Error saving Salary Income:", error);
@@ -123,20 +158,29 @@ export const ItrApiService = {
 
   updateSalaryIncome: async (incomeId: string, data: ItrFilingFormData) => {
     try {
-      return await fetchApi(`${getBaseUrl()}/salary-income/update/${incomeId}`, "PUT", mapToSalaryIncomeDto(data));
+      return await fetchApi(
+        `${getBaseUrl()}/salary-income/update/${incomeId}`,
+        "PUT",
+        mapToSalaryIncomeDto(data),
+      );
     } catch (error) {
       console.error("Error updating Salary Income:", error);
       throw error;
     }
   },
 
-  // Step 3: Documents 
+  // Step 3: Documents
   saveDocuments: async (itrId: string, data: ItrFilingFormData) => {
     try {
       const formData = new FormData();
       await populateFormDataWithDocuments(formData, data.documents);
 
-      const result = await fetchApi(`${getBaseUrl()}/${itrId}/documents/register`, "POST", formData, true);
+      const result = await fetchApi(
+        `${getBaseUrl()}/${itrId}/documents/register`,
+        "POST",
+        formData,
+        true,
+      );
       return { documentId: extractId(result) };
     } catch (error) {
       console.error("Error saving Documents:", error);
@@ -149,21 +193,29 @@ export const ItrApiService = {
       const formData = new FormData();
       await populateFormDataWithDocuments(formData, data.documents);
 
-      return await fetchApi(`${getBaseUrl()}/documents/update/${documentId}`, "PUT", formData, true);
+      return await fetchApi(
+        `${getBaseUrl()}/documents/update/${documentId}`,
+        "PUT",
+        formData,
+        true,
+      );
     } catch (error) {
       console.error("Error updating Documents:", error);
       throw error;
     }
-  }
+  },
 };
 
-const populateFormDataWithDocuments = async (formData: FormData, documents: ItrFilingFormData["documents"]) => {
+const populateFormDataWithDocuments = async (
+  formData: FormData,
+  documents: ItrFilingFormData["documents"],
+) => {
   const fieldMapping: Record<string, string> = {
     "doc-form-16": "form16PartAPartB",
     "doc-26as": "form26as",
     "doc-ais-tis": "aisTis",
     "doc-bank": "bankAccountStatement",
-    "doc-salary-slips": "salaryPayslips"
+    "doc-salary-slips": "salaryPayslips",
   };
 
   let hasUploadedAny = false;
@@ -200,10 +252,11 @@ const populateFormDataWithDocuments = async (formData: FormData, documents: ItrF
     }
   }
 
-  // If no documents were selected, we must still send at least one dummy file
   // to avoid the backend throwing a 400 'At least one document is required' error.
   if (!hasUploadedAny) {
-    const dummyBlob = new Blob(['%PDF-1.4 dummy content'], { type: 'application/pdf' });
+    const dummyBlob = new Blob(["%PDF-1.4 dummy content"], {
+      type: "application/pdf",
+    });
     formData.append("form26as", dummyBlob, "dummy.pdf");
   }
 };

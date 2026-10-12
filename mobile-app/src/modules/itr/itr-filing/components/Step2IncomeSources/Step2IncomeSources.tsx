@@ -1,7 +1,7 @@
-﻿import { Step2SalaryIncome } from "./components/Step2SalaryIncome";
+import { Step2SalaryIncome } from "./components/Step2SalaryIncome";
 import { Step2HousePropertyIncome } from "./components/Step2HousePropertyIncome";
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import {
@@ -24,6 +24,7 @@ import {
 import { OtherSourcesIncomeForm } from "./components/Step2OtherSources";
 
 interface Step2IncomeSourcesProps {
+  isLoading?: boolean;
   isEditing?: boolean;
   sources: IncomeSourcesState;
   determinedForm: DeterminedFormInfo;
@@ -36,9 +37,12 @@ interface Step2IncomeSourcesProps {
   onUpdateCapitalGains: (data: Partial<IncomeCapitalGainsData>) => void;
   onUpdateOtherSources: (data: Partial<IncomeOtherSourcesData>) => void;
   onContinue: () => void;
+  onUpdateAndContinue?: () => void;
 }
 
-export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({ isEditing, 
+export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({
+  isLoading = false,
+  isEditing, 
   sources,
   determinedForm,
   gstReconciliation,
@@ -48,6 +52,7 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({ isEditin
   onUpdateCapitalGains,
   onUpdateOtherSources,
   onContinue,
+  onUpdateAndContinue,
 }) => {
   const handleProceed = () => {
     const hasAnyIncome =
@@ -343,17 +348,42 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({ isEditin
         onUpdateOtherSources={onUpdateOtherSources}
       />
 
-      {/* Continue Button */}
-      <TouchableOpacity
-        activeOpacity={0.85}
-        style={styles.continueButton}
-        onPress={handleProceed}
-      >
-        <Text style={styles.continueButtonText}>
-          {isEditing ? "Update & Continue" : "Confirm & Continue to Deductions"}
-        </Text>
-        <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-      </TouchableOpacity>
+      {/* 2 Distinct Buttons for Update (PUT) and Create (POST) */}
+      {isEditing ? (
+        /* Separate Button 1: Update & Continue (PUT Method) */
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.continueButton}
+          onPress={onUpdateAndContinue || handleProceed}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Text style={styles.continueButtonText}>Update & Continue</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </>
+          )}
+        </TouchableOpacity>
+      ) : (
+        /* Separate Button 2: Continue (POST Method) */
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.continueButton}
+          onPress={handleProceed}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <Text style={styles.continueButtonText}>Confirm & Continue to Deductions</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </>
+          )}
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

@@ -8,6 +8,7 @@ interface ItrStepIndicatorProps {
   totalSteps?: number; // 5
   stepTitle: string;
   onBack: () => void;
+  hideBackButton?: boolean;
   onSettings?: () => void;
   onSaveDraft?: () => void;
 }
@@ -24,6 +25,7 @@ export const ItrStepIndicator: React.FC<ItrStepIndicatorProps> = ({
   totalSteps = 5,
   stepTitle,
   onBack,
+  hideBackButton = false,
   onSettings,
   onSaveDraft,
 }) => {
@@ -35,7 +37,7 @@ export const ItrStepIndicator: React.FC<ItrStepIndicatorProps> = ({
     <View style={styles.container}>
       {/* Top Bar */}
       <View style={styles.topRow}>
-        {currentStep === totalSteps - 1 ? (
+        {currentStep === totalSteps - 1 || hideBackButton ? (
           <View style={styles.rightSpacer} /> // Replaces back button with empty spacer for balance
         ) : (
           <TouchableOpacity

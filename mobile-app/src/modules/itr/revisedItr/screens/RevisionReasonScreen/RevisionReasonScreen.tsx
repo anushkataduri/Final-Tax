@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -55,6 +56,7 @@ export const RevisionReasonScreen: React.FC = () => {
     return id.toUpperCase();
   };
 
+  // POST Method - Normal Flow (Continue)
   const handleContinue = async () => {
     if (selectedReason === "other" && !otherReasonText.trim()) {
       setOtherError("Please specify the reason for revision.");
@@ -70,7 +72,7 @@ export const RevisionReasonScreen: React.FC = () => {
     }
 
     if (!revisedItrId) {
-      console.error("Missing revisedItrId. Please start from Step 1.");
+      Alert.alert("Error", "Missing revised ITR ID. Please start from Step 1.");
       return;
     }
 
@@ -82,17 +84,11 @@ export const RevisionReasonScreen: React.FC = () => {
         otherReason: selectedReason === "other" ? otherReasonText : undefined
       };
 
-      if (maxStepReached >= 3 && revisionReasonId) {
-        // Edit flow
-        await RevisedItrApiService.updateRevisionReason(revisionReasonId, payload);
-      } else {
-        // Initial flow
-        const response = await RevisedItrApiService.saveRevisionReason(payload);
-        if (response && response.revisionReasonId) {
-          setBackendIds({ revisionReasonId: response.revisionReasonId });
-        }
-        setMaxStepReached(3);
+      const response = await RevisedItrApiService.saveRevisionReason(payload);
+      if (response && response.revisionReasonId) {
+        setBackendIds({ revisionReasonId: response.revisionReasonId });
       }
+      setMaxStepReached(3);
 
       // Navigate to Screen 3: Update Changed Details
       router.push({
@@ -105,8 +101,56 @@ export const RevisionReasonScreen: React.FC = () => {
         },
       });
     } catch (e) {
-      console.error(e);
-      // Optional: Add an Alert here
+      console.error("Error saving revision reason:", e);
+      Alert.alert("Error", "Failed to save revision reason.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // PUT Method - Editing Flow (Update & Continue)
+  const handleUpdateAndContinue = async () => {
+    if (selectedReason === "other" && !otherReasonText.trim()) {
+      setOtherError("Please specify the reason for revision.");
+      return;
+    }
+
+    setOtherError(null);
+
+    if (selectedReason !== storedReason) {
+      setDocuments(null);
+      setFormData({});
+      setRevisionReason(selectedReason);
+    }
+
+    if (!revisionReasonId) {
+      Alert.alert("Error", "No revision reason ID found to update.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const payload = {
+        revisedItrId: revisedItrId,
+        reason: mapReasonToEnum(selectedReason),
+        otherReason: selectedReason === "other" ? otherReasonText : undefined
+      };
+
+      await RevisedItrApiService.updateRevisionReason(revisionReasonId, payload);
+
+      // Redirect back to Review screen
+      router.push({
+        pathname: "/service/revised-itr-review" as any,
+        params: {
+          acknowledgementNumber: params.acknowledgementNumber,
+          assessmentYear: params.assessmentYear || "AY 2025–26",
+          revisionReason: selectedReason,
+          otherReasonText: selectedReason === "other" ? otherReasonText : undefined,
+        },
+      });
+    } catch (e) {
+      console.error("Error updating revision reason:", e);
+      Alert.alert("Error", "Failed to update revision reason.");
     } finally {
       setIsSubmitting(false);
     }
@@ -180,18 +224,35 @@ export const RevisionReasonScreen: React.FC = () => {
           getBottomBarInsetsStyle(insets.bottom),
         ]}
       >
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleContinue}
-          style={styles.continueButton}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.continueButtonText}>{params.isEditing === "true" ? "Update and Continue" : "Continue"}</Text>
-          )}
-        </TouchableOpacity>
+        {params.isEditing === "true" ? (
+          /* Separate Button 1: Update & Continue (PUT Method) */
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleUpdateAndContinue}
+            style={styles.continueButton}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.continueButtonText}>Update & Continue</Text>
+            )}
+          </TouchableOpacity>
+        ) : (
+          /* Separate Button 2: Continue (POST Method) */
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleContinue}
+            style={styles.continueButton}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.continueButtonText}>Continue</Text>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
@@ -53,8 +54,9 @@ export const TdsRefundFormScreen: React.FC = () => {
     handleUploadSuccess,
     handleUploadError,
     handleRemove,
-      isEditing,
-    } = useTdsRefundForm();
+    isEditing,
+    isSaving,
+  } = useTdsRefundForm();
 
   const {
     showDraftModal,
@@ -102,13 +104,17 @@ export const TdsRefundFormScreen: React.FC = () => {
 
       {/* Top Header Bar */}
       <View style={[styles.headerBar, { paddingTop: Math.max(insets.top, 12) + 6 }]}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Ionicons name="chevron-back" size={20} color={BrandColors.PRIMARY_BLUE_DARK} />
-        </TouchableOpacity>
+        {!isEditing ? (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="chevron-back" size={20} color={BrandColors.PRIMARY_BLUE_DARK} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 36, height: 36 }} />
+        )}
 
         <View style={styles.headerTitleGroup}>
           <Text style={styles.headerTitle}>TDS Refund</Text>
@@ -185,16 +191,43 @@ export const TdsRefundFormScreen: React.FC = () => {
 
       </KeyboardAwareScrollView>
 
-      {/* Sticky Bottom CTA */}
+      {/* Sticky Bottom CTA - 2 Distinct Buttons */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 14 }]}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleContinue}
-          style={styles.ctaButton}
-        >
-          <Text style={styles.ctaButtonText}>{isEditing ? "Update & Continue" : "Review & Continue"}</Text>
-          <Ionicons name="arrow-forward" size={18} color={BrandColors.WHITE} />
-        </TouchableOpacity>
+        {isEditing ? (
+          /* Separate Button 1: Update & Continue (PUT Method) */
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleContinue}
+            style={styles.ctaButton}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator color={BrandColors.WHITE} />
+            ) : (
+              <>
+                <Text style={styles.ctaButtonText}>Update & Continue</Text>
+                <Ionicons name="arrow-forward" size={18} color={BrandColors.WHITE} />
+              </>
+            )}
+          </TouchableOpacity>
+        ) : (
+          /* Separate Button 2: Continue (POST Method) */
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleContinue}
+            style={styles.ctaButton}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator color={BrandColors.WHITE} />
+            ) : (
+              <>
+                <Text style={styles.ctaButtonText}>Review & Continue</Text>
+                <Ionicons name="arrow-forward" size={18} color={BrandColors.WHITE} />
+              </>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Universal Save As Draft Confirmation Modal */}

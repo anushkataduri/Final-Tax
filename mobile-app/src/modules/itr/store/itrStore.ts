@@ -65,6 +65,7 @@ interface ITRState {
   setDeclarationAccepted: (accepted: boolean) => void;
   updateDocument: (docId: string, fileInfo: any) => void;
   updateGstReconciliation: (data: Partial<GstReconciliationSummary>) => void;
+  setBackendIds: (ids: { itrId?: string; incomeId?: string; documentId?: string }) => void;
   // Draft handling
   itrDraft: ItrDraftState | null;
   saveItrDraft: () => void;
@@ -76,10 +77,14 @@ interface ITRState {
 export const useITRStore = create<ITRState>((set, get) => ({
   currentStep: 0,
   maxStepReached: 0,
-    setStep: (step) => set((state) => ({
+  setStep: (step) => set((state) => ({
     currentStep: step,
     maxStepReached: Math.max(state.maxStepReached, step)
   })),
+  setBackendIds: (ids) =>
+    set((state) => ({
+      formData: { ...state.formData, ...ids },
+    })),
   formData: getInitialFormData(),
   setCategory: (category: ItrCategoryType) =>
     set((state) => {

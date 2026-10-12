@@ -328,31 +328,59 @@ export const TdsDocumentChecklistScreen: React.FC = () => {
         ))}
       </ScrollView>
 
-      {/* Sticky Bottom CTA */}
+      {/* Sticky Bottom CTA - 2 Distinct Buttons */}
       <View style={[styles.bottomBar, bottomBarInsetsStyle]}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleContinue}
-          disabled={isSaving}
-          style={[
-            styles.continueButton,
-            !isSaving ? styles.continueActive : styles.continueDisabled,
-          ]}
-        >
-          {isSaving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <Text style={styles.continueButtonText}>{maxStepReached > 2 ? "Update and Continue" : "Continue to Review"} <Ionicons name="arrow-forward" /></Text>
-              <Ionicons
-                name="arrow-forward"
-                size={18}
-                color="#FFFFFF"
-                style={styles.buttonIcon}
-              />
-            </>
-          )}
-        </TouchableOpacity>
+        {maxStepReached > 2 ? (
+          /* Separate Button 1: Update and Continue (PUT Method flow) */
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleContinue}
+            disabled={isSaving}
+            style={[
+              styles.continueButton,
+              !isSaving ? styles.continueActive : styles.continueDisabled,
+            ]}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.continueButtonText}>Update and Continue</Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color="#FFFFFF"
+                  style={styles.buttonIcon}
+                />
+              </>
+            )}
+          </TouchableOpacity>
+        ) : (
+          /* Separate Button 2: Continue (POST Method flow) */
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleContinue}
+            disabled={isSaving}
+            style={[
+              styles.continueButton,
+              !isSaving ? styles.continueActive : styles.continueDisabled,
+            ]}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.continueButtonText}>Continue to Review</Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color="#FFFFFF"
+                  style={styles.buttonIcon}
+                />
+              </>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Universal Draft Modal (Same as GST & ITR) */}

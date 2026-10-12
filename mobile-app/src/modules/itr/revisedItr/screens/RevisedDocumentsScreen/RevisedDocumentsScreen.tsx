@@ -199,6 +199,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { revisedItrId, documentId, setBackendIds, setMaxStepReached } = useRevisedProgressStore();
 
+  // POST Method - Normal Flow (Continue)
   const handleContinue = async () => {
     const checkReq = documents.filter((d) => isDocRequired(d.id, params.revisionReason));
     const missing = checkReq.filter((d) => d.status !== "uploaded");
@@ -208,24 +209,18 @@ export const RevisedDocumentsScreen: React.FC = () => {
     }
 
     if (!revisedItrId) {
-      console.error("Missing revisedItrId. Please start from Step 1.");
+      Alert.alert("Error", "Missing revised ITR ID. Please start from Step 1.");
       return;
     }
 
     try {
       setIsSubmitting(true);
       
-      if (maxStepReached >= 5 && documentId) {
-        // Edit flow
-        await RevisedItrApiService.updateRevisedDocuments(documentId, documents);
-      } else {
-        // Initial flow
-        const response = await RevisedItrApiService.saveRevisedDocuments(revisedItrId, documents);
-        if (response && response.documentId) {
-          setBackendIds({ documentId: response.documentId });
-        }
-        setMaxStepReached(5);
+      const response = await RevisedItrApiService.saveRevisedDocuments(revisedItrId, documents);
+      if (response && response.documentId) {
+        setBackendIds({ documentId: response.documentId });
       }
+      setMaxStepReached(5);
 
       // Navigate to Screen 5: Review Revised Computation
       router.push({
@@ -240,8 +235,47 @@ export const RevisedDocumentsScreen: React.FC = () => {
         },
       });
     } catch (e) {
-      console.error(e);
+      console.error("Error saving documents:", e);
       Alert.alert("Error", "Failed to upload documents");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // PUT Method - Editing Flow (Update & Continue)
+  const handleUpdateAndContinue = async () => {
+    const checkReq = documents.filter((d) => isDocRequired(d.id, params.revisionReason));
+    const missing = checkReq.filter((d) => d.status !== "uploaded");
+    if (missing.length > 0) {
+      Alert.alert("Missing Documents", "Please upload all required documents before continuing.");
+      return;
+    }
+
+    if (!documentId) {
+      Alert.alert("Error", "No document ID found to update.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      await RevisedItrApiService.updateRevisedDocuments(documentId, documents);
+
+      // Redirect back to Review screen
+      router.push({
+        pathname: "/service/revised-itr-review" as any,
+        params: {
+          acknowledgementNumber: params.acknowledgementNumber,
+          assessmentYear,
+          revisionReason: params.revisionReason,
+          revisedDetails: params.revisedDetails,
+          uploadedDocsCount: uploadedCount.toString(),
+          totalDocsCount: totalCount.toString(),
+        },
+      });
+    } catch (e) {
+      console.error("Error updating documents:", e);
+      Alert.alert("Error", "Failed to update documents");
     } finally {
       setIsSubmitting(false);
     }
@@ -303,7 +337,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
     <View style={[styles.container, getContainerInsetsStyle(insets.top)]}>
       <FocusAwareStatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      <RevisedItrHeader subtitle="Documents & Submission" />
+      <RevisedItrHeader subtitle="Documents & Submission" hideBackButton={params.isEditing === "true"} />
 
       <ScrollView
         contentContainerStyle={[
@@ -366,18 +400,35 @@ export const RevisedDocumentsScreen: React.FC = () => {
           getBottomBarInsetsStyle(insets.bottom),
         ]}
       >
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleContinue}
-          style={styles.continueButton}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.continueButtonText}>{params.isEditing === "true" ? "Update and Continue" : "Continue"}</Text>
-          )}
-        </TouchableOpacity>
+        {params.isEditing === "true" ? (
+          /* Separate Button 1: Update & Continue (PUT Method) */
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleUpdateAndContinue}
+            style={styles.continueButton}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.continueButtonText}>Update & Continue</Text>
+            )}
+          </TouchableOpacity>
+        ) : (
+          /* Separate Button 2: Continue (POST Method) */
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleContinue}
+            style={styles.continueButton}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.continueButtonText}>Continue</Text>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       

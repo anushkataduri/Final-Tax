@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
@@ -127,6 +128,7 @@ export const FindOriginalReturnScreen: React.FC = () => {
   const { revisedItrId, setBackendIds, setMaxStepReached } = useRevisedProgressStore();
   const { customer, authenticatedUser } = useAuthStore();
 
+  // POST Method - Normal Flow (Continue)
   const handleContinue = async () => {
     if (!foundReturn) {
       handleFindReturn();
@@ -140,20 +142,14 @@ export const FindOriginalReturnScreen: React.FC = () => {
       const payload = {
         customerId,
         itrAcknowledgementNumber: foundReturn.acknowledgementNumber,
-        assessmentYear: foundReturn.assessmentYear.replace("AY ", "").trim() // Convert "AY 2025-26" to "2025-26"
+        assessmentYear: foundReturn.assessmentYear.replace("AY ", "").trim()
       };
 
-      if (maxStepReached >= 2 && revisedItrId) {
-        // Edit flow
-        await RevisedItrApiService.updateRevisedItr(revisedItrId, payload);
-      } else {
-        // Initial flow
-        const response = await RevisedItrApiService.saveRevisedItr(payload);
-        if (response && response.revisedItrId) {
-          setBackendIds({ revisedItrId: response.revisedItrId });
-        }
-        setMaxStepReached(2);
+      const response = await RevisedItrApiService.saveRevisedItr(payload);
+      if (response && response.revisedItrId) {
+        setBackendIds({ revisedItrId: response.revisedItrId });
       }
+      setMaxStepReached(2);
 
       // Navigate to Screen 2: Reason for Revision
       router.push({
@@ -164,8 +160,48 @@ export const FindOriginalReturnScreen: React.FC = () => {
         },
       });
     } catch (e) {
-      console.error(e);
-      // Optional: Add an Alert.alert here
+      console.error("Error saving revised ITR:", e);
+      Alert.alert("Error", "Failed to save revised ITR.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // PUT Method - Editing Flow (Update & Continue)
+  const handleUpdateAndContinue = async () => {
+    if (!foundReturn) {
+      handleFindReturn();
+      return;
+    }
+
+    if (!revisedItrId) {
+      Alert.alert("Error", "No revised ITR ID found to update.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const customerId = customer?.customerId || (authenticatedUser as any)?.customerId || "CUST-12345";
+      
+      const payload = {
+        customerId,
+        itrAcknowledgementNumber: foundReturn.acknowledgementNumber,
+        assessmentYear: foundReturn.assessmentYear.replace("AY ", "").trim()
+      };
+
+      await RevisedItrApiService.updateRevisedItr(revisedItrId, payload);
+
+      // Redirect back to Review screen
+      router.push({
+        pathname: "/service/revised-itr-review" as any,
+        params: {
+          acknowledgementNumber: foundReturn.acknowledgementNumber,
+          assessmentYear: foundReturn.assessmentYear,
+        },
+      });
+    } catch (e) {
+      console.error("Error updating revised ITR:", e);
+      Alert.alert("Error", "Failed to update revised ITR.");
     } finally {
       setIsSubmitting(false);
     }
@@ -269,21 +305,41 @@ export const FindOriginalReturnScreen: React.FC = () => {
           getBottomBarInsetsStyle(insets.bottom),
         ]}
       >
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={foundReturn ? handleContinue : handleFindReturn}
-          style={styles.ctaButton}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <Text style={styles.ctaButtonText}>{params.isEditing === "true" ? "Update and Continue" : "Continue"}</Text>
-              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-            </>
-          )}
-        </TouchableOpacity>
+        {params.isEditing === "true" ? (
+          /* Separate Button 1: Update & Continue (PUT Method) */
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleUpdateAndContinue}
+            style={styles.ctaButton}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.ctaButtonText}>Update & Continue</Text>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              </>
+            )}
+          </TouchableOpacity>
+        ) : (
+          /* Separate Button 2: Continue (POST Method) */
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={foundReturn ? handleContinue : handleFindReturn}
+            style={styles.ctaButton}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.ctaButtonText}>Continue</Text>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              </>
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       <UniversalDraftModal

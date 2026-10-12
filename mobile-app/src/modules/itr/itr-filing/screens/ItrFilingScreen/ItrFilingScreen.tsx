@@ -127,53 +127,56 @@ export const ItrFilingScreen: React.FC = () => {
     }
   };
 
+  // Step 1: POST (Create)
   const handleStep1Continue = async () => {
+    if (isSubmitting) return;
     try {
       setIsSubmitting(true);
-      if (maxStepReached >= 3) {
-        if (formData.itrId) {
-          await ItrApiService.updatePersonalInfo(formData.itrId, formData);
-        }
-        setStep(3);
+      if (!formData.itrId) {
+        const response = await ItrApiService.savePersonalInfo(formData);
+        if (response?.itrId) setBackendIds({ itrId: response.itrId });
       } else {
-        if (!formData.itrId) {
-          const response = await ItrApiService.savePersonalInfo(formData);
-          // Assuming backend returns an object containing { itrId: "ITR..." }
-          if (response && response.itrId) {
-            setBackendIds({ itrId: response.itrId });
-          }
-        } else {
+        try {
           await ItrApiService.updatePersonalInfo(formData.itrId, formData);
+        } catch {
+          const response = await ItrApiService.savePersonalInfo(formData);
+          if (response?.itrId) setBackendIds({ itrId: response.itrId });
         }
-        setStep(1);
       }
-    } catch (e) {
-      Alert.alert("Error", "Failed to save personal information to the server.");
+      setStep(1);
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Failed to save personal information to the server.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleStep2Continue = async () => {
+  // Step 1: PUT (Update & Continue from Review)
+  const handleStep1Update = async () => {
+    if (isSubmitting) return;
     try {
       setIsSubmitting(true);
-      if (maxStepReached >= 3) {
-        if (formData.incomeId) {
-          await ItrApiService.updateSalaryIncome(formData.incomeId, formData);
-        }
-        setStep(3);
-      } else {
-        if (formData.itrId && !formData.incomeId) {
-          const response = await ItrApiService.saveSalaryIncome(formData.itrId, formData);
-          // Assuming backend returns { incomeId: "INC..." }
-          if (response && response.incomeId) {
-            setBackendIds({ incomeId: response.incomeId });
-          }
-        } else if (formData.incomeId) {
-          await ItrApiService.updateSalaryIncome(formData.incomeId, formData);
-        }
-        setStep(2);
+      if (formData.itrId) await ItrApiService.updatePersonalInfo(formData.itrId, formData);
+      setStep(3); // Return directly to Review screen
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Failed to update personal information on the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 2: POST (Create)
+  const handleStep2Continue = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      if (formData.itrId && !formData.incomeId) {
+        const response = await ItrApiService.saveSalaryIncome(formData.itrId, formData);
+        if (response?.incomeId) setBackendIds({ incomeId: response.incomeId });
+      } else if (formData.incomeId) {
+        await ItrApiService.updateSalaryIncome(formData.incomeId, formData);
       }
+      setStep(2);
     } catch (e) {
       Alert.alert("Error", "Failed to save income information to the server.");
     } finally {
@@ -181,28 +184,48 @@ export const ItrFilingScreen: React.FC = () => {
     }
   };
 
-  const handleStep3Continue = async () => {
+  // Step 2: PUT (Update & Continue from Review)
+  const handleStep2Update = async () => {
+    if (isSubmitting) return;
     try {
       setIsSubmitting(true);
-      if (maxStepReached >= 3) {
-        if (formData.documentId) {
-          await ItrApiService.updateDocuments(formData.documentId, formData);
-        }
-        setStep(3);
-      } else {
-        if (formData.itrId && !formData.documentId) {
-          const response = await ItrApiService.saveDocuments(formData.itrId, formData);
-          // Assuming backend returns { documentId: "DOC..." }
-          if (response && response.documentId) {
-            setBackendIds({ documentId: response.documentId });
-          }
-        } else if (formData.documentId) {
-          await ItrApiService.updateDocuments(formData.documentId, formData);
-        }
-        setStep(3);
+      if (formData.incomeId) await ItrApiService.updateSalaryIncome(formData.incomeId, formData);
+      setStep(3);
+    } catch (e) {
+      Alert.alert("Error", "Failed to update income information on the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 3: POST (Create)
+  const handleStep3Continue = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      if (formData.itrId && !formData.documentId) {
+        const response = await ItrApiService.saveDocuments(formData.itrId, formData);
+        if (response?.documentId) setBackendIds({ documentId: response.documentId });
+      } else if (formData.documentId) {
+        await ItrApiService.updateDocuments(formData.documentId, formData);
       }
+      setStep(3);
     } catch (e) {
       Alert.alert("Error", "Failed to save document information to the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 3: PUT (Update & Continue from Review)
+  const handleStep3Update = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      if (formData.documentId) await ItrApiService.updateDocuments(formData.documentId, formData);
+      setStep(3);
+    } catch (e) {
+      Alert.alert("Error", "Failed to update documents on the server.");
     } finally {
       setIsSubmitting(false);
     }
@@ -383,10 +406,9 @@ export const ItrFilingScreen: React.FC = () => {
         currentStep={currentStep}
         totalSteps={4}
         stepTitle={formData.determinedForm.form}
+        hideBackButton={maxStepReached >= 3 && currentStep < 3}
         onBack={handleBack}
-        onSettings={() =>
-          Alert.alert("TaxEdge Support", "Need help with your ITR? Contact support@taxedge.in")
-        }
+        onSettings={() => Alert.alert("TaxEdge Support", "Need help with your ITR? Contact support@taxedge.in")}
         onSaveDraft={openDraftModal}
       />
 
@@ -401,7 +423,9 @@ export const ItrFilingScreen: React.FC = () => {
       >
         {/* Step 1: Personal Information, AY & Bank (Pre-filled from DB/GST) */}
         {currentStep === 0 && (
-          <Step1PersonalInfo isEditing={maxStepReached >= 3}
+          <Step1PersonalInfo
+            isLoading={isSubmitting}
+            isEditing={maxStepReached >= 3}
             personalInfo={formData.personalInfo}
             onUpdatePersonalInfo={setPersonalInfo}
             bankDetails={formData.bankDetails}
@@ -412,12 +436,15 @@ export const ItrFilingScreen: React.FC = () => {
             onUpdatePriorItrNotice={setPriorItrNotice}
             onImportPriorItrData={importPriorItrData}
             onContinue={handleStep1Continue}
+            onUpdateAndContinue={handleStep1Update}
           />
         )}
 
         {/* Step 2: Income Sources & Smart ITR Form Determination */}
         {currentStep === 1 && (
-          <Step2IncomeSources isEditing={maxStepReached >= 3}
+          <Step2IncomeSources
+            isLoading={isSubmitting}
+            isEditing={maxStepReached >= 3}
             sources={formData.incomeSources}
             determinedForm={formData.determinedForm}
             gstReconciliation={formData.gstReconciliation}
@@ -429,15 +456,19 @@ export const ItrFilingScreen: React.FC = () => {
             onUpdateCapitalGains={setIncomeCapitalGains}
             onUpdateOtherSources={setIncomeOtherSources}
             onContinue={handleStep2Continue}
+            onUpdateAndContinue={handleStep2Update}
           />
         )}
 
         {/* Step 3: Dynamic Document Checklist & Upload */}
         {currentStep === 2 && (
-          <Step4DocumentChecklist isEditing={maxStepReached >= 3}
+          <Step4DocumentChecklist
+            isLoading={isSubmitting}
+            isEditing={maxStepReached >= 3}
             documents={formData.documents}
             onUpdateDocument={updateDocument}
             onContinue={handleStep3Continue}
+            onUpdateAndContinue={handleStep3Update}
           />
         )}
 

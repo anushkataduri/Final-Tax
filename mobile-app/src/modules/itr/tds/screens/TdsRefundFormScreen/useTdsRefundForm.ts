@@ -17,30 +17,11 @@ import {
   validateCustomerIncomeForm,
   CustomerFormErrors,
 } from "../../validation/tdsCustomerSchema";
-import {
-  tdsDraftService,
-  INITIAL_TDS_FORM_DATA,
-  getTdsCustId,
-} from "../../services/tdsDraftService";
+import { tdsDraftService, INITIAL_TDS_FORM_DATA, getTdsCustId } from "../../services/tdsDraftService";
 import { tdsApiService } from "../../services/tdsApiService";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
-import { ApiError } from "@/core/api/apiError";
-import { UpdateBankField, UpdateIncomeField } from "./TdsRefundFormSections.types";
 import { useTdsProfileSync } from "./useTdsProfileSync";
-
-const describeSaveError = (err: unknown): string => {
-  if (err instanceof ApiError) {
-    if (err.code === "NETWORK_ERROR") return err.message;
-    if (err.statusCode === 401) {
-      return "Your session has expired. Please log in again and retry.";
-    }
-    if (err.statusCode === 403) {
-      return `${err.message}\n\nThe server refused this request. Please log in again; if it persists, the TDS service may not be available on this server.`;
-    }
-    return err.message;
-  }
-  return (err as any)?.message || "Failed to save your TDS details. Please try again.";
-};
+import { describeSaveError } from "./tdsFormHelpers";
 
 export const useTdsRefundForm = () => {
   const router = useRouter();
@@ -61,6 +42,7 @@ export const useTdsRefundForm = () => {
   const initialSnapshotRef = useRef<string | null>(null);
   const [hasUserEdited, setHasUserEdited] = useState(false);
   const isSavingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const documentsRef = useRef<any[]>([]);
 
@@ -80,8 +62,6 @@ export const useTdsRefundForm = () => {
     saveDestination: "/service/itr",
     discardDestination: "/service/itr",
   });
-
-
 
   useEffect(() => {
     async function loadData() {
@@ -368,13 +348,11 @@ export const useTdsRefundForm = () => {
       }
       return;
     }
-
     if (isSavingRef.current) return;
     isSavingRef.current = true;
-
+    setIsSaving(true);
     await tdsDraftService.saveFormDraft(formData);
     await tdsDraftService.saveDocumentsDraft(activeDocs);
-
     try {
       const custId = getTdsCustId(formData.personal.mobileNumber);
       const draftAppId = await tdsDraftService.getApplicationId();
@@ -436,7 +414,6 @@ export const useTdsRefundForm = () => {
           targetId,
         );
       }
-
       await tdsDraftService.saveApplicationId(savedTdsId || targetId || "");
     } catch (err) {
       console.error("[TDS Screen] Backend update/save failed:", err);
@@ -444,17 +421,13 @@ export const useTdsRefundForm = () => {
       return;
     } finally {
       isSavingRef.current = false;
+      setIsSaving(false);
     }
-
     draftGuard.markSubmitted();
-    
-      if (useTdsProgressStore.getState().maxStepReached >= 3) {
-        router.push("/service/tds-estimate" as any);
-      } else {
-        useTdsProgressStore.getState().setMaxStepReached(3); // Setting to 3 to simulate passing documents
-        router.push("/service/tds-estimate" as any);
-      }
-
+    if (useTdsProgressStore.getState().maxStepReached < 3) {
+      useTdsProgressStore.getState().setMaxStepReached(3);
+    }
+    router.push("/service/tds-estimate" as any);
   };
 
   const [documents, setDocuments] = useState<any[]>([]);
@@ -515,12 +488,11 @@ export const useTdsRefundForm = () => {
     updateIncome,
     handleIfscChange,
     handleContinue,
+    isSaving,
     draftGuard,
     documents,
     handleUploadSuccess,
     handleUploadError,
     handleRemove,
   };
-
 };
-
