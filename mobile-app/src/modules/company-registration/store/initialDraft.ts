@@ -86,3 +86,22 @@ export const initialDraft: CompanyRegistrationDraft = {
   status: 'Draft',
   createdAt: '',
 };
+
+export const getInitialDraft = (): CompanyRegistrationDraft => ({
+  ...initialDraft,
+  company: { ...initialDraft.company },
+  directors: [],
+  opcNominee: {
+    name: '',
+    pan: '',
+    aadhaar: '',
+    email: '',
+    phone: '',
+    relationship: '',
+  },
+  partners: [],
+  documents: initialDraft.documents.map((d) => ({ ...d })),
+  linkedRegistrations: { ...initialDraft.linkedRegistrations },
+  feeBreakdown: { ...initialDraft.feeBreakdown },
+  trackingStages: initialDraft.trackingStages.map((s) => ({ ...s })),
+});

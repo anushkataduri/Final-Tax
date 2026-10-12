@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
 import type { LinkedRegistrations } from '../../types/registration.types';
+import { CompanySectionCard } from '../CompanySectionCard/CompanySectionCard';
+import { validateAccountNumber } from '../../validation/companySchema';
 import { styles } from './StepLinkedRegistrations.styles';
 
 const LINKED_ITEMS: { key: keyof LinkedRegistrations; title: string; desc: string }[] = [
@@ -21,11 +23,17 @@ export const StepLinkedRegistrations: React.FC = () => {
   const toggleLinkedRegistration = useCompanyRegistrationStore((state) => state.toggleLinkedRegistration);
   const updateCompanyDetails = useCompanyRegistrationStore((state) => state.updateCompanyDetails);
   const fieldErrors = useCompanyRegistrationStore((state) => state.fieldErrors);
+  const [accountNumberError, setAccountNumberError] = useState<string | null>(null);
+
+  const displayAccountError = accountNumberError !== null ? accountNumberError : fieldErrors.accountNumber;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Linked Mandatory & Optional Registrations</Text>
-      <Text style={styles.subheading}>Select government Registrations bundled directly with SPICe+ AGILE-PRO-S filing.</Text>
+      <CompanySectionCard
+        iconName="link-outline"
+        title="Linked Registrations (AGILE-PRO-S)"
+        subtitle="Select statutory registrations bundled with SPICe+ filing"
+      >
 
       {LINKED_ITEMS.map((item) => {
         const isChecked = linkedRegistrations[item.key];
@@ -50,24 +58,30 @@ export const StepLinkedRegistrations: React.FC = () => {
               <View style={styles.accountNumberBox}>
                 <Text style={styles.label}>Account Number *</Text>
                 <TextInput
-                  style={[styles.input, !!fieldErrors.accountNumber && styles.inputError]}
+                  style={[styles.input, !!displayAccountError && styles.inputError]}
                   value={company.accountNumber || ''}
                   onChangeText={(val) => {
-                    const cleaned = val.replace(/\D/g, '');
-                    updateCompanyDetails({ accountNumber: cleaned });
+                    updateCompanyDetails({ accountNumber: val });
+                    const err = validateAccountNumber(val);
+                    setAccountNumberError(err);
+                  }}
+                  onBlur={() => {
+                    const err = validateAccountNumber(company.accountNumber);
+                    setAccountNumberError(err);
                   }}
                   placeholder="Enter Bank Account Number"
                   keyboardType="numeric"
                   placeholderTextColor="#94A3B8"
                 />
-                {!!fieldErrors.accountNumber && (
-                  <Text style={styles.errorText}>{fieldErrors.accountNumber}</Text>
+                {!!displayAccountError && (
+                  <Text style={styles.errorText}>{displayAccountError}</Text>
                 )}
               </View>
             )}
           </React.Fragment>
         );
       })}
+      </CompanySectionCard>
     </View>
   );
 };

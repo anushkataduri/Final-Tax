@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput } from 'react-native';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
+import { validateBusinessActivity, validateNicCode } from '../../validation/companySchema';
 import { CompanySectionCard } from '../CompanySectionCard/CompanySectionCard';
 import { styles } from './StepBusinessActivity.styles';
 
@@ -8,9 +9,66 @@ export const StepBusinessActivity: React.FC = () => {
   const company = useCompanyRegistrationStore((state) => state.draft.company);
   const updateDetails = useCompanyRegistrationStore((state) => state.updateCompanyDetails);
   const fieldErrors = useCompanyRegistrationStore((state) => state.fieldErrors);
+  const setFieldErrors = useCompanyRegistrationStore((state) => state.setFieldErrors);
+
+  const clearFieldError = (key: string) => {
+    if (fieldErrors[key]) {
+      const next = { ...fieldErrors };
+      delete next[key];
+      setFieldErrors(next);
+    }
+  };
+
+  const handlePrimaryChange = (val: string) => {
+    updateDetails({ primaryActivity: val });
+    const err = validateBusinessActivity(val, true);
+    if (!err) {
+      clearFieldError('primaryActivity');
+    }
+  };
+
+  const handlePrimaryBlur = () => {
+    const err = validateBusinessActivity(company.primaryActivity, true);
+    if (err) {
+      setFieldErrors({ ...fieldErrors, primaryActivity: err });
+    }
+  };
+
+  const handleNicChange = (val: string) => {
+    updateDetails({ nicCode: val });
+    const err = validateNicCode(val);
+    if (!err) {
+      clearFieldError('nicCode');
+    }
+  };
+
+  const handleNicBlur = () => {
+    const err = validateNicCode(company.nicCode);
+    if (err) {
+      setFieldErrors({ ...fieldErrors, nicCode: err });
+    }
+  };
+
+  const handleSecondaryChange = (val: string) => {
+    updateDetails({ secondaryActivity: val });
+    const err = validateBusinessActivity(val, false);
+    if (!err) {
+      clearFieldError('secondaryActivity');
+    } else {
+      setFieldErrors({ ...fieldErrors, secondaryActivity: err });
+    }
+  };
+
+  const handleSecondaryBlur = () => {
+    const err = validateBusinessActivity(company.secondaryActivity, false);
+    if (err) {
+      setFieldErrors({ ...fieldErrors, secondaryActivity: err });
+    }
+  };
 
   return (
     <CompanySectionCard
+      iconName="briefcase-outline"
       title="Business Activity / NIC"
       description="Define the main objective and National Industrial Classification code of your company."
     >
@@ -20,7 +78,8 @@ export const StepBusinessActivity: React.FC = () => {
         <TextInput
           style={[styles.input, !!fieldErrors.primaryActivity && styles.inputError]}
           value={company.primaryActivity || ''}
-          onChangeText={(val) => updateDetails({ primaryActivity: val })}
+          onChangeText={handlePrimaryChange}
+          onBlur={handlePrimaryBlur}
           placeholder="Enter Primary Business Activity"
           placeholderTextColor="#94A3B8"
         />
@@ -37,7 +96,8 @@ export const StepBusinessActivity: React.FC = () => {
         <TextInput
           style={[styles.input, !!fieldErrors.nicCode && styles.inputError]}
           value={company.nicCode || ''}
-          onChangeText={(val) => updateDetails({ nicCode: val })}
+          onChangeText={handleNicChange}
+          onBlur={handleNicBlur}
           placeholder="Enter 5-digit NIC Code"
           keyboardType="numeric"
           maxLength={5}
@@ -54,13 +114,17 @@ export const StepBusinessActivity: React.FC = () => {
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Secondary Business Activity (Optional)</Text>
         <TextInput
-          style={[styles.input, styles.multilineInput]}
+          style={[styles.input, styles.multilineInput, !!fieldErrors.secondaryActivity && styles.inputError]}
           value={company.secondaryActivity || ''}
-          onChangeText={(val) => updateDetails({ secondaryActivity: val })}
+          onChangeText={handleSecondaryChange}
+          onBlur={handleSecondaryBlur}
           placeholder="Enter Secondary Business Activity"
           multiline
           placeholderTextColor="#94A3B8"
         />
+        {!!fieldErrors.secondaryActivity && (
+          <Text style={styles.errorText}>{fieldErrors.secondaryActivity}</Text>
+        )}
       </View>
     </CompanySectionCard>
   );

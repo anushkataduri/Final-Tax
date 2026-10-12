@@ -3,6 +3,7 @@ import { View, Text, ScrollView } from 'react-native';
 import { AppHeader } from '../../../../shared/components/AppHeader';
 import { Button } from '../../../../shared/components/Button/Button';
 import { formatCurrencyINR } from '../../../../shared/formatters/currencyFormatter';
+import { CompanySectionCard } from '../../components/CompanySectionCard/CompanySectionCard';
 import { useCompanyRegistration } from '../../hooks/useCompanyRegistration';
 import { useTheme } from '../../../../hooks/use-theme';
 import { styles, getThemedStyles } from './PaymentScreen.styles';
@@ -16,11 +17,13 @@ export const PaymentScreen: React.FC = () => {
     <View style={[styles.container, themed.container]}>
       <AppHeader title="Incorporation Fee Payment" showBack />
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={[styles.card, themed.card]}>
-          <Text style={[styles.title, themed.title]}>Order Summary</Text>
+        <CompanySectionCard
+          iconName="card-outline"
+          title="Order Summary"
+          subtitle="Includes MCA filing fees, Name Approval, DIN & DSC"
+        >
           <Text style={[styles.amount, themed.amount]}>{formatCurrencyINR(draft.totalFee || 4999)}</Text>
-          <Text style={[styles.note, themed.note]}>Includes MCA filing fees, Name Approval, DIN & DSC.</Text>
-        </View>
+        </CompanySectionCard>
         <Button title="Proceed to Pay" onPress={() => {}} variant="primary" />
       </ScrollView>
     </View>

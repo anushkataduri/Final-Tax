@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { UniversalDatePicker } from '@/shared/components/UniversalDatePicker';
 import type { DirectorInfo } from '../../types/director.types';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
 import {
-  formatDobInput,
+  validatePersonName,
+  validateDesignation,
   validateDirectorPan,
   validateDirectorEmail,
   validateDirectorMobile,
   validateDirectorDob,
+  validateDirectorDin,
+  directorSchema,
 } from '../../validation/directorSchema';
 import { styles } from './StepPromoters.styles';
 
@@ -37,58 +41,79 @@ export const PromoterDirectorCard: React.FC<PromoterDirectorCardProps> = ({
   const setFieldErrors = useCompanyRegistrationStore((state) => state.setFieldErrors);
   const [formData, setFormData] = useState<DirectorInfo>(director);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setFormData(director); }, [director]);
 
-  const getErr = (fieldKey: string) => fieldErrors[`dir_${director.id}_${fieldKey}`];
-
-  const clearFieldError = (fieldKey: string) => {
-    const fullKey = `dir_${director.id}_${fieldKey}`;
-    if (fieldErrors[fullKey]) {
+  const getErr = (k: string) => fieldErrors[`dir_${director.id}_${k}`];
+  const setSingleFieldError = (k: string, msg: string) => setFieldErrors({ ...fieldErrors, [`dir_${director.id}_${k}`]: msg });
+  const clearFieldError = (k: string) => {
+    const full = `dir_${director.id}_${k}`;
+    if (fieldErrors[full]) {
       const next = { ...fieldErrors };
-      delete next[fullKey];
+      delete next[full];
       setFieldErrors(next);
     }
   };
+  const updateField = (fields: Partial<DirectorInfo>) => setFormData((prev) => ({ ...prev, ...fields }));
 
-  const setSingleFieldError = (fieldKey: string, msg: string) => {
-    const fullKey = `dir_${director.id}_${fieldKey}`;
-    setFieldErrors({ ...fieldErrors, [fullKey]: msg });
+  const handleFieldChange = (key: keyof DirectorInfo, val: string, validator?: (v: string) => string | null) => {
+    updateField({ [key]: val });
+    if (validator && !validator(val)) clearFieldError(key as string);
   };
 
-  const updateField = (fields: Partial<DirectorInfo>) => {
-    setFormData((prev) => ({ ...prev, ...fields }));
-  };
-
-  const handlePanChange = (val: string) => {
-    const upper = val.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
-    updateField({ pan: upper });
-    if (!validateDirectorPan(upper)) clearFieldError('pan');
-  };
-
-  const handleEmailChange = (val: string) => {
-    updateField({ email: val });
-    if (!validateDirectorEmail(val)) clearFieldError('email');
-  };
-
-  const handleMobileChange = (val: string) => {
-    const digits = val.replace(/\D/g, '').slice(0, 10);
-    updateField({ phone: digits });
-    if (!validateDirectorMobile(digits)) clearFieldError('phone');
+  const handleFieldBlur = (key: keyof DirectorInfo, validator: (v: string) => string | null) => {
+    const raw = (formData[key] as string) || '';
+    const trimmed = raw.trim();
+    if (trimmed !== raw) updateField({ [key]: trimmed });
+    const err = validator(trimmed);
+    if (err) setSingleFieldError(key as string, err);
   };
 
   const handleDobChange = (val: string) => {
-    const formatted = formatDobInput(val);
-    updateField({ dob: formatted });
-    if (!validateDirectorDob(formatted)) clearFieldError('dob');
+    updateField({ dob: val });
+    if (!validateDirectorDob(val)) clearFieldError('dob');
+  };
+
+  const handleDobBlur = () => {
+    const err = validateDirectorDob((formData.dob || '').trim());
+    if (err) setSingleFieldError('dob', err);
+  };
+
+  const handleSavePress = () => {
+    const trimmedData: DirectorInfo = {
+      ...formData,
+      name: (formData.name || '').trim(),
+      pan: (formData.pan || '').trim().toUpperCase(),
+      email: (formData.email || '').trim(),
+      phone: (formData.phone || '').trim(),
+      dob: (formData.dob || '').trim(),
+      designation: (formData.designation || '').trim(),
+      din: (formData.din || '').trim(),
+      hasDin: !!formData.din?.trim(),
+    };
+    setFormData(trimmedData);
+
+    const { valid, fieldErrors: errs } = directorSchema.validateDirector(trimmedData, index);
+    if (!valid) {
+      setFieldErrors({ ...fieldErrors, ...errs });
+      return;
+    }
+    const nextErrors = { ...fieldErrors };
+    const prefix = `dir_${director.id}_`;
+    Object.keys(nextErrors).forEach((k) => { if (k.startsWith(prefix)) delete nextErrors[k]; });
+    setFieldErrors(nextErrors);
+    onSave(trimmedData);
   };
 
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <TouchableOpacity style={styles.cardHeaderLeft} onPress={onToggleExpand} activeOpacity={0.8}>
-          <View style={styles.avatarBox}><Text style={styles.avatarText}>#{index + 1}</Text></View>
+          <View style={styles.avatarBox}>
+            <Ionicons name="person-outline" size={18} color="#FF8A00" />
+          </View>
           <View style={styles.cardTitleGroup}>
-            <Text style={styles.cardTitle}>👤 Director #{index + 1}</Text>
+            <Text style={styles.cardTitle}>Director #{index + 1}</Text>
             <Text style={styles.cardSubtitle} numberOfLines={1}>{director.name || 'Enter Director Details'}</Text>
           </View>
         </TouchableOpacity>
@@ -126,9 +151,10 @@ export const PromoterDirectorCard: React.FC<PromoterDirectorCardProps> = ({
               <TextInput
                 style={[styles.input, !!getErr('name') && styles.inputError]}
                 value={formData.name}
-                onChangeText={(val) => { updateField({ name: val }); if (val.trim()) clearFieldError('name'); }}
-                onBlur={() => { if (!formData.name?.trim()) setSingleFieldError('name', 'Full Name as in PAN is required.'); }}
+                onChangeText={(v) => handleFieldChange('name', v, (val) => validatePersonName(val, true, 'Full name'))}
+                onBlur={() => handleFieldBlur('name', (val) => validatePersonName(val, true, 'Full name'))}
                 placeholder="Full Legal Name"
+                maxLength={100}
                 placeholderTextColor="#94A3B8"
               />
               {!!getErr('name') && <Text style={styles.errorText}>{getErr('name')}</Text>}
@@ -139,11 +165,8 @@ export const PromoterDirectorCard: React.FC<PromoterDirectorCardProps> = ({
               <TextInput
                 style={[styles.input, !!getErr('pan') && styles.inputError]}
                 value={formData.pan}
-                onChangeText={handlePanChange}
-                onBlur={() => {
-                  const err = validateDirectorPan(formData.pan);
-                  if (err) setSingleFieldError('pan', err);
-                }}
+                onChangeText={(v) => handleFieldChange('pan', v.toUpperCase(), validateDirectorPan)}
+                onBlur={() => handleFieldBlur('pan', validateDirectorPan)}
                 placeholder="10-character PAN"
                 autoCapitalize="characters"
                 maxLength={10}
@@ -155,19 +178,28 @@ export const PromoterDirectorCard: React.FC<PromoterDirectorCardProps> = ({
 
           <View style={styles.row}>
             <View style={[styles.fieldGroup, styles.halfField]}>
-              <Text style={styles.label}>Date of Birth *</Text>
-              <TextInput
-                style={[styles.input, !!getErr('dob') && styles.inputError]}
+              <UniversalDatePicker
+                label="Date of Birth"
+                required
                 value={formData.dob || ''}
-                onChangeText={handleDobChange}
-                onBlur={() => {
-                  const err = validateDirectorDob(formData.dob);
-                  if (err) setSingleFieldError('dob', err);
-                }}
+                onChange={handleDobChange}
+                onBlur={handleDobBlur}
+                error={getErr('dob')}
+                valueFormat="DD-MM-YYYY"
                 placeholder="DD-MM-YYYY"
-                keyboardType="numeric"
-                maxLength={10}
-                placeholderTextColor="#94A3B8"
+                maximumDate={new Date()}
+                initialPickerDate={new Date(1990, 0, 1)}
+                allowManualEntry
+                iconColor="#FF8A00"
+                showErrorText={false}
+                containerStyle={{ marginBottom: 0 }}
+                inputStyle={{
+                  height: 42,
+                  borderRadius: 8,
+                  borderColor: getErr('dob') ? '#EF4444' : '#E7EDF2',
+                  backgroundColor: '#FFFFFF',
+                  paddingHorizontal: 12,
+                }}
               />
               {!!getErr('dob') && <Text style={styles.errorText}>{getErr('dob')}</Text>}
             </View>
@@ -177,9 +209,10 @@ export const PromoterDirectorCard: React.FC<PromoterDirectorCardProps> = ({
               <TextInput
                 style={[styles.input, !!getErr('designation') && styles.inputError]}
                 value={formData.designation || ''}
-                onChangeText={(val) => { updateField({ designation: val }); if (val.trim()) clearFieldError('designation'); }}
-                onBlur={() => { if (!formData.designation?.trim()) setSingleFieldError('designation', 'Designation is required.'); }}
+                onChangeText={(v) => handleFieldChange('designation', v, (val) => validateDesignation(val, true))}
+                onBlur={() => handleFieldBlur('designation', (val) => validateDesignation(val, true))}
                 placeholder="e.g. Director"
+                maxLength={50}
                 placeholderTextColor="#94A3B8"
               />
               {!!getErr('designation') && <Text style={styles.errorText}>{getErr('designation')}</Text>}
@@ -192,11 +225,8 @@ export const PromoterDirectorCard: React.FC<PromoterDirectorCardProps> = ({
               <TextInput
                 style={[styles.input, !!getErr('email') && styles.inputError]}
                 value={formData.email || ''}
-                onChangeText={handleEmailChange}
-                onBlur={() => {
-                  const err = validateDirectorEmail(formData.email);
-                  if (err) setSingleFieldError('email', err);
-                }}
+                onChangeText={(v) => handleFieldChange('email', v, validateDirectorEmail)}
+                onBlur={() => handleFieldBlur('email', validateDirectorEmail)}
                 placeholder="Enter Email Address"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -211,11 +241,8 @@ export const PromoterDirectorCard: React.FC<PromoterDirectorCardProps> = ({
               <TextInput
                 style={[styles.input, !!getErr('phone') && styles.inputError]}
                 value={formData.phone || ''}
-                onChangeText={handleMobileChange}
-                onBlur={() => {
-                  const err = validateDirectorMobile(formData.phone);
-                  if (err) setSingleFieldError('phone', err);
-                }}
+                onChangeText={(v) => handleFieldChange('phone', v, validateDirectorMobile)}
+                onBlur={() => handleFieldBlur('phone', validateDirectorMobile)}
                 placeholder="Enter 10-digit Mobile"
                 keyboardType="phone-pad"
                 maxLength={10}
@@ -230,9 +257,16 @@ export const PromoterDirectorCard: React.FC<PromoterDirectorCardProps> = ({
             <TextInput
               style={[styles.input, !!getErr('din') && styles.inputError]}
               value={formData.din || ''}
-              onChangeText={(val) => {
-                const digits = val.replace(/\D/g, '').slice(0, 8);
-                updateField({ din: digits, hasDin: !!digits });
+              onChangeText={(v) => {
+                updateField({ din: v, hasDin: !!v.trim() });
+                const err = validateDirectorDin(v, !!v.trim());
+                if (!err) clearFieldError('din');
+              }}
+              onBlur={() => {
+                const trimmed = (formData.din || '').trim();
+                updateField({ din: trimmed, hasDin: !!trimmed });
+                const err = validateDirectorDin(trimmed, !!trimmed);
+                if (err) setSingleFieldError('din', err);
               }}
               placeholder="8-digit DIN (Optional)"
               keyboardType="numeric"
@@ -246,7 +280,7 @@ export const PromoterDirectorCard: React.FC<PromoterDirectorCardProps> = ({
             <TouchableOpacity style={styles.cancelFormBtn} onPress={onToggleExpand} activeOpacity={0.7}>
               <Text style={styles.cancelFormText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveFormBtn} onPress={() => onSave(formData)} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.saveFormBtn} onPress={handleSavePress} activeOpacity={0.7}>
               <Ionicons name="checkmark-sharp" size={16} color="#FFFFFF" />
               <Text style={styles.saveFormText}>Save Changes</Text>
             </TouchableOpacity>

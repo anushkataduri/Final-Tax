@@ -1,26 +1,46 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 
 export const styles = StyleSheet.create({
-  gradientWrapper: {
-    borderRadius: 12,
-    padding: 1.5, // Thin gradient border width
-    marginBottom: 16,
-  },
-  innerCard: {
+  sectionCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10.5, // Slightly smaller than wrapper to fit perfectly
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     padding: 16,
+    marginBottom: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  title: {
-    fontSize: 16,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    gap: 10,
+  },
+  sectionIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#FFF7ED',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionTitleWrap: {
+    flex: 1,
+  },
+  sectionMainTitle: {
+    fontSize: 15,
     fontWeight: '700',
     color: '#083B75',
-    marginBottom: 4,
+    fontFamily: Platform.select({ ios: 'System', android: 'sans-serif-medium' }),
   },
-  description: {
-    fontSize: 13,
+  sectionSubtitle: {
+    fontSize: 12,
     color: '#64748B',
-    lineHeight: 18,
-    marginBottom: 16,
+    marginTop: 1,
+    lineHeight: 16,
   },
 });

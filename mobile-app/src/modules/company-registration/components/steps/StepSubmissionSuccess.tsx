@@ -4,13 +4,26 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
+import { CompanySectionCard } from '../CompanySectionCard/CompanySectionCard';
 import { styles } from './StepSubmissionSuccess.styles';
 
 export const StepSubmissionSuccess: React.FC = () => {
   const router = useRouter();
   const draft = useCompanyRegistrationStore((state) => state.draft);
 
+  const resetRegistration = useCompanyRegistrationStore((state) => state.resetRegistration);
+
   const appliedDateStr = draft.createdAt || new Date().toISOString().split('T')[0];
+
+  const handleGoToDashboard = () => {
+    resetRegistration();
+    router.replace('/(main)/home');
+  };
+
+  const handleTrackApplication = () => {
+    resetRegistration();
+    router.replace('/(main)/applications');
+  };
 
   return (
     <View style={styles.container}>
@@ -23,7 +36,12 @@ export const StepSubmissionSuccess: React.FC = () => {
       </Text>
 
       {/* Confirmation Summary Card */}
-      <View style={styles.card}>
+      <CompanySectionCard
+        iconName="receipt-outline"
+        title="Application Summary"
+        subtitle="Incorporation filing details"
+        style={{ width: '100%', marginBottom: 20 }}
+      >
         <View style={styles.row}>
           <Text style={styles.label}>Application Reference Number</Text>
           <Text style={styles.value}>{draft.id || 'N/A'}</Text>
@@ -44,12 +62,12 @@ export const StepSubmissionSuccess: React.FC = () => {
           <Text style={styles.label}>Current Status</Text>
           <Text style={[styles.value, { color: '#166534' }]}>{draft.status || 'Submitted'}</Text>
         </View>
-      </View>
+      </CompanySectionCard>
 
       {/* Action Buttons */}
       <TouchableOpacity
         style={styles.btnPrimaryContainer}
-        onPress={() => router.replace('/(main)/home')}
+        onPress={handleGoToDashboard}
         activeOpacity={0.8}
       >
         <LinearGradient
@@ -65,7 +83,7 @@ export const StepSubmissionSuccess: React.FC = () => {
 
       <TouchableOpacity
         style={styles.btnSecondary}
-        onPress={() => router.replace('/(main)/applications')}
+        onPress={handleTrackApplication}
         activeOpacity={0.8}
       >
         <Ionicons name="folder-open-outline" size={20} color="#083B75" />

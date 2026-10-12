@@ -1,7 +1,14 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
-import { validatePinCode, validateCompanyEmail, validateCompanyMobile } from '../../validation/companySchema';
+import {
+  validatePinCode,
+  validateCompanyEmail,
+  validateCompanyMobile,
+  validateAddressLine,
+  validateLocationName,
+} from '../../validation/companySchema';
+import { pinCodeService } from '@/shared/services/lookup/pinCodeService';
 import { CompanySectionCard } from '../CompanySectionCard/CompanySectionCard';
 import { styles } from './StepRegisteredOffice.styles';
 
@@ -24,34 +31,68 @@ export const StepRegisteredOffice: React.FC = () => {
     updateDetails({ premisesOwnership: status });
   };
 
-  const handlePincodeChange = (val: string) => {
-    const digits = val.replace(/[^0-9]/g, '').slice(0, 6);
-    updateDetails({ registeredPincode: digits });
-    if (!validatePinCode(digits)) clearError('registeredPincode');
+  const handleTextChange = (
+    key: keyof typeof company,
+    val: string,
+    validator?: (v: string) => string | null
+  ) => {
+    updateDetails({ [key]: val });
+    if (validator && !validator(val)) clearError(key);
   };
 
-  const handleEmailChange = (val: string) => {
-    updateDetails({ companyEmail: val });
-    if (!validateCompanyEmail(val)) clearError('companyEmail');
+  const handleTextBlur = (
+    key: keyof typeof company,
+    validator: (v: string) => string | null
+  ) => {
+    const raw = (company[key] as string) || '';
+    const trimmed = raw.trim();
+    if (trimmed !== raw) updateDetails({ [key]: trimmed });
+    const err = validator(trimmed);
+    if (err) setFieldErrors({ ...fieldErrors, [key]: err });
   };
 
-  const handleMobileChange = (val: string) => {
-    const digits = val.replace(/[^0-9]/g, '').slice(0, 10);
-    updateDetails({ companyMobile: digits });
-    if (!validateCompanyMobile(digits)) clearError('companyMobile');
+  const handlePincodeChange = async (val: string) => {
+    updateDetails({ registeredPincode: val });
+    const err = validatePinCode(val);
+    if (!err) {
+      clearError('registeredPincode');
+      if (val.trim().length === 6) {
+        try {
+          const details = await pinCodeService.lookup(val.trim());
+          if (details) {
+            updateDetails({
+              registeredCity: company.registeredCity || details.city,
+              registeredDistrict: company.registeredDistrict || details.district,
+              registeredState: company.registeredState || details.state,
+            });
+            if (details.city) clearError('registeredCity');
+            if (details.district) clearError('registeredDistrict');
+            if (details.state) clearError('registeredState');
+          }
+        } catch {
+          // Format validation authoritative; lookup advisory
+        }
+      }
+    } else if (val.trim()) {
+      setFieldErrors({ ...fieldErrors, registeredPincode: err });
+    }
   };
 
   return (
     <View style={styles.container}>
       {/* CARD A — BUILDING / ADDRESS */}
-      <CompanySectionCard title="Building / Address" description="Provide official communication address for MCA, ROC, and statutory authorities.">
+      <CompanySectionCard
+        iconName="location-outline"
+        title="Building / Address"
+        description="Provide official communication address for MCA, ROC, and statutory authorities."
+      >
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Building / Premises Address Line *</Text>
           <TextInput
             style={[styles.input, !!fieldErrors.registeredAddressLine && styles.inputError]}
             value={company.registeredAddressLine || ''}
-            onChangeText={(val) => { updateDetails({ registeredAddressLine: val }); if (val.trim()) clearError('registeredAddressLine'); }}
-            onBlur={() => { if (!company.registeredAddressLine?.trim()) setFieldErrors({ ...fieldErrors, registeredAddressLine: 'Address line is required.' }); }}
+            onChangeText={(v) => handleTextChange('registeredAddressLine', v, validateAddressLine)}
+            onBlur={() => handleTextBlur('registeredAddressLine', validateAddressLine)}
             placeholder="Enter registered address"
             placeholderTextColor="#94A3B8"
           />
@@ -64,8 +105,8 @@ export const StepRegisteredOffice: React.FC = () => {
             <TextInput
               style={[styles.input, !!fieldErrors.registeredCity && styles.inputError]}
               value={company.registeredCity || ''}
-              onChangeText={(val) => { updateDetails({ registeredCity: val }); if (val.trim()) clearError('registeredCity'); }}
-              onBlur={() => { if (!company.registeredCity?.trim()) setFieldErrors({ ...fieldErrors, registeredCity: 'City is required.' }); }}
+              onChangeText={(v) => handleTextChange('registeredCity', v, (val) => validateLocationName(val, 'City'))}
+              onBlur={() => handleTextBlur('registeredCity', (val) => validateLocationName(val, 'City'))}
               placeholder="Enter city"
               placeholderTextColor="#94A3B8"
             />
@@ -76,8 +117,8 @@ export const StepRegisteredOffice: React.FC = () => {
             <TextInput
               style={[styles.input, !!fieldErrors.registeredDistrict && styles.inputError]}
               value={company.registeredDistrict || ''}
-              onChangeText={(val) => { updateDetails({ registeredDistrict: val }); if (val.trim()) clearError('registeredDistrict'); }}
-              onBlur={() => { if (!company.registeredDistrict?.trim()) setFieldErrors({ ...fieldErrors, registeredDistrict: 'District is required.' }); }}
+              onChangeText={(v) => handleTextChange('registeredDistrict', v, (val) => validateLocationName(val, 'District'))}
+              onBlur={() => handleTextBlur('registeredDistrict', (val) => validateLocationName(val, 'District'))}
               placeholder="Enter district"
               placeholderTextColor="#94A3B8"
             />
@@ -91,8 +132,8 @@ export const StepRegisteredOffice: React.FC = () => {
             <TextInput
               style={[styles.input, !!fieldErrors.registeredState && styles.inputError]}
               value={company.registeredState || ''}
-              onChangeText={(val) => { updateDetails({ registeredState: val }); if (val.trim()) clearError('registeredState'); }}
-              onBlur={() => { if (!company.registeredState?.trim()) setFieldErrors({ ...fieldErrors, registeredState: 'State is required.' }); }}
+              onChangeText={(v) => handleTextChange('registeredState', v, (val) => validateLocationName(val, 'State'))}
+              onBlur={() => handleTextBlur('registeredState', (val) => validateLocationName(val, 'State'))}
               placeholder="Enter state"
               placeholderTextColor="#94A3B8"
             />
@@ -104,10 +145,7 @@ export const StepRegisteredOffice: React.FC = () => {
               style={[styles.input, !!fieldErrors.registeredPincode && styles.inputError]}
               value={company.registeredPincode || ''}
               onChangeText={handlePincodeChange}
-              onBlur={() => {
-                const err = validatePinCode(company.registeredPincode);
-                if (err) setFieldErrors({ ...fieldErrors, registeredPincode: err });
-              }}
+              onBlur={() => handleTextBlur('registeredPincode', validatePinCode)}
               placeholder="Enter 6-digit PIN code"
               keyboardType="numeric"
               maxLength={6}
@@ -119,14 +157,23 @@ export const StepRegisteredOffice: React.FC = () => {
       </CompanySectionCard>
 
       {/* CARD B — PREMISES OWNERSHIP */}
-      <CompanySectionCard title="Premises Ownership">
+      <CompanySectionCard
+        iconName="home-outline"
+        title="Premises Ownership"
+        description="Select premises occupancy status and ownership proof."
+      >
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Premises Ownership Status *</Text>
           <View style={styles.chipRow}>
             {(['Rented', 'Owned', 'Leased'] as const).map((status) => {
               const isSelected = company.premisesOwnership === status;
               return (
-                <TouchableOpacity key={status} style={[styles.chip, isSelected && styles.chipSelected]} onPress={() => handleOwnershipChange(status)} activeOpacity={0.8}>
+                <TouchableOpacity
+                  key={status}
+                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  onPress={() => handleOwnershipChange(status)}
+                  activeOpacity={0.8}
+                >
                   <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>{status}</Text>
                 </TouchableOpacity>
               );
@@ -137,18 +184,19 @@ export const StepRegisteredOffice: React.FC = () => {
       </CompanySectionCard>
 
       {/* CARD C — CONTACT DETAILS */}
-      <CompanySectionCard title="Contact Details">
+      <CompanySectionCard
+        iconName="call-outline"
+        title="Contact Details"
+        description="Official communications email and mobile for MCA & ROC alerts."
+      >
         <View style={styles.row}>
           <View style={[styles.fieldGroup, styles.halfField]}>
             <Text style={styles.label}>Company Email *</Text>
             <TextInput
               style={[styles.input, !!fieldErrors.companyEmail && styles.inputError]}
               value={company.companyEmail || ''}
-              onChangeText={handleEmailChange}
-              onBlur={() => {
-                const err = validateCompanyEmail(company.companyEmail);
-                if (err) setFieldErrors({ ...fieldErrors, companyEmail: err });
-              }}
+              onChangeText={(v) => handleTextChange('companyEmail', v, validateCompanyEmail)}
+              onBlur={() => handleTextBlur('companyEmail', validateCompanyEmail)}
               placeholder="Enter company email"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -162,11 +210,8 @@ export const StepRegisteredOffice: React.FC = () => {
             <TextInput
               style={[styles.input, !!fieldErrors.companyMobile && styles.inputError]}
               value={company.companyMobile || ''}
-              onChangeText={handleMobileChange}
-              onBlur={() => {
-                const err = validateCompanyMobile(company.companyMobile);
-                if (err) setFieldErrors({ ...fieldErrors, companyMobile: err });
-              }}
+              onChangeText={(v) => handleTextChange('companyMobile', v, validateCompanyMobile)}
+              onBlur={() => handleTextBlur('companyMobile', validateCompanyMobile)}
               placeholder="Enter 10-digit mobile"
               keyboardType="phone-pad"
               maxLength={10}

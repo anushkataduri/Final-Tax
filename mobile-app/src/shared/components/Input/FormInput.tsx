@@ -23,6 +23,8 @@ export interface FormInputProps {
   required?: boolean;
   style?: StyleProp<ViewStyle>;
   inputStyle?: StyleProp<TextStyle>;
+  onBlur?: () => void;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }
 
 export function FormInput({
@@ -37,6 +39,8 @@ export function FormInput({
   required = false,
   style,
   inputStyle,
+  onBlur,
+  autoCapitalize,
 }: FormInputProps) {
   const colors = useTheme();
   const [isFocused, setIsFocused] = useState(false);
@@ -54,8 +58,12 @@ export function FormInput({
         keyboardType={keyboardType}
         secureTextEntry={secureTextEntry}
         maxLength={maxLength}
+        autoCapitalize={autoCapitalize}
         onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
+        onBlur={() => {
+          setIsFocused(false);
+          onBlur?.();
+        }}
         style={[
           styles.input,
           {

@@ -1,8 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
 import { CompanySectionCard } from '../CompanySectionCard/CompanySectionCard';
+import {
+  validateCapitalNumeric,
+  EMOJI_REGEX,
+  UNSUPPORTED_CHARS_MSG,
+} from '../../validation/companySchema';
 import { styles } from './StepCapitalShareholding.styles';
 
 export const StepCapitalShareholding: React.FC = () => {
@@ -11,6 +16,14 @@ export const StepCapitalShareholding: React.FC = () => {
   const updateDetails = useCompanyRegistrationStore((state) => state.updateCompanyDetails);
   const updateDirector = useCompanyRegistrationStore((state) => state.updateDirector);
   const fieldErrors = useCompanyRegistrationStore((state) => state.fieldErrors);
+  const setFieldErrors = useCompanyRegistrationStore((state) => state.setFieldErrors);
+
+  const [rawAuthCapital, setRawAuthCapital] = useState<string | undefined>(undefined);
+  const [rawFaceValue, setRawFaceValue] = useState<string | undefined>(undefined);
+  const [rawShares, setRawShares] = useState<Record<string, string>>({});
+
+  const displayAuthCapital = rawAuthCapital !== undefined ? rawAuthCapital : (company.authorizedCapital ? String(company.authorizedCapital) : '');
+  const displayFaceValue = rawFaceValue !== undefined ? rawFaceValue : (company.faceValuePerShare ? String(company.faceValuePerShare) : '');
 
   const isOpc = company.companyType === 'One Person Company (OPC)';
 
@@ -45,13 +58,50 @@ export const StepCapitalShareholding: React.FC = () => {
     }
   }, [isOpc, totalAuthShares, directors]);
 
+  const handleAuthCapitalChange = (val: string) => {
+    setRawAuthCapital(val);
+    const err = validateCapitalNumeric(val, 'Authorised Capital');
+    if (!err) {
+      const next = { ...fieldErrors };
+      delete next.authorizedCapital;
+      setFieldErrors(next);
+      updateDetails({ authorizedCapital: Number(val) || 0 });
+    } else {
+      setFieldErrors({ ...fieldErrors, authorizedCapital: err });
+    }
+  };
+
+  const handleFaceValueChange = (val: string) => {
+    setRawFaceValue(val);
+    const err = validateCapitalNumeric(val, 'Face Value per Share');
+    if (!err) {
+      const next = { ...fieldErrors };
+      delete next.faceValuePerShare;
+      setFieldErrors(next);
+      updateDetails({ faceValuePerShare: Number(val) || 0 });
+    } else {
+      setFieldErrors({ ...fieldErrors, faceValuePerShare: err });
+    }
+  };
+
   const handleShareAllocationChange = (dirId: string, sharesInput: string) => {
-    const shares = Math.max(0, parseInt(sharesInput.replace(/\D/g, ''), 10) || 0);
-    const amount = shares * faceValue;
-    updateDirector(dirId, {
-      numberOfShares: shares,
-      amountSubscribed: amount,
-    });
+    setRawShares((prev) => ({ ...prev, [dirId]: sharesInput }));
+    const errorKey = `dir_${dirId}_shares`;
+    if (EMOJI_REGEX.test(sharesInput) || (sharesInput.trim() !== '' && !/^\d+$/.test(sharesInput.trim()))) {
+      setFieldErrors({ ...fieldErrors, [errorKey]: UNSUPPORTED_CHARS_MSG });
+    } else {
+      if (fieldErrors[errorKey]) {
+        const next = { ...fieldErrors };
+        delete next[errorKey];
+        setFieldErrors(next);
+      }
+      const shares = Math.max(0, parseInt(sharesInput.trim(), 10) || 0);
+      const amount = shares * faceValue;
+      updateDirector(dirId, {
+        numberOfShares: shares,
+        amountSubscribed: amount,
+      });
+    }
   };
 
   const getSharePercentageStr = (shares: number | undefined): string => {
@@ -72,6 +122,7 @@ export const StepCapitalShareholding: React.FC = () => {
     <View style={styles.container}>
       {/* Capital Details */}
       <CompanySectionCard
+        iconName="cash-outline"
         title="Capital Details"
         description="Define authorized capital, face value, and view derived subscribed capital."
       >
@@ -80,8 +131,8 @@ export const StepCapitalShareholding: React.FC = () => {
             <Text style={styles.label}>Authorised Capital (₹) *</Text>
             <TextInput
               style={[styles.input, !!fieldErrors.authorizedCapital && styles.inputError]}
-              value={company.authorizedCapital ? String(company.authorizedCapital) : ''}
-              onChangeText={(val) => updateDetails({ authorizedCapital: Number(val) || 0 })}
+              value={displayAuthCapital}
+              onChangeText={handleAuthCapitalChange}
               keyboardType="numeric"
               placeholder="e.g. 100000"
               placeholderTextColor="#94A3B8"
@@ -93,8 +144,8 @@ export const StepCapitalShareholding: React.FC = () => {
             <Text style={styles.label}>Face Value per Share (₹) *</Text>
             <TextInput
               style={[styles.input, !!fieldErrors.faceValuePerShare && styles.inputError]}
-              value={company.faceValuePerShare ? String(company.faceValuePerShare) : ''}
-              onChangeText={(val) => updateDetails({ faceValuePerShare: Number(val) || 0 })}
+              value={displayFaceValue}
+              onChangeText={handleFaceValueChange}
               keyboardType="numeric"
               placeholder="e.g. 10"
               placeholderTextColor="#94A3B8"
@@ -125,7 +176,11 @@ export const StepCapitalShareholding: React.FC = () => {
       </CompanySectionCard>
 
       {/* Shareholding Pattern */}
-      <CompanySectionCard title="Shareholding Pattern">
+      <CompanySectionCard
+        iconName="pie-chart-outline"
+        title="Shareholding Pattern"
+        description="Equity subscription and allocation percentage among founders."
+      >
         {isOpc && (
           <Text style={styles.opcNote}>
             In a One Person Company (OPC), 100% equity shareholding is automatically allocated to the single member.
@@ -170,13 +225,27 @@ export const StepCapitalShareholding: React.FC = () => {
                       <View style={styles.halfField}>
                         <Text style={styles.shareInputLabel}>Allocated Shares *</Text>
                         <TextInput
-                          style={styles.smallInput}
-                          value={dir.numberOfShares ? String(dir.numberOfShares) : ''}
+                          style={[
+                            styles.smallInput,
+                            !!fieldErrors[`dir_${dir.id}_shares`] && styles.inputError,
+                          ]}
+                          value={
+                            rawShares[dir.id] !== undefined
+                              ? rawShares[dir.id]
+                              : dir.numberOfShares
+                              ? String(dir.numberOfShares)
+                              : ''
+                          }
                           onChangeText={(val) => handleShareAllocationChange(dir.id, val)}
                           keyboardType="numeric"
                           placeholder="Enter shares"
                           placeholderTextColor="#94A3B8"
                         />
+                        {!!fieldErrors[`dir_${dir.id}_shares`] && (
+                          <Text style={[styles.errorText, { fontSize: 11, marginTop: 2 }]}>
+                            {fieldErrors[`dir_${dir.id}_shares`]}
+                          </Text>
+                        )}
                       </View>
                       <View style={styles.halfField}>
                         <Text style={styles.shareInputLabel}>Amount (Calculated)</Text>

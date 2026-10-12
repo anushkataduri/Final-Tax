@@ -5,7 +5,7 @@ import type { DirectorInfo, OpcNomineeInfo, PartnerInfo } from '../types/directo
 import type { DocumentStatus, Application } from '../../../types/domain';
 import { useApplicationStore } from '../../../store/applicationStore';
 import { getSuffixForType } from '../validation/companySchema';
-import { initialDraft } from './initialDraft';
+import { getInitialDraft } from './initialDraft';
 
 interface CompanyRegistrationState {
   draft: CompanyRegistrationDraft;
@@ -33,7 +33,7 @@ interface CompanyRegistrationState {
 }
 
 export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set) => ({
-  draft: initialDraft,
+  draft: getInitialDraft(),
   fieldErrors: {},
   editingStep: null,
   setFieldErrors: (fieldErrors) => set({ fieldErrors }),
@@ -150,15 +150,33 @@ export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set
       const nextErrors = { ...state.fieldErrors };
       delete nextErrors[documentId];
       delete nextErrors.documentsChecklist;
+
+      const nextCompany = { ...state.draft.company };
+      if (documentId === 'doc-address') {
+        nextCompany.ownershipDocName = status === 'Uploaded' ? (fileName || '') : '';
+        nextCompany.ownershipDocUri = status === 'Uploaded' ? (fileUri || '') : '';
+      } else if (documentId === 'doc-noc') {
+        nextCompany.ownerNocName = status === 'Uploaded' ? (fileName || '') : '';
+        nextCompany.ownerNocUri = status === 'Uploaded' ? (fileUri || '') : '';
+      } else if (documentId === 'doc-utility') {
+        nextCompany.officeAddressProofName = status === 'Uploaded' ? (fileName || '') : '';
+        nextCompany.officeAddressProofUri = status === 'Uploaded' ? (fileUri || '') : '';
+      }
+
       return {
         fieldErrors: nextErrors,
         draft: {
           ...state.draft,
+          company: nextCompany,
           documents: updatedDocs,
         },
       };
     }),
-  setStep: (currentStep) => set((state) => ({ draft: { ...state.draft, currentStep } })),
+  setStep: (currentStep) =>
+    set((state) => ({
+      editingStep: state.editingStep === currentStep ? state.editingStep : null,
+      draft: { ...state.draft, currentStep },
+    })),
   startEditingStep: (step) =>
     set((state) => ({
       editingStep: step,
@@ -232,5 +250,5 @@ export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set
       useApplicationStore.getState().addApplication(mappedApp);
       return { draft: { ...state.draft, id: realId, status: 'Submitted', createdAt: dateStr, currentStep: 7 }, editingStep: null };
     }),
-  resetRegistration: () => set({ draft: initialDraft, fieldErrors: {}, editingStep: null }),
+  resetRegistration: () => set({ draft: getInitialDraft(), fieldErrors: {}, editingStep: null }),
 }));

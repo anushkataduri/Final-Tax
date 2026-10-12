@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
+import { CompanySectionCard } from '../CompanySectionCard/CompanySectionCard';
 import { styles } from './StepFeesPayment.styles';
 
 const PAYMENT_METHODS = [
@@ -35,7 +36,11 @@ export const StepFeesPayment: React.FC = () => {
       <Text style={styles.subheading}>Review itemized MCA government filing fees and TaxEdge professional charges.</Text>
 
       {/* Fee Itemization Card */}
-      <View style={styles.card}>
+      <CompanySectionCard
+        iconName="receipt-outline"
+        title="Fee Itemization"
+        subtitle="Itemized government and professional charges"
+      >
         <View style={styles.row}>
           <Text style={styles.label}>TaxEdge Professional Fee</Text>
           <Text style={styles.value}>₹{feeBreakdown.professionalFee.toLocaleString('en-IN')}</Text>
@@ -53,34 +58,39 @@ export const StepFeesPayment: React.FC = () => {
           <Text style={styles.totalLabel}>Total Payable Amount</Text>
           <Text style={styles.totalValue}>₹{feeBreakdown.totalAmount.toLocaleString('en-IN')}</Text>
         </View>
-      </View>
-      <Text style={{ fontSize: 12, color: '#64748B', marginTop: 4, marginBottom: 16 }}>
+      </CompanySectionCard>
+      <Text style={{ fontSize: 12, color: '#64748B', marginTop: -4, marginBottom: 16 }}>
         * ₹1,500 represents estimated / applicable MCA government filing fee and stamp duty charges.
       </Text>
 
       {/* Payment Method Selection */}
-      <Text style={[styles.label, { fontWeight: '700', marginBottom: 8 }]}>Select Payment Method</Text>
-      {PAYMENT_METHODS.map((m) => {
-        const isSelected = selectedMethod === m.id;
-        return (
-          <TouchableOpacity
-            key={m.id}
-            style={[styles.methodCard, isSelected && styles.methodCardSelected]}
-            onPress={() => setSelectedMethod(m.id)}
-            activeOpacity={0.8}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Ionicons name={m.icon as any} size={22} color={isSelected ? '#083B75' : '#64748B'} />
-              <Text style={styles.methodTitle}>{m.title}</Text>
-            </View>
-            <Ionicons
-              name={isSelected ? 'radio-button-on' : 'radio-button-off'}
-              size={20}
-              color={isSelected ? '#083B75' : '#94A3B8'}
-            />
-          </TouchableOpacity>
-        );
-      })}
+      <CompanySectionCard
+        iconName="card-outline"
+        title="Select Payment Method"
+        subtitle="Choose your preferred payment mode"
+      >
+        {PAYMENT_METHODS.map((m) => {
+          const isSelected = selectedMethod === m.id;
+          return (
+            <TouchableOpacity
+              key={m.id}
+              style={[styles.methodCard, isSelected && styles.methodCardSelected]}
+              onPress={() => setSelectedMethod(m.id)}
+              activeOpacity={0.8}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Ionicons name={m.icon as any} size={22} color={isSelected ? '#083B75' : '#64748B'} />
+                <Text style={styles.methodTitle}>{m.title}</Text>
+              </View>
+              <Ionicons
+                name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                size={20}
+                color={isSelected ? '#083B75' : '#94A3B8'}
+              />
+            </TouchableOpacity>
+          );
+        })}
+      </CompanySectionCard>
 
       {/* Pay CTA */}
       <TouchableOpacity 

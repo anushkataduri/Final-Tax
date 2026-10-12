@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ScrollView } from 'react-native';
 import { AppHeader } from '../../../../shared/components/AppHeader';
 import { RegistrationStatusTracker } from '../../components/RegistrationStatusTracker/RegistrationStatusTracker';
+import { CompanySectionCard } from '../../components/CompanySectionCard/CompanySectionCard';
 import type { TimelineStep } from '../../../../shared/types/domain';
 import { styles } from './RegistrationStatusScreen.styles';
 
@@ -18,7 +19,13 @@ export const RegistrationStatusScreen: React.FC = () => {
     <View style={styles.container}>
       <AppHeader title="Incorporation Status" showBack />
       <ScrollView contentContainerStyle={styles.scroll}>
-        <RegistrationStatusTracker steps={steps} />
+        <CompanySectionCard
+          iconName="time-outline"
+          title="Application Timeline"
+          subtitle="Track stage-by-stage MCA processing status"
+        >
+          <RegistrationStatusTracker steps={steps} />
+        </CompanySectionCard>
       </ScrollView>
     </View>
   );

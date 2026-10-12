@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { AppHeader } from '../../../../shared/components/AppHeader';
 import { companyRegistrationService } from '../../services/companyRegistrationService';
 import { CompanyTypeCard } from '../../components/CompanyTypeCard/CompanyTypeCard';
+import { CompanySectionCard } from '../../components/CompanySectionCard/CompanySectionCard';
 import { styles } from './RegistrationTypeScreen.styles';
 
 export const RegistrationTypeScreen: React.FC = () => {
@@ -15,17 +16,23 @@ export const RegistrationTypeScreen: React.FC = () => {
     <View style={styles.container}>
       <AppHeader title="Select Company Type" showBack />
       <ScrollView contentContainerStyle={styles.scroll}>
-        {types.map((t) => (
-          <CompanyTypeCard
-            key={t.type}
-            item={t}
-            selected={selected === t.type}
-            onSelect={(item) => {
-              setSelected(item.type);
-              router.back();
-            }}
-          />
-        ))}
+        <CompanySectionCard
+          iconName="business-outline"
+          title="Select Entity Type"
+          subtitle="Choose entity structure for your registration"
+        >
+          {types.map((t) => (
+            <CompanyTypeCard
+              key={t.type}
+              item={t}
+              selected={selected === t.type}
+              onSelect={(item) => {
+                setSelected(item.type);
+                router.back();
+              }}
+            />
+          ))}
+        </CompanySectionCard>
       </ScrollView>
     </View>
   );

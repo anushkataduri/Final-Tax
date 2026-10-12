@@ -1,6 +1,4 @@
 import type { CompanyDetails } from '../types/company.types';
-import { EMAIL_REGEX, PHONE_REGEX, PINCODE_REGEX } from '../../../shared/validators/indianTaxValidators';
-
 import type { LinkedRegistrations } from '../types/registration.types';
 
 export const getSuffixForType = (type?: string): string => {
@@ -17,6 +15,9 @@ export const getSuffixForType = (type?: string): string => {
       return 'Private Limited';
   }
 };
+
+export const EMOJI_REGEX = /(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|[\u{1F3FB}-\u{1F3FF}]|[\u{1F1E6}-\u{1F1FF}]|[\u200D\uFE0E\uFE0F])/u;
+export const UNSUPPORTED_CHARS_MSG = 'Please remove unsupported special characters.';
 
 export const validateProposedCompanyName = (name?: string, suffix?: string): string | null => {
   const trimmed = name?.trim() || '';
@@ -40,16 +41,148 @@ export const validateProposedCompanyName = (name?: string, suffix?: string): str
     return 'Please enter a valid company name.';
   }
 
-  const isValidChars = /^[a-zA-Z0-9\s&.\-,()]+$/.test(trimmed);
-  if (!isValidChars) {
-    return 'Please remove unsupported special characters.';
+  if (EMOJI_REGEX.test(trimmed) || !/^[\p{L}\p{M}0-9\s&.\-,()]+$/u.test(trimmed)) {
+    return UNSUPPORTED_CHARS_MSG;
   }
 
-  const alphaCount = (trimmed.match(/[a-zA-Z]/g) || []).length;
+  const alphaCount = (trimmed.match(/[\p{L}\p{M}]/gu) || []).length;
   if (alphaCount < 2) {
     return 'Please enter a valid company name.';
   }
 
+  return null;
+};
+
+export const validateBusinessActivity = (text?: string, isRequired = true): string | null => {
+  const trimmed = text?.trim() || '';
+  if (!trimmed) {
+    return isRequired ? 'Please enter the primary business activity.' : null;
+  }
+  if (EMOJI_REGEX.test(trimmed) || !/^[\p{L}\p{M}\p{N}\s,.\-#/()'&;:_%\n\r\t"]+$/u.test(trimmed)) {
+    return UNSUPPORTED_CHARS_MSG;
+  }
+  if (isRequired && trimmed.length < 10) {
+    return 'Primary activity description must be at least 10 characters.';
+  }
+  return null;
+};
+
+export const validateNicCode = (nic?: string): string | null => {
+  const trimmed = nic?.trim() || '';
+  if (!trimmed) return 'NIC code is required.';
+  if (EMOJI_REGEX.test(trimmed) || !/^\d+$/.test(trimmed)) {
+    return UNSUPPORTED_CHARS_MSG;
+  }
+  if (trimmed.length !== 5) {
+    return 'NIC code must contain exactly 5 digits.';
+  }
+  return null;
+};
+
+export const validateAddressLine = (address?: string): string | null => {
+  const trimmed = address?.trim() || '';
+  if (!trimmed) return 'Building / Premises Address Line is required.';
+  if (EMOJI_REGEX.test(trimmed) || !/^[\p{L}\p{M}\p{N}\s,.\-#/()'&;:_]+$/u.test(trimmed)) {
+    return UNSUPPORTED_CHARS_MSG;
+  }
+  if (trimmed.length < 3) return 'Please enter a valid address.';
+  return null;
+};
+
+export const validateLocationName = (name?: string, label = 'Location'): string | null => {
+  const trimmed = name?.trim() || '';
+  if (!trimmed) return `${label} is required.`;
+  if (EMOJI_REGEX.test(trimmed) || !/^[\p{L}\p{M}\s.'\-&]+$/u.test(trimmed)) {
+    return UNSUPPORTED_CHARS_MSG;
+  }
+  if (trimmed.length < 2) return `Please enter a valid ${label.toLowerCase()}.`;
+  return null;
+};
+
+export const validatePinCode = (pin?: string): string | null => {
+  const trimmed = pin?.trim() || '';
+  if (!trimmed) return 'PIN code is required.';
+  if (EMOJI_REGEX.test(trimmed)) {
+    return UNSUPPORTED_CHARS_MSG;
+  }
+  if (!/^[1-9][0-9]{5}$/.test(trimmed)) {
+    return 'Enter a valid 6-digit Indian PIN code.';
+  }
+  return null;
+};
+
+export const validateCompanyEmail = (email?: string): string | null => {
+  const trimmed = email?.trim() || '';
+  if (!trimmed) return 'Company email is required.';
+  if (EMOJI_REGEX.test(trimmed)) {
+    return UNSUPPORTED_CHARS_MSG;
+  }
+  if (trimmed.length > 254) return 'Email address must not exceed 254 characters.';
+  if (trimmed.includes(' ')) {
+    return 'Enter a valid email address.';
+  }
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(trimmed)) {
+    return 'Enter a valid email address.';
+  }
+  return null;
+};
+
+export const validateCompanyMobile = (mobile?: string): string | null => {
+  const trimmed = mobile?.trim() || '';
+  if (!trimmed) return 'Mobile number is required.';
+  if (EMOJI_REGEX.test(trimmed)) {
+    return UNSUPPORTED_CHARS_MSG;
+  }
+  if (!/^\d+$/.test(trimmed)) {
+    return 'Enter a valid 10-digit Indian mobile number.';
+  }
+  if (trimmed.length < 10) {
+    return 'Mobile number must contain exactly 10 digits.';
+  }
+  if (!/^[6-9][0-9]{9}$/.test(trimmed)) {
+    return 'Enter a valid 10-digit Indian mobile number.';
+  }
+  return null;
+};
+
+export const validateCapitalNumeric = (val?: number | string, label = 'Amount'): string | null => {
+  if (val === undefined || val === null || String(val).trim() === '') {
+    return `Please enter valid ${label}.`;
+  }
+  const str = String(val).trim();
+  if (EMOJI_REGEX.test(str) || !/^\d+(\.\d+)?$/.test(str)) {
+    return UNSUPPORTED_CHARS_MSG;
+  }
+  if (Number(str) <= 0) {
+    return `Please enter valid ${label}.`;
+  }
+  return null;
+};
+
+export const validateIndustryCategory = (category?: string, isRequired = true): string | null => {
+  const trimmed = category?.trim() || '';
+  if (!trimmed) {
+    return isRequired ? 'Industry Category is required.' : null;
+  }
+  if (EMOJI_REGEX.test(trimmed) || !/^[\p{L}\p{M}\p{N}\s,.\-/'()&]+$/u.test(trimmed)) {
+    return UNSUPPORTED_CHARS_MSG;
+  }
+  if (trimmed.length < 2) {
+    return 'Please enter a valid industry category.';
+  }
+  return null;
+};
+
+export const validateAccountNumber = (acc?: string): string | null => {
+  const trimmed = acc?.trim() || '';
+  if (!trimmed) return 'Bank account number is required.';
+  if (EMOJI_REGEX.test(trimmed) || !/^\d+$/.test(trimmed)) {
+    return UNSUPPORTED_CHARS_MSG;
+  }
+  if (trimmed.length < 6 || trimmed.length > 18) {
+    return 'Please enter a valid bank account number (6 to 18 digits).';
+  }
   return null;
 };
 
@@ -81,67 +214,60 @@ const collectCompanyDetailsErrors = (
     fieldErrors.proposedName1 = nameError;
     errors.push(nameError);
   }
-  if (!details.primaryActivity?.trim()) {
-    fieldErrors.primaryActivity = 'Please enter the primary business activity.';
-    errors.push(fieldErrors.primaryActivity);
+  const name2Error = validateProposedCompanyName(details.proposedName2, suffixText);
+  if (name2Error) {
+    fieldErrors.proposedName2 = name2Error;
+    errors.push(name2Error);
+  } else if (
+    details.proposedName1?.trim() &&
+    details.proposedName2?.trim() &&
+    details.proposedName1.trim().toLowerCase() === details.proposedName2.trim().toLowerCase()
+  ) {
+    fieldErrors.proposedName2 = 'Alternative name must be distinct from primary proposed name.';
+    errors.push(fieldErrors.proposedName2);
   }
-  if (!details.nicCode?.trim() || !/^\d{5}$/.test(details.nicCode.trim())) {
-    fieldErrors.nicCode = 'NIC code must contain exactly 5 digits.';
-    errors.push(fieldErrors.nicCode);
+  const primActivityError = validateBusinessActivity(details.primaryActivity, true);
+  if (primActivityError) {
+    fieldErrors.primaryActivity = primActivityError;
+    errors.push(primActivityError);
   }
-};
-
-export const validatePinCode = (pin?: string): string | null => {
-  const trimmed = pin?.trim() || '';
-  if (!trimmed) return 'PIN code is required.';
-  if (!/^[1-9][0-9]{5}$/.test(trimmed)) {
-    return 'Enter a valid 6-digit Indian PIN code.';
+  if (details.secondaryActivity?.trim()) {
+    const secActivityError = validateBusinessActivity(details.secondaryActivity, false);
+    if (secActivityError) {
+      fieldErrors.secondaryActivity = secActivityError;
+      errors.push(secActivityError);
+    }
   }
-  return null;
-};
-
-export const validateCompanyEmail = (email?: string): string | null => {
-  const trimmed = email?.trim() || '';
-  if (!trimmed) return 'Company email is required.';
-  if (trimmed.length > 254) return 'Email address must not exceed 254 characters.';
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(trimmed) || trimmed.includes(' ')) {
-    return 'Enter a valid email address.';
+  const nicError = validateNicCode(details.nicCode);
+  if (nicError) {
+    fieldErrors.nicCode = nicError;
+    errors.push(nicError);
   }
-  return null;
-};
-
-export const validateCompanyMobile = (mobile?: string): string | null => {
-  const trimmed = mobile?.trim() || '';
-  if (!trimmed) return 'Mobile number is required.';
-  if (trimmed.length < 10 && /^\d+$/.test(trimmed)) {
-    return 'Mobile number must contain exactly 10 digits.';
-  }
-  if (!/^[6-9][0-9]{9}$/.test(trimmed)) {
-    return 'Enter a valid 10-digit Indian mobile number.';
-  }
-  return null;
 };
 
 /** Step 2: registered office. Adds messages to `fieldErrors` and `errors`. */
 const collectRegisteredOfficeErrors = (
   details: Partial<CompanyDetails>, fieldErrors: Record<string, string>, errors: string[]
 ): void => {
-  if (!details.registeredAddressLine?.trim()) {
-    fieldErrors.registeredAddressLine = 'Address line is required.';
-    errors.push(fieldErrors.registeredAddressLine);
+  const addrError = validateAddressLine(details.registeredAddressLine);
+  if (addrError) {
+    fieldErrors.registeredAddressLine = addrError;
+    errors.push(addrError);
   }
-  if (!details.registeredCity?.trim()) {
-    fieldErrors.registeredCity = 'City is required.';
-    errors.push(fieldErrors.registeredCity);
+  const cityError = validateLocationName(details.registeredCity, 'City');
+  if (cityError) {
+    fieldErrors.registeredCity = cityError;
+    errors.push(cityError);
   }
-  if (!details.registeredDistrict?.trim()) {
-    fieldErrors.registeredDistrict = 'District is required.';
-    errors.push(fieldErrors.registeredDistrict);
+  const distError = validateLocationName(details.registeredDistrict, 'District');
+  if (distError) {
+    fieldErrors.registeredDistrict = distError;
+    errors.push(distError);
   }
-  if (!details.registeredState?.trim()) {
-    fieldErrors.registeredState = 'State is required.';
-    errors.push(fieldErrors.registeredState);
+  const stateError = validateLocationName(details.registeredState, 'State');
+  if (stateError) {
+    fieldErrors.registeredState = stateError;
+    errors.push(stateError);
   }
   const pinErr = validatePinCode(details.registeredPincode);
   if (pinErr) {
@@ -168,13 +294,22 @@ const collectRegisteredOfficeErrors = (
 const collectCapitalErrors = (
   details: Partial<CompanyDetails>, fieldErrors: Record<string, string>, errors: string[]
 ): void => {
-  if (!details.authorizedCapital || details.authorizedCapital <= 0) {
-    fieldErrors.authorizedCapital = 'Please enter valid Authorised Capital.';
-    errors.push(fieldErrors.authorizedCapital);
+  const authErr = validateCapitalNumeric(details.authorizedCapital, 'Authorised Capital');
+  if (authErr) {
+    fieldErrors.authorizedCapital = authErr;
+    errors.push(authErr);
   }
-  if (!details.faceValuePerShare || details.faceValuePerShare <= 0) {
-    fieldErrors.faceValuePerShare = 'Please enter valid Face Value per Share.';
-    errors.push(fieldErrors.faceValuePerShare);
+  const faceErr = validateCapitalNumeric(details.faceValuePerShare, 'Face Value per Share');
+  if (faceErr) {
+    fieldErrors.faceValuePerShare = faceErr;
+    errors.push(faceErr);
+  }
+  if (details.authorizedCapital && details.numberOfShares && details.faceValuePerShare) {
+    const calculated = Math.round(Number(details.numberOfShares) * Number(details.faceValuePerShare));
+    if (Math.abs(calculated - Number(details.authorizedCapital)) > 0.01) {
+      fieldErrors.authorizedCapital = `Authorised Capital (₹${Number(details.authorizedCapital).toLocaleString('en-IN')}) must equal Shares (${Number(details.numberOfShares).toLocaleString('en-IN')}) × Face Value (₹${details.faceValuePerShare}) = ₹${calculated.toLocaleString('en-IN')}.`;
+      errors.push(fieldErrors.authorizedCapital);
+    }
   }
   if (details.paidUpCapital && details.authorizedCapital && details.paidUpCapital > details.authorizedCapital) {
     fieldErrors.paidUpCapital = 'Subscribed Capital cannot exceed Authorised Capital.';
@@ -187,9 +322,10 @@ const collectLinkedRegistrationErrors = (
   details: Partial<CompanyDetails>, linkedRegistrations: LinkedRegistrations | undefined, fieldErrors: Record<string, string>, errors: string[]
 ): void => {
   if (linkedRegistrations?.bankAccount) {
-    if (!details.accountNumber?.trim() || !/^\d{6,18}$/.test(details.accountNumber.trim())) {
-      fieldErrors.accountNumber = 'Please enter a valid account number.';
-      errors.push(fieldErrors.accountNumber);
+    const accErr = validateAccountNumber(details.accountNumber);
+    if (accErr) {
+      fieldErrors.accountNumber = accErr;
+      errors.push(accErr);
     }
   }
 };

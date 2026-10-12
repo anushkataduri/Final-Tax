@@ -72,7 +72,7 @@ test("nothing renders while the calendar is closed", () => {
   for (const os of ["android", "ios"] as const) {
     setPlatform(os);
     const markup = render(
-      React.createElement(DatePickerDialog, { visible: false, value: OPEN_ON, onConfirm: () => {}, onCancel: () => {} }),
+      React.createElement(DatePickerDialog, { visible: false, value: OPEN_ON, onConfirm: () => { }, onCancel: () => { } }),
     );
     assert.equal(markup, "", os);
     assert.equal(harness.renders.datePickers.length, 0, os);
@@ -83,7 +83,7 @@ test("Android shows the platform Material date dialog with the caller's value an
   setPlatform("android");
   render(
     React.createElement(DatePickerDialog, {
-      visible: true, value: OPEN_ON, minimumDate: MIN, maximumDate: MAX, onConfirm: () => {}, onCancel: () => {},
+      visible: true, value: OPEN_ON, minimumDate: MIN, maximumDate: MAX, onConfirm: () => { }, onCancel: () => { },
     }),
   );
   assert.equal(harness.renders.datePickers.length, 1);
@@ -118,7 +118,7 @@ test("iOS shows the spinner in a bottom sheet with Cancel, a title and Done", ()
   setPlatform("ios");
   const markup = render(
     React.createElement(DatePickerDialog, {
-      visible: true, value: OPEN_ON, title: "Date of Birth", minimumDate: MIN, maximumDate: MAX, onConfirm: () => {}, onCancel: () => {},
+      visible: true, value: OPEN_ON, title: "Date of Birth", minimumDate: MIN, maximumDate: MAX, onConfirm: () => { }, onCancel: () => { },
     }),
   );
   assert.equal(harness.renders.modals.length, 1);
@@ -151,7 +151,7 @@ test("iOS falls back to a generic title and Done / Cancel report back", () => {
 test("the web build leaves date entry to the browser's own input", () => {
   setPlatform("web");
   const markup = render(
-    React.createElement(DatePickerDialog, { visible: true, value: OPEN_ON, onConfirm: () => {}, onCancel: () => {} }),
+    React.createElement(DatePickerDialog, { visible: true, value: OPEN_ON, onConfirm: () => { }, onCancel: () => { } }),
   );
   assert.equal(markup, "");
 });
@@ -159,18 +159,18 @@ test("the web build leaves date entry to the browser's own input", () => {
 test("UniversalDatePicker shows label, required marker, value, placeholder, error and helper text", () => {
   setPlatform("android");
   const filled = render(
-    React.createElement(UniversalDatePicker, { label: "Date of Birth", required: true, value: "01-01-2000", onChange: () => {}, valueFormat: "DD-MM-YYYY" }),
+    React.createElement(UniversalDatePicker, { label: "Date of Birth", required: true, value: "01-01-2000", onChange: () => { }, valueFormat: "DD-MM-YYYY" }),
   );
   assert.ok(filled.includes("Date of Birth") && filled.includes("*") && filled.includes("01-01-2000"));
 
-  const empty = render(React.createElement(UniversalDatePicker, { value: "", onChange: () => {} }));
+  const empty = render(React.createElement(UniversalDatePicker, { value: "", onChange: () => { } }));
   assert.ok(empty.includes("Select Date"));
-  const emptyNumeric = render(React.createElement(UniversalDatePicker, { value: "", onChange: () => {}, valueFormat: "DD-MM-YYYY" }));
+  const emptyNumeric = render(React.createElement(UniversalDatePicker, { value: "", onChange: () => { }, valueFormat: "DD-MM-YYYY" }));
   assert.ok(emptyNumeric.includes("DD-MM-YYYY"));
 
-  const withError = render(React.createElement(UniversalDatePicker, { value: "", onChange: () => {}, error: "Required", helperText: "hint" }));
+  const withError = render(React.createElement(UniversalDatePicker, { value: "", onChange: () => { }, error: "Required", helperText: "hint" }));
   assert.ok(withError.includes("Required") && !withError.includes("hint"), "an error replaces the helper text");
-  const hidden = render(React.createElement(UniversalDatePicker, { value: "", onChange: () => {}, error: "Required", showErrorText: false }));
+  const hidden = render(React.createElement(UniversalDatePicker, { value: "", onChange: () => { }, error: "Required", showErrorText: false }));
   assert.ok(!hidden.includes("Required"), "the parent can render the error itself");
   assert.equal(harness.renders.datePickers.length, 0, "the calendar is not opened until the field is tapped");
 });

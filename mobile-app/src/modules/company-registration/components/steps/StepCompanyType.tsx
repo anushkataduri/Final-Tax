@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
 import type { CompanyType } from '../../types/company.types';
+import { CompanySectionCard } from '../CompanySectionCard/CompanySectionCard';
 import { styles } from './StepCompanyType.styles';
 
 interface CompanyOption {
@@ -60,8 +61,11 @@ export const StepCompanyType: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Select Company Structure</Text>
-      <Text style={styles.subheading}>Choose legal structure to begin incorporation.</Text>
+      <CompanySectionCard
+        iconName="business-outline"
+        title="Select Company Structure"
+        subtitle="Choose legal structure to begin incorporation."
+      >
 
       {OPTIONS.map((item) => {
         const isSelected = selectedType === item.type;
@@ -114,6 +118,7 @@ export const StepCompanyType: React.FC = () => {
       })}
 
       {!!errorText && <Text style={styles.errorText}>{errorText}</Text>}
+      </CompanySectionCard>
     </View>
   );
 };

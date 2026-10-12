@@ -1,6 +1,6 @@
 import type { CompanyRegistrationDraft } from "../types/registration.types";
 import { companySchema } from "./companySchema";
-import { directorSchema } from "./directorSchema";
+import { directorSchema, validateOpcNominee } from "./directorSchema";
 
 export interface StepValidationResult {
   valid: boolean;
@@ -39,12 +39,13 @@ export const validateRegistrationStep = (
   // Step 3: Promoter / Director Details
   if (step === 3) {
     const isOpc = draft.company.companyType === 'One Person Company (OPC)';
-    const minRequired = isOpc ? 1 : 2;
+    const isPublic = draft.company.companyType === 'Public Limited';
+    const minRequired = isPublic ? 3 : isOpc ? 1 : 2;
     if (draft.directors.length < minRequired) {
       return {
         valid: false,
         fieldErrors: {
-          directorsCount: `At least ${minRequired} promoter/director(s) required for ${draft.company.companyType || 'incorporation'}.`,
+          directorsCount: `At least ${minRequired} promoter(s) are required for ${draft.company.companyType || 'incorporation'}.`,
         },
       };
     }
@@ -58,6 +59,15 @@ export const validateRegistrationStep = (
         Object.assign(combinedErrors, fieldErrors);
       }
     });
+
+    if (isOpc) {
+      const { valid: nomineeValid, fieldErrors: nomineeErrors } = validateOpcNominee(draft.opcNominee);
+      if (!nomineeValid) {
+        hasError = true;
+        Object.assign(combinedErrors, nomineeErrors);
+      }
+    }
+
     if (hasError) {
       return { valid: false, fieldErrors: combinedErrors };
     }
@@ -79,6 +89,15 @@ export const validateRegistrationStep = (
       } else if (totalAuthShares > 0 && totalSubscribed > totalAuthShares) {
         combinedErrors.shareholdingTotal = 'Total subscribed shares cannot exceed total authorised shares of the company.';
       }
+
+      draft.directors.forEach((d) => {
+        if (d.numberOfShares !== undefined && d.numberOfShares !== null) {
+          const str = String(d.numberOfShares).trim();
+          if (str !== '' && (!/^\d+$/.test(str) || Number(str) < 0)) {
+            combinedErrors[`dir_${d.id}_shares`] = 'Please remove unsupported special characters.';
+          }
+        }
+      });
     }
 
     if (!valid || Object.keys(combinedErrors).length > 0) {

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ScrollView } from 'react-native';
 import { AppHeader } from '../../../../shared/components/AppHeader';
 import { DocumentChecklist } from '../../components/DocumentChecklist/DocumentChecklist';
+import { CompanySectionCard } from '../../components/CompanySectionCard/CompanySectionCard';
 import type { ApplicationDocument } from '../../../../shared/types/domain';
 import { styles } from './CompanyDocumentsScreen.styles';
 
@@ -17,7 +18,13 @@ export const CompanyDocumentsScreen: React.FC = () => {
     <View style={styles.container}>
       <AppHeader title="Company Documents" showBack />
       <ScrollView contentContainerStyle={styles.scroll}>
-        <DocumentChecklist documents={docs} onUpload={() => {}} />
+        <CompanySectionCard
+          iconName="document-text-outline"
+          title="Required Documents"
+          description="Promoter & office verification documents."
+        >
+          <DocumentChecklist documents={docs} onUpload={() => {}} />
+        </CompanySectionCard>
       </ScrollView>
     </View>
   );

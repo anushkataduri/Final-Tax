@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../../../hooks/use-theme';
 import { ServiceHeader } from '../../../../shared/components/ServiceHeader';
 import { companyRegistrationService } from '../../services/companyRegistrationService';
 import { CompanyTypeCard } from '../../components/CompanyTypeCard/CompanyTypeCard';
-import type { CompanyTypeOption } from '../../services/companyRegistrationService';
+import { CompanySectionCard } from '../../components/CompanySectionCard/CompanySectionCard';
 import { styles, getThemedStyles } from './CompanyRegistrationHomeScreen.styles';
 
 export const CompanyRegistrationHomeScreen: React.FC = () => {
@@ -23,15 +23,20 @@ export const CompanyRegistrationHomeScreen: React.FC = () => {
         iconName="business"
       />
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, themed.sectionTitle]}>Choose Entity Type</Text>
-        {companyTypes.map((item) => (
-          <CompanyTypeCard
-            key={item.type}
-            item={item}
-            selected={false}
-            onSelect={() => router.push('/(main)/applications')}
-          />
-        ))}
+        <CompanySectionCard
+          iconName="business-outline"
+          title="Choose Entity Type"
+          subtitle="Select legal structure to begin registration"
+        >
+          {companyTypes.map((item) => (
+            <CompanyTypeCard
+              key={item.type}
+              item={item}
+              selected={false}
+              onSelect={() => router.push('/(main)/applications')}
+            />
+          ))}
+        </CompanySectionCard>
       </View>
     </ScrollView>
   );

@@ -7,6 +7,7 @@ import { DocumentUploadBottomSheet } from '@/shared/components/DocumentUploadBot
 import { DocumentCard as TdsDocumentCard, type DocumentChecklistItem as TdsChecklistItem } from '@/shared/components/documents';
 import { DocumentPreviewModal, type PreviewDocumentItem } from '@/shared/components/documents/DocumentPreviewModal';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
+import { CompanySectionCard } from '../CompanySectionCard/CompanySectionCard';
 import { styles } from './StepDocumentsKYC.styles';
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
 
@@ -18,6 +19,24 @@ export interface KycChecklistItem {
   required: boolean;
   iconName: keyof typeof Ionicons.glyphMap;
 }
+
+const SECTION_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; title: string; desc: string }> = {
+  'PROMOTER / DIRECTOR KYC': {
+    icon: 'id-card-outline',
+    title: 'Promoter / Director KYC',
+    desc: 'Identity & address proofs of promoters/founders',
+  },
+  'REGISTERED OFFICE': {
+    icon: 'business-outline',
+    title: 'Registered Office Proofs',
+    desc: 'Premises ownership, utility bills & owner NOC',
+  },
+  'STATUTORY DOCUMENTS': {
+    icon: 'document-text-outline',
+    title: 'Statutory Documents',
+    desc: 'e-MoA and e-AoA charter documentation',
+  },
+};
 
 const CHECKLIST_ITEMS: KycChecklistItem[] = [
   // PROMOTER / DIRECTOR KYC
@@ -40,7 +59,7 @@ const CHECKLIST_ITEMS: KycChecklistItem[] = [
   {
     id: 'doc-photo',
     title: 'Passport Photo',
-    subtitle: 'Required if applicable',
+    subtitle: 'Promoter photograph (Saved locally for CA filing)',
     section: 'PROMOTER / DIRECTOR KYC',
     required: false,
     iconName: 'person-circle-outline',
@@ -58,7 +77,7 @@ const CHECKLIST_ITEMS: KycChecklistItem[] = [
   {
     id: 'doc-utility',
     title: 'Office Utility Bill *',
-    subtitle: 'Electricity / Water / applicable utility bill',
+    subtitle: 'Electricity / Water / applicable utility bill (<= 60 days old)',
     section: 'REGISTERED OFFICE',
     required: true,
     iconName: 'receipt-outline',
@@ -66,7 +85,7 @@ const CHECKLIST_ITEMS: KycChecklistItem[] = [
   {
     id: 'doc-noc',
     title: 'Owner NOC',
-    subtitle: 'Required only if applicable',
+    subtitle: 'Required for Rented or Leased premises',
     section: 'REGISTERED OFFICE',
     required: false,
     iconName: 'document-attach-outline',
@@ -76,7 +95,7 @@ const CHECKLIST_ITEMS: KycChecklistItem[] = [
   {
     id: 'doc-moa',
     title: 'MOA / e-MOA',
-    subtitle: 'Handled/generated as applicable',
+    subtitle: 'Draft e-MoA charter (Saved locally for CA filing)',
     section: 'STATUTORY DOCUMENTS',
     required: false,
     iconName: 'document-text-outline',
@@ -84,7 +103,7 @@ const CHECKLIST_ITEMS: KycChecklistItem[] = [
   {
     id: 'doc-aoa',
     title: 'AOA / e-AOA',
-    subtitle: 'Handled/generated as applicable',
+    subtitle: 'Draft e-AoA charter (Saved locally for CA filing)',
     section: 'STATUTORY DOCUMENTS',
     required: false,
     iconName: 'book-outline',
@@ -112,6 +131,15 @@ export const StepDocumentsKYC: React.FC = () => {
       });
       if (!res.canceled && res.assets && res.assets.length > 0) {
         const asset = res.assets[0];
+        if (asset.size && asset.size > 5 * 1024 * 1024) {
+          Alert.alert('File Too Large', 'Please select a file smaller than 5 MB.');
+          return;
+        }
+        const lowerName = (asset.name || '').toLowerCase();
+        if (!lowerName.endsWith('.pdf') && !lowerName.endsWith('.jpg') && !lowerName.endsWith('.jpeg') && !lowerName.endsWith('.png')) {
+          Alert.alert('Unsupported Format', 'Please upload a PDF, JPG, or PNG document.');
+          return;
+        }
         handleDocumentSelected(asset.name, asset.uri);
       }
     } catch (e) {
@@ -182,12 +210,15 @@ export const StepDocumentsKYC: React.FC = () => {
 
       {sections.map((sectionName) => {
         const sectionItems = CHECKLIST_ITEMS.filter((item) => item.section === sectionName);
-        if (sectionItems.length === 0) return null;
+        const meta = SECTION_META[sectionName] || { icon: 'document-outline' as const, title: sectionName, desc: '' };
 
         return (
-          <View key={sectionName}>
-            <Text style={styles.sectionTitle}>{sectionName}</Text>
-
+          <CompanySectionCard
+            key={sectionName}
+            iconName={meta.icon}
+            title={meta.title}
+            description={meta.desc}
+          >
             {sectionItems.map((item) => {
               const stored = storedDocs.find((d) => d.id === item.id);
               const isUploaded = stored?.status === 'Uploaded';
@@ -234,7 +265,7 @@ export const StepDocumentsKYC: React.FC = () => {
                 </View>
               );
             })}
-          </View>
+          </CompanySectionCard>
         );
       })}
 

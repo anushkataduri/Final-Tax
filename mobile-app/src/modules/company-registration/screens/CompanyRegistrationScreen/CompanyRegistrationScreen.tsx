@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, Text } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, TouchableOpacity, Alert, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from '@/shared/components/KeyboardAwareFormLayout';
+import { KeyboardStickyFooter } from '@/shared/components/KeyboardStickyFooter';
 import { LoanStepIndicator } from '@/modules/loans/components/LoanStepIndicator';
 import { UniversalDraftModal } from '@/shared/components/UniversalDraftModal';
 import { useUniversalDraftGuard } from '@/shared/hooks/useUniversalDraftGuard';
@@ -17,9 +19,7 @@ import { StepRegisteredOffice } from '../../components/steps/StepRegisteredOffic
 import { StepPromoters } from '../../components/steps/StepPromoters';
 import { StepCapitalShareholding } from '../../components/steps/StepCapitalShareholding';
 import { StepDocumentsKYC } from '../../components/steps/StepDocumentsKYC';
-import { StepLinkedRegistrations } from '../../components/steps/StepLinkedRegistrations';
 import { StepReviewApplication } from '../../components/steps/StepReviewApplication';
-import { StepFeesPayment } from '../../components/steps/StepFeesPayment';
 import { StepSubmissionSuccess } from '../../components/steps/StepSubmissionSuccess';
 
 import { styles } from './CompanyRegistrationScreen.styles';
@@ -52,6 +52,22 @@ export const CompanyRegistrationScreen: React.FC = () => {
   const totalSteps = STEP_NAMES.length;
   const isEditing = editingStep !== null && editingStep === currentStep;
 
+  useEffect(() => {
+    // If mounting with a previously submitted application, reset immediately to open a fresh form
+    const initialDraftState = useCompanyRegistrationStore.getState().draft;
+    if (initialDraftState.status === 'Submitted' || initialDraftState.currentStep === 7) {
+      resetRegistration();
+    }
+
+    return () => {
+      clearEditingStep();
+      const currentDraftState = useCompanyRegistrationStore.getState().draft;
+      if (currentDraftState.status === 'Submitted' || currentDraftState.currentStep === 7) {
+        useCompanyRegistrationStore.getState().resetRegistration();
+      }
+    };
+  }, [clearEditingStep, resetRegistration]);
+
   const {
     showDraftModal,
     handleSaveAndExit,
@@ -62,7 +78,7 @@ export const CompanyRegistrationScreen: React.FC = () => {
       return currentStep > 0 || !!draft.company.companyType;
     },
     onSaveDraft: () => {
-      // State is preserved in Zustand store
+      clearEditingStep();
     },
     onDiscardDraft: () => {
       resetRegistration();
@@ -72,11 +88,6 @@ export const CompanyRegistrationScreen: React.FC = () => {
   });
 
   const handleHeaderBack = () => {
-    if (editingStep !== null) {
-      clearEditingStep();
-      setStep(6);
-      return;
-    }
     if (currentStep > 0) {
       setStep(currentStep - 1);
     } else {
@@ -182,7 +193,7 @@ export const CompanyRegistrationScreen: React.FC = () => {
         subtitle={STEP_NAMES[currentStep] || ''}
         currentStepIndex={currentStep}
         totalSteps={totalSteps}
-        onBack={currentStep >= 6 ? undefined : handleHeaderBack}
+        onBack={currentStep >= 6 || isEditing ? undefined : handleHeaderBack}
         onSettings={() =>
           Alert.alert(
             "Company Incorporation Assistance",
@@ -192,24 +203,18 @@ export const CompanyRegistrationScreen: React.FC = () => {
       />
 
       {/* Main Scroll Content with Keyboard Handling */}
-      <KeyboardAvoidingView
+      <KeyboardAwareScrollView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          automaticallyAdjustKeyboardInsets={true}
-          showsVerticalScrollIndicator={false}
-        >
-          {renderStepContent()}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {renderStepContent()}
+      </KeyboardAwareScrollView>
 
       {/* Sticky Bottom Footer Navigation */}
       {currentStep < 7 && (
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), justifyContent: 'flex-end' }]}>
+        <KeyboardStickyFooter style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), justifyContent: 'flex-end' }]}>
           <TouchableOpacity
             style={[styles.nextBtn, isSubmitting && { opacity: 0.7 }]}
             onPress={handleNext}
@@ -226,12 +231,12 @@ export const CompanyRegistrationScreen: React.FC = () => {
                 {currentStep === 6
                   ? (isSubmitting ? 'Submitting...' : 'Submit Application')
                   : isEditing
-                  ? (isSubmitting ? 'Updating...' : 'Update and Continue')
-                  : 'Continue →'}
+                    ? (isSubmitting ? 'Updating...' : 'Update and Continue')
+                    : 'Continue →'}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
-        </View>
+        </KeyboardStickyFooter>
       )}
 
       <UniversalDraftModal

@@ -35,6 +35,7 @@ export const StepClassification: React.FC = () => {
 
   return (
     <CompanySectionCard
+      iconName="layers-outline"
       title="Company Classification"
       description="Specify MCA statutory classification details for incorporation filing."
     >
