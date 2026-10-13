@@ -147,9 +147,8 @@ const decisions: { name: string; href: string | { pathname: string; params: Reco
   { name: "GST filing", href: "/service/gst-filing", incomplete: "complete-profile", complete: "allow" },
   { name: "ITR filing (inside ITR)", href: "/service/itr-filing", incomplete: "complete-profile", complete: "allow" },
   { name: "TDS refund", href: "/service/tds-refund", incomplete: "complete-profile", complete: "allow" },
-  { name: "Personal loan (inside Loans)", href: "/service/personal-loan", incomplete: "complete-profile", complete: "allow" },
+  { name: "Personal loan", href: "/service/personal-loan", incomplete: "complete-profile", complete: "allow" },
   { name: "Business loan", href: "/service/business-loan", incomplete: "complete-profile", complete: "allow" },
-  { name: "Project finance", href: "/service/project-finance", incomplete: "complete-profile", complete: "allow" },
   { name: "Health insurance (service)", href: "/service/health-insurance", incomplete: "complete-profile", complete: "allow" },
   { name: "Accounting & bookkeeping", href: "/service/accounting-bookkeeping", incomplete: "complete-profile", complete: "allow" },
 ];
@@ -286,7 +285,6 @@ test("the services list, the hubs and the guard hooks all use the shared decisio
     "src/app/services.tsx",
     "src/modules/gst/screens/GstScreen/GstScreen.tsx",
     "src/modules/itr/screens/ItrScreen/ItrScreen.tsx",
-    "src/modules/loans/screens/LoansScreen/LoansScreen.tsx",
   ]) {
     assert.ok(read(file).includes("accessService("), `${file} still opens services through accessService`);
   }

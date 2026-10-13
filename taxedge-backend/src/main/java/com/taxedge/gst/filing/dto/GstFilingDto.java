@@ -4,6 +4,7 @@ import com.taxedge.gst.filing.enums.FilingFrequency;
 import com.taxedge.gst.filing.enums.FilingType;
 import com.taxedge.gst.filing.enums.ReturnType;
 import com.taxedge.gst.filing.enums.TaxCalculationMethod;
+import com.taxedge.gst.registration.enums.RegisterationStatus;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -50,4 +51,7 @@ public class GstFilingDto {
 
     @PositiveOrZero(message = "Estimated eligible ITC cannot be negative")
     private Long estimatedEligibleItc;
+    
+    @Builder.Default
+    private RegisterationStatus status = RegisterationStatus.DRAFT;
 }

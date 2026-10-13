@@ -13,4 +13,6 @@ public interface BusinessService {
 	String updateBusiness(String gstId, BusinessUpdateRequest businessUpdateRequest);
 
 	String deleteBusiness(String gstId);
+
+	String submitRegistration(String gstId, String pushToken);
 }

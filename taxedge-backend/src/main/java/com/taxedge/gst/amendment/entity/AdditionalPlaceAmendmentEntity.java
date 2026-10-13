@@ -2,6 +2,7 @@ package com.taxedge.gst.amendment.entity;
 
 import com.taxedge.customer.entity.Customer;
 import com.taxedge.gst.registration.enums.NatureOfPremises;
+import com.taxedge.gst.registration.enums.RegisterationStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,11 +45,28 @@ public class AdditionalPlaceAmendmentEntity {
     @Column(name = "image_data")
     private byte[] imageData;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private RegisterationStatus status = RegisterationStatus.DRAFT;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column(name = "submitted_at")
+    private LocalDateTime submittedAt;
 
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

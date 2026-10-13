@@ -1,6 +1,6 @@
-﻿import React from "react";
-import LoansScreen from "@/modules/loans/screens/LoansScreen";
+import React from "react";
+import { LoansMainScreen } from "@/modules/loans";
 
 export default function LoansServiceRoute() {
-  return <LoansScreen />;
+  return <LoansMainScreen />;
 }

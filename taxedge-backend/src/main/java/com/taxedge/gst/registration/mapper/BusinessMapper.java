@@ -15,11 +15,19 @@ public interface BusinessMapper {
 	@Mapping(target = "gstId", ignore = true)
 	@Mapping(target = "customer", ignore = true)
 	@Mapping(target = "documents", ignore = true)
+	@Mapping(target = "status", ignore = true)
+	@Mapping(target = "createdAt", ignore = true)
+	@Mapping(target = "updatedAt", ignore = true)
+	@Mapping(target = "submittedAt", ignore = true)
 	Business toEntity(BusinessRequest request);
 
 	@Mapping(target = "gstId", ignore = true)
 	@Mapping(target = "customer", ignore = true)
 	@Mapping(target = "documents", ignore = true)
+	@Mapping(target = "status", ignore = true)
+	@Mapping(target = "createdAt", ignore = true)
+	@Mapping(target = "updatedAt", ignore = true)
+	@Mapping(target = "submittedAt", ignore = true)
 	void updateEntity(BusinessUpdateRequest request, @MappingTarget Business business);
 
 	@Mapping(target = "customerId", source = "customer.custId")

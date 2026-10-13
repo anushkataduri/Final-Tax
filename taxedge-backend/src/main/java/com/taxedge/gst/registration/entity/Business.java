@@ -1,6 +1,10 @@
 package com.taxedge.gst.registration.entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import com.taxedge.customer.entity.Customer;
 import com.taxedge.gst.registration.enums.AccountType;
@@ -9,6 +13,7 @@ import com.taxedge.gst.registration.enums.ConstitutionOfBusiness;
 import com.taxedge.gst.registration.enums.NatureOfBusiness;
 import com.taxedge.gst.registration.enums.PlaceOfBusiness;
 import com.taxedge.gst.registration.enums.ReasonForRegistration;
+import com.taxedge.gst.registration.enums.RegisterationStatus;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -20,7 +25,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -129,6 +133,22 @@ public class Business {
 	@Column(name = "signatory_email", nullable = false, length = 150)
 	private String signatoryEmail;
 
-	@OneToOne(mappedBy = "business", cascade = CascadeType.ALL)
+	@OneToOne(mappedBy = "business", cascade = CascadeType.ALL, orphanRemoval = true)
 	private Documents documents;
+	
+	@Builder.Default
+	@Enumerated(EnumType.STRING)
+	@Column(name = "status", nullable = false, length = 20)
+	private RegisterationStatus status = RegisterationStatus.DRAFT;
+	
+	@CreationTimestamp
+	@Column(name = "created_at", nullable = false, updatable = false)
+	private LocalDateTime createdAt;
+
+	@UpdateTimestamp
+	@Column(name = "updated_at", nullable = false)
+	private LocalDateTime updatedAt;
+
+	@Column(name = "submitted_at")
+	private LocalDateTime submittedAt;
 }

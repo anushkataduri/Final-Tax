@@ -18,4 +18,7 @@ public interface SignatoryAmendmentService {
     SignatoryAmendmentViewDto updateSignatoryAmendment(Long id, String signatoryName, String signatoryPan,
                                                        LocalDate signatoryDob, String designation, String signatoryMobile,
                                                        String signatoryEmail, MultipartFile file) throws IOException;
+
+    String submitAmendment(Long id, String gstId, String pushToken);
+
 }

@@ -24,4 +24,6 @@ public interface GstComplianceService {
 			throws IOException;
 
 	String deleteCompliance(String gstin, String id);
+
+	String submitCompliance(String complianceId, String pushToken);
 }
