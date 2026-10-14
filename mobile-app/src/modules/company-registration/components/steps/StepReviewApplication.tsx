@@ -87,7 +87,7 @@ export const StepReviewApplication: React.FC = () => {
         <View style={styles.dataRow}><Text style={styles.dataLabel}>Company Mobile</Text><Text style={styles.dataValue}>{company.companyMobile || ''}</Text></View>
       </CompanySectionCard>
 
-      {/* 5. Promoter / Director Details — all directors */}
+      {/* 5. Promoter / Director Details ï¿½ all directors */}
       <CompanySectionCard
         iconName="people-outline"
         title="Promoter / Director Details"
@@ -97,27 +97,34 @@ export const StepReviewApplication: React.FC = () => {
           </TouchableOpacity>
         }
       >
-        {directors.map((director, idx) => (
-          <View key={director.id}>
-            {directors.length > 1 && (
-              <Text style={[styles.dataLabel, { fontWeight: '700', marginTop: idx > 0 ? 10 : 0, marginBottom: 4, color: '#083B75' }]}>
-                Director #{idx + 1}
-              </Text>
-            )}
-            <View style={styles.dataRow}><Text style={styles.dataLabel}>Full Name (as in PAN)</Text><Text style={styles.dataValue}>{director.name || ''}</Text></View>
-            <View style={styles.dataRow}><Text style={styles.dataLabel}>PAN Number</Text><Text style={styles.dataValue}>{director.pan || ''}</Text></View>
-            <View style={styles.dataRow}><Text style={styles.dataLabel}>Date of Birth</Text><Text style={styles.dataValue}>{director.dob || ''}</Text></View>
-            <View style={styles.dataRow}><Text style={styles.dataLabel}>Designation</Text><Text style={styles.dataValue}>{director.designation || ''}</Text></View>
-            <View style={styles.dataRow}><Text style={styles.dataLabel}>Email Address</Text><Text style={styles.dataValue}>{director.email || ''}</Text></View>
-            <View style={styles.dataRow}><Text style={styles.dataLabel}>Mobile Number</Text><Text style={styles.dataValue}>{director.phone || ''}</Text></View>
-            {!!director.din && (
-              <View style={styles.dataRow}><Text style={styles.dataLabel}>DIN (if allotted)</Text><Text style={styles.dataValue}>{director.din}</Text></View>
-            )}
+        {directors.length === 0 ? (
+          <View style={styles.dataRow}>
+            <Text style={styles.dataLabel}>Promoter / Director</Text>
+            <Text style={styles.dataValue}>Not added</Text>
           </View>
-        ))}
+        ) : (
+          directors.map((director, idx) => (
+            <View key={director.id}>
+              {directors.length > 1 && (
+                <Text style={[styles.dataLabel, { fontWeight: '700', marginTop: idx > 0 ? 10 : 0, marginBottom: 4, color: '#083B75' }]}>
+                  Director #{idx + 1}
+                </Text>
+              )}
+              <View style={styles.dataRow}><Text style={styles.dataLabel}>Full Name (as in PAN)</Text><Text style={styles.dataValue}>{director.name || ''}</Text></View>
+              <View style={styles.dataRow}><Text style={styles.dataLabel}>PAN Number</Text><Text style={styles.dataValue}>{director.pan || ''}</Text></View>
+              <View style={styles.dataRow}><Text style={styles.dataLabel}>Date of Birth</Text><Text style={styles.dataValue}>{director.dob || ''}</Text></View>
+              <View style={styles.dataRow}><Text style={styles.dataLabel}>Designation</Text><Text style={styles.dataValue}>{director.designation || ''}</Text></View>
+              <View style={styles.dataRow}><Text style={styles.dataLabel}>Email Address</Text><Text style={styles.dataValue}>{director.email || ''}</Text></View>
+              <View style={styles.dataRow}><Text style={styles.dataLabel}>Mobile Number</Text><Text style={styles.dataValue}>{director.phone || ''}</Text></View>
+              {!!director.din && (
+                <View style={styles.dataRow}><Text style={styles.dataLabel}>DIN (if allotted)</Text><Text style={styles.dataValue}>{director.din}</Text></View>
+              )}
+            </View>
+          ))
+        )}
       </CompanySectionCard>
 
-      {/* OPC Nominee — only for One Person Company */}
+      {/* OPC Nominee ï¿½ only for One Person Company */}
       {isOpc && !!opcNominee?.name && (
         <CompanySectionCard
           iconName="shield-checkmark-outline"

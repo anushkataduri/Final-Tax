@@ -52,7 +52,7 @@ export const StepSubmissionSuccess: React.FC = () => {
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>Entity Structure</Text>
-          <Text style={styles.value}>{draft.company.companyType || 'Private Limited'}</Text>
+          <Text style={styles.value}>{draft.company.companyType || 'N/A'}</Text>
         </View>
         <View style={styles.row}>
           <Text style={styles.label}>Submission Date</Text>

@@ -25,7 +25,7 @@ export const DirectorForm: React.FC<DirectorFormProps> = ({ onAddDirector }) => 
   const [aadhaar, setAadhaar] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [sharesPercentage, setSharesPercentage] = useState("50");
+  const [sharesPercentage, setSharesPercentage] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateField = (field: string, val: string) => {
@@ -74,7 +74,7 @@ export const DirectorForm: React.FC<DirectorFormProps> = ({ onAddDirector }) => 
     setAadhaar("");
     setEmail("");
     setPhone("");
-    setSharesPercentage("50");
+    setSharesPercentage("");
     setErrors({});
   };
 

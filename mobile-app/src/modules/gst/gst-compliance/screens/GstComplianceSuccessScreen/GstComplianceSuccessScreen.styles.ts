@@ -80,6 +80,13 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 10,
+    width: "100%",
+  },
+  refTextCol: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: "center",
   },
   refLabel: {
     fontSize: 11.5,
@@ -88,18 +95,28 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   refValue: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "800",
     marginTop: 2,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
+    lineHeight: 22,
+    flexWrap: "wrap",
+  },
+  refValueLong: {
+    fontSize: 14.5,
+    lineHeight: 19,
+    letterSpacing: 0.2,
   },
   copyButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 10,
+    flexShrink: 0,
+    alignSelf: "center",
+    borderWidth: 1,
   },
   copyText: {
     fontSize: 12.5,
@@ -224,8 +241,19 @@ export const getRefValueThemeStyle = () => ({
   color: BrandColors.PRIMARY_BLUE_ACCENT,
 });
 
-export const getCopyBtnThemeStyle = (isDark: boolean) => ({
-  backgroundColor: isDark ? "#334155" : "#EAF1FE",
+export const getCopyBtnThemeStyle = (isDark: boolean, isCopied = false) => ({
+  backgroundColor: isCopied
+    ? isDark
+      ? "rgba(22, 163, 74, 0.22)"
+      : "rgba(22, 163, 74, 0.12)"
+    : isDark
+    ? "#334155"
+    : "#EAF1FE",
+  borderColor: isCopied
+    ? isDark
+      ? "#16A34A"
+      : "#86EFAC"
+    : "transparent",
 });
 
 export const getDividerThemeStyle = (isDark: boolean) => ({

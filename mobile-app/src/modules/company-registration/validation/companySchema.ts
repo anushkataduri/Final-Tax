@@ -3,6 +3,8 @@ import type { LinkedRegistrations } from '../types/registration.types';
 
 export const getSuffixForType = (type?: string): string => {
   switch (type) {
+    case 'Private Limited':
+      return 'Private Limited';
     case 'One Person Company (OPC)':
       return '(OPC) Private Limited';
     case 'Section 8 (NGO)':
@@ -12,7 +14,7 @@ export const getSuffixForType = (type?: string): string => {
     case 'Limited Liability Partnership (LLP)':
       return 'LLP';
     default:
-      return 'Private Limited';
+      return '';
   }
 };
 

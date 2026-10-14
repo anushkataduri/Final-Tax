@@ -12,9 +12,18 @@ export interface UseGstLookupsProps {
 export const useGstFieldLookups = ({ data, onChange }: UseGstLookupsProps) => {
   const [pinLoading, setPinLoading] = useState(false);
   const [ifscLoading, setIfscLoading] = useState(false);
+  const [ifscError, setIfscError] = useState<string | null>(null);
+
   const latestPinRef = useRef<string>("");
   const latestIfscRef = useRef<string>("");
+  const latestRequestIdRef = useRef<number>(0);
+  const ifscErrorRef = useRef<string | null>(null);
   const dataRef = useRef(data);
+
+  const updateIfscError = useCallback((err: string | null) => {
+    ifscErrorRef.current = err;
+    setIfscError(err);
+  }, []);
 
   useEffect(() => {
     dataRef.current = data;
@@ -27,7 +36,6 @@ export const useGstFieldLookups = ({ data, onChange }: UseGstLookupsProps) => {
     setPinLoading(true);
     try {
       const res = await pinCodeService.lookup(cleanPin);
-      // Abort if user has already entered a different PIN or if input changed
       if (latestPinRef.current !== cleanPin) return;
       const current = dataRef.current;
       onChange({
@@ -46,33 +54,80 @@ export const useGstFieldLookups = ({ data, onChange }: UseGstLookupsProps) => {
   }, [onChange]);
 
   const handleIfscLookup = useCallback(async (code: string) => {
-    const clean = (code || "").trim().toUpperCase();
+    const clean = (code || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
     latestIfscRef.current = clean;
-    if (!ifscService.isValidFormat(clean)) return;
-    setIfscLoading(true);
-    try {
-      const res = await ifscService.lookup(clean);
-      // Abort if user has already entered a different IFSC code
-      if (latestIfscRef.current !== clean) return;
-      const current = dataRef.current;
+    const requestId = ++latestRequestIdRef.current;
+
+    if (!ifscService.isValidFormat(clean)) {
+      setIfscLoading(false);
+      updateIfscError(clean.length === 11 ? "Enter a valid 11-digit IFSC code" : null);
       onChange({
         ifscCode: clean,
-        bankName: current.bankName || res.bank,
-        branchName: current.branchName || res.branch,
+        bankName: "",
+        branchName: "",
       });
+      return;
+    }
+
+    updateIfscError(null);
+    setIfscLoading(true);
+    onChange({
+      ifscCode: clean,
+      bankName: "",
+      branchName: "",
+    });
+
+    try {
+      const res = await ifscService.lookup(clean);
+      if (requestId !== latestRequestIdRef.current) return;
+      onChange({
+        ifscCode: clean,
+        bankName: res.bank,
+        branchName: res.branch,
+      });
+      updateIfscError(null);
     } catch (e) {
-      logger.warn("[useGstFieldLookups] IFSC lookup skipped or failed:", { error: e });
+      if (requestId !== latestRequestIdRef.current) return;
+      const errorMsg = e instanceof Error && e.message ? e.message : "IFSC code not found";
+      updateIfscError(errorMsg);
+      onChange({
+        ifscCode: clean,
+        bankName: "",
+        branchName: "",
+      });
+      logger.warn("[useGstFieldLookups] IFSC lookup failed:", { code: clean, error: e });
     } finally {
-      if (latestIfscRef.current === clean) {
+      if (requestId === latestRequestIdRef.current) {
         setIfscLoading(false);
       }
     }
-  }, [onChange]);
+  }, [onChange, updateIfscError]);
+
+  const handleIfscChange = useCallback((code: string) => {
+    const clean = (code || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    latestIfscRef.current = clean;
+
+    if (clean.length === 11) {
+      handleIfscLookup(clean);
+    } else {
+      latestRequestIdRef.current += 1;
+      setIfscLoading(false);
+      updateIfscError(null);
+      onChange({
+        ifscCode: clean,
+        bankName: "",
+        branchName: "",
+      });
+    }
+  }, [handleIfscLookup, onChange, updateIfscError]);
 
   return {
     pinLoading,
     ifscLoading,
+    ifscError,
+    getIfscError: () => ifscErrorRef.current,
     handlePinLookup,
     handleIfscLookup,
+    handleIfscChange,
   };
 };

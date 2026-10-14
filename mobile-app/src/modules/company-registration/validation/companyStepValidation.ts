@@ -78,7 +78,7 @@ export const validateRegistrationStep = (
     const { valid, fieldErrors } = companySchema.validateStep(4, draft.company);
     const combinedErrors: Record<string, string> = { ...fieldErrors };
     const totalSubscribed = draft.directors.reduce((sum, d) => sum + (Number(d.numberOfShares) || 0), 0);
-    const faceValue = Number(draft.company.faceValuePerShare) || 10;
+    const faceValue = Number(draft.company.faceValuePerShare) || 0;
     const authCapital = Number(draft.company.authorizedCapital) || 0;
     const totalAuthShares = faceValue > 0 ? Math.floor(authCapital / faceValue) : 0;
     const isOpc = draft.company.companyType === 'One Person Company (OPC)';

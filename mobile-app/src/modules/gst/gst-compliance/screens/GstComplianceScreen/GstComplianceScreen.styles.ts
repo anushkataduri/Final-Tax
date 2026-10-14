@@ -56,6 +56,9 @@ export const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: "#EA580C",
   },
+  returnToReviewBtnDisabled: {
+    opacity: 0.5,
+  },
   returnToReviewBtnText: {
     fontSize: 12,
     fontWeight: "700",

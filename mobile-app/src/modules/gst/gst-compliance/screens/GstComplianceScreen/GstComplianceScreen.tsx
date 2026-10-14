@@ -1,16 +1,18 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Platform,
-  KeyboardAvoidingView,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/shared/hooks/useTheme";
 import { BrandColors } from "@/shared/theme";
+import {
+  KeyboardAwareScrollView,
+  KeyboardAwareScrollController,
+} from "@/shared/components/KeyboardAwareFormLayout";
 import { ComplianceHeader } from "@/modules/gst/gst-compliance/components/ComplianceHeader/ComplianceHeader";
 import {
   BottomSheetSelector,
@@ -52,49 +54,111 @@ const REQUEST_TYPES: SelectorOption[] = [
 export function GstComplianceScreen() {
   const { isDark } = useTheme();
 
-  const {
-    currentStep,
-    setCurrentStep,
-    isEditMode,
-    formData,
-    errors,
-    isSubmitting,
-    isSaving,
-    complianceId,
-    dbReviewData,
-    showConfirmModal,
-    setShowConfirmModal,
-    draftGuard,
-    updateField,
-    clearError,
-    handleGstinChange,
-    handleEditStep,
-    handleContinue,
-    handleBack,
-    handleConfirmSubmit,
-    getButtonText,
-  } = useComplianceForm();
-
   const scrollViewRef = useRef<ScrollView>(null);
+  const kbControllerRef = useRef<KeyboardAwareScrollController>(null);
+  const sectionPositionsRef = useRef<Record<string, number>>({});
+  const innerPositionsRef = useRef<Record<string, number>>({});
+  const requestTypeSectionYRef = useRef<number>(0);
+  const pendingScrollSectionRef = useRef<string | null>(null);
 
-  // Scroll to top when switching steps
+  const handleScrollToTarget = useCallback((targetY: number) => {
+    scrollViewRef.current?.scrollTo({ y: Math.max(0, targetY - 12), animated: true });
+  }, []);
+
+  const handleValidationError = useCallback((firstField: string) => {
+    if (firstField === "gstin" || firstField === "financialYear" || firstField === "requestType") {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      return;
+    }
+    const sectionKey =
+      firstField === "noticeDoc" || firstField === "purchaseDoc" || firstField === "salesDoc"
+        ? "documents"
+        : firstField.startsWith("notice") || firstField === "replyDueDate"
+        ? "notice"
+        : firstField === "gstr2bRef" || firstField === "reconciliationRemarks"
+        ? "recon"
+        : undefined;
+
+    const targetY = (sectionKey ? sectionPositionsRef.current[sectionKey] : undefined) ?? sectionPositionsRef.current[firstField];
+    if (typeof targetY === "number" && targetY > 0) {
+      setTimeout(() => handleScrollToTarget(targetY), 60);
+    }
+  }, [handleScrollToTarget]);
+
+  const {
+    currentStep, isEditMode, editSection, formData, errors,
+    isSubmitting, isSaving, complianceId, dbReviewData,
+    showConfirmModal, setShowConfirmModal, draftGuard,
+    updateField, clearError, setFieldError, handleGstinChange,
+    handleEditStep, handleContinue, handleBack, handleReturnToReview,
+    handleConfirmSubmit, getButtonText,
+  } = useComplianceForm({ onValidationError: handleValidationError });
+
+  const handleSectionLayout = useCallback((section: string, relativeY: number) => {
+    innerPositionsRef.current[section] = relativeY;
+    const computedY = requestTypeSectionYRef.current + relativeY;
+    sectionPositionsRef.current[section] = computedY;
+    if (pendingScrollSectionRef.current === section) {
+      pendingScrollSectionRef.current = null;
+      handleScrollToTarget(computedY);
+    }
+  }, [handleScrollToTarget]);
+
+  const handleRequestTypeContainerLayout = useCallback((e: { nativeEvent: { layout: { y: number } } }) => {
+    const parentY = e.nativeEvent.layout.y;
+    requestTypeSectionYRef.current = parentY;
+    Object.keys(innerPositionsRef.current).forEach((sec) => {
+      sectionPositionsRef.current[sec] = parentY + innerPositionsRef.current[sec];
+    });
+    if (
+      pendingScrollSectionRef.current &&
+      typeof sectionPositionsRef.current[pendingScrollSectionRef.current] === "number"
+    ) {
+      const targetY = sectionPositionsRef.current[pendingScrollSectionRef.current];
+      pendingScrollSectionRef.current = null;
+      handleScrollToTarget(targetY);
+    }
+  }, [handleScrollToTarget]);
+
+  // Coordinated section-aware scrolling between steps and edit actions
   useEffect(() => {
-    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-  }, [currentStep]);
+    if (currentStep === 1) {
+      pendingScrollSectionRef.current = null;
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      return;
+    }
 
-  const handleScrollField = (fieldName: string) => {
+    if (editSection && editSection !== "details") {
+      const targetY = sectionPositionsRef.current[editSection];
+      if (typeof targetY === "number" && targetY > 0) {
+        pendingScrollSectionRef.current = null;
+        handleScrollToTarget(targetY);
+      } else {
+        pendingScrollSectionRef.current = editSection;
+      }
+    } else {
+      pendingScrollSectionRef.current = null;
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    }
+  }, [currentStep, editSection, handleScrollToTarget]);
+
+  const handleScrollField = useCallback((fieldName: string) => {
     if (fieldName === "gstin") {
       scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-    } else if (fieldName === "gstr2bRef") {
-      scrollViewRef.current?.scrollTo({ y: 320, animated: true });
-    } else if (fieldName === "reconciliationRemarks") {
-      scrollViewRef.current?.scrollTo({ y: 440, animated: true });
-    } else if (fieldName === "noticeNumber") {
-      scrollViewRef.current?.scrollTo({ y: 180, animated: true });
-    } else if (fieldName === "noticeRemarks") {
-      scrollViewRef.current?.scrollTo({ y: 520, animated: true });
+      return;
     }
-  };
+
+    kbControllerRef.current?.scrollToFocusedInput();
+
+    const targetY =
+      sectionPositionsRef.current[fieldName] ??
+      (fieldName.includes("notice") ? sectionPositionsRef.current["notice"] : undefined) ??
+      (fieldName.includes("recon") ? sectionPositionsRef.current["recon"] : undefined);
+
+    if (typeof targetY === "number" && targetY > 0) {
+      handleScrollToTarget(targetY);
+    }
+  }, [handleScrollToTarget]);
 
   const [showFyModal, setShowFyModal] = useState(false);
   const [showTypeModal, setShowTypeModal] = useState(false);
@@ -110,20 +174,17 @@ export function GstComplianceScreen() {
         onBackPress={handleBack}
       />
 
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+      <KeyboardAwareScrollView
+        ref={scrollViewRef}
+        controllerRef={kbControllerRef}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        bounces={false}
+        extraScrollHeight={72}
       >
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          bounces={false}
-        >
           {/* Edit Mode Top Banner */}
           {isEditMode && currentStep === 0 && (
             <View
@@ -148,8 +209,12 @@ export function GstComplianceScreen() {
                 </Text>
               </View>
               <TouchableOpacity
-                style={styles.returnToReviewBtn}
-                onPress={() => setCurrentStep(1)}
+                style={[
+                  styles.returnToReviewBtn,
+                  (isSaving || isSubmitting) && styles.returnToReviewBtnDisabled,
+                ]}
+                onPress={handleReturnToReview}
+                disabled={isSaving || isSubmitting}
                 activeOpacity={0.8}
               >
                 <Text style={styles.returnToReviewBtnText}>Back to Review</Text>
@@ -212,99 +277,65 @@ export function GstComplianceScreen() {
 
                 {/* 2. Financial Year Selector */}
                 <View style={styles.fieldGroup}>
-                  <Text
-                    style={[
-                      styles.label,
-                      isDark && styles.labelDark,
-                    ]}
-                  >
+                  <Text style={[styles.label, isDark && styles.labelDark]}>
                     Financial Year <Text style={styles.star}>*</Text>
                   </Text>
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => setShowFyModal(true)}
-                    style={[
-                      styles.selectorBox,
-                      isDark && styles.selectorBoxDark,
-                      Boolean(errors.financialYear) && styles.selectorBoxError,
-                    ]}
+                    style={[styles.selectorBox, isDark && styles.selectorBoxDark, Boolean(errors.financialYear) && styles.selectorBoxError]}
                   >
                     <Text
                       style={[
                         styles.selectorText,
                         isDark && styles.selectorTextDark,
-                        !formData.financialYear &&
-                          (isDark
-                            ? styles.selectorPlaceholderDark
-                            : styles.selectorPlaceholder),
+                        !formData.financialYear && (isDark ? styles.selectorPlaceholderDark : styles.selectorPlaceholder),
                       ]}
                     >
                       {formData.financialYear || "Select Financial Year"}
                     </Text>
-                    <Ionicons
-                      name="chevron-down"
-                      size={18}
-                      color={isDark ? "#94A3B8" : "#64748B"}
-                    />
+                    <Ionicons name="chevron-down" size={18} color={isDark ? "#94A3B8" : "#64748B"} />
                   </TouchableOpacity>
-                  {errors.financialYear ? (
-                    <Text style={styles.errorText}>
-                      {errors.financialYear}
-                    </Text>
-                  ) : null}
+                  {errors.financialYear ? <Text style={styles.errorText}>{errors.financialYear}</Text> : null}
                 </View>
 
                 {/* 3. Request Type Selector */}
                 <View style={styles.fieldGroup}>
-                  <Text
-                    style={[
-                      styles.label,
-                      isDark && styles.labelDark,
-                    ]}
-                  >
+                  <Text style={[styles.label, isDark && styles.labelDark]}>
                     Request Type <Text style={styles.star}>*</Text>
                   </Text>
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => setShowTypeModal(true)}
-                    style={[
-                      styles.selectorBox,
-                      isDark && styles.selectorBoxDark,
-                      Boolean(errors.requestType) && styles.selectorBoxError,
-                    ]}
+                    style={[styles.selectorBox, isDark && styles.selectorBoxDark, Boolean(errors.requestType) && styles.selectorBoxError]}
                   >
                     <Text
                       style={[
                         styles.selectorText,
                         isDark && styles.selectorTextDark,
-                        !formData.requestType &&
-                          (isDark
-                            ? styles.selectorPlaceholderDark
-                            : styles.selectorPlaceholder),
+                        !formData.requestType && (isDark ? styles.selectorPlaceholderDark : styles.selectorPlaceholder),
                       ]}
                     >
                       {formData.requestType || "Select Request Type"}
                     </Text>
-                    <Ionicons
-                      name="chevron-down"
-                      size={18}
-                      color={isDark ? "#94A3B8" : "#64748B"}
-                    />
+                    <Ionicons name="chevron-down" size={18} color={isDark ? "#94A3B8" : "#64748B"} />
                   </TouchableOpacity>
-                  {errors.requestType ? (
-                    <Text style={styles.errorText}>{errors.requestType}</Text>
-                  ) : null}
+                  {errors.requestType ? <Text style={styles.errorText}>{errors.requestType}</Text> : null}
                 </View>
               </View>
 
               {/* Dynamic Section (Reconciliation vs Notice Response + Image 1 Document Cards) */}
-              <RequestTypeSection
-                formData={formData}
-                errors={errors}
-                onUpdateField={updateField}
-                onClearError={clearError}
-                onScrollField={handleScrollField}
-              />
+              <View onLayout={handleRequestTypeContainerLayout}>
+                <RequestTypeSection
+                  formData={formData}
+                  errors={errors}
+                  onUpdateField={updateField}
+                  onClearError={clearError}
+                  onScrollField={handleScrollField}
+                  onSetError={setFieldError}
+                  onSectionLayout={handleSectionLayout}
+                />
+              </View>
             </>
           )}
 
@@ -341,8 +372,7 @@ export function GstComplianceScreen() {
               )}
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </KeyboardAwareScrollView>
 
       {/* Financial Year Selector Modal */}
       <BottomSheetSelector
@@ -350,10 +380,7 @@ export function GstComplianceScreen() {
         title="Select Financial Year"
         options={FINANCIAL_YEARS}
         selectedValue={formData.financialYear}
-        onSelect={(val) => {
-          updateField("financialYear", val);
-          clearError("financialYear");
-        }}
+        onSelect={(val) => { updateField("financialYear", val); clearError("financialYear"); }}
         onClose={() => setShowFyModal(false)}
       />
 
@@ -364,10 +391,7 @@ export function GstComplianceScreen() {
         options={REQUEST_TYPES}
         selectedValue={formData.requestType}
         onSelect={(val) => {
-          updateField(
-            "requestType",
-            val as "Reconciliation Support" | "Notice Response"
-          );
+          updateField("requestType", val as "Reconciliation Support" | "Notice Response");
           clearError("requestType");
         }}
         onClose={() => setShowTypeModal(false)}

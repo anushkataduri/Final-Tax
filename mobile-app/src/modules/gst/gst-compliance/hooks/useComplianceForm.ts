@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Alert } from "react-native";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Alert, Keyboard } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -10,6 +10,7 @@ import {
 import {
   cleanGstinInput,
   isValidGstin,
+  isValidGstStateCode,
 } from "@/modules/gst/utils/gstValidation";
 import {
   submitComplianceRequest,
@@ -19,23 +20,25 @@ import { gstComplianceApi } from "@/modules/gst/services/gstComplianceApi";
 import { useAuthStore } from "@/store/authStore";
 import { addDraftToIndex, removeDraftFromIndex } from "@/shared/hooks/useServiceDraft";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
-import { parseCreatedComplianceId } from "../utils/complianceResponse";
-import { getErrorMessage } from "@/core/error-handling/errorMessage";
+import { parseCreatedComplianceId, sanitizeComplianceSaveError } from "../utils/complianceResponse";
 import { logger } from "@/core/logging/logger";
 
+export interface UseComplianceFormOptions {
+  onValidationError?: (firstField: string) => void;
+}
+
+const FIELD_ORDER: (keyof ValidationErrors)[] = [
+  "gstin", "financialYear", "requestType",
+  "noticeNumber", "noticeIssueDate", "replyDueDate",
+  "purchaseDoc", "salesDoc", "noticeDoc",
+  "gstr2bRef", "reconciliationRemarks", "noticeRemarks",
+];
+
 const initialFormData: ComplianceFormData = {
-  gstin: "",
-  financialYear: "",
-  requestType: "",
-  purchaseDoc: null,
-  salesDoc: null,
-  gstr2bRef: "",
-  reconciliationRemarks: "",
-  noticeNumber: "",
-  noticeIssueDate: "",
-  replyDueDate: "",
-  noticeDoc: null,
-  noticeRemarks: "",
+  gstin: "", financialYear: "", requestType: "",
+  purchaseDoc: null, salesDoc: null, noticeDoc: null,
+  gstr2bRef: "", reconciliationRemarks: "",
+  noticeNumber: "", noticeIssueDate: "", replyDueDate: "", noticeRemarks: "",
 };
 
 function getDraftKey(mobile: string): string {
@@ -51,11 +54,12 @@ function getCleanMobile(): string {
   return mobile ? String(mobile).replace(/\D/g, "") : "";
 }
 
-export function useComplianceForm() {
+export function useComplianceForm(options?: UseComplianceFormOptions) {
   const router = useRouter();
 
   const [currentStep, setCurrentStep] = useState<number>(0); // 0 = Form, 1 = Review
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [editSection, setEditSection] = useState<string | null>(null);
   const [formData, setFormData] = useState<ComplianceFormData>(initialFormData);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -65,6 +69,16 @@ export function useComplianceForm() {
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [hasCheckedDraft, setHasCheckedDraft] = useState<boolean>(false);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState<boolean>(false);
+
+  const isMountedRef = useRef<boolean>(true);
+  const activeSaveIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Check if draft exists on mount and silently restore without popup
   useEffect(() => {
@@ -78,12 +92,8 @@ export function useComplianceForm() {
             const draft = JSON.parse(raw);
             const saved: ComplianceFormData = draft.formData || {};
             if (
-              saved.gstin ||
-              saved.financialYear ||
-              saved.requestType ||
-              saved.purchaseDoc ||
-              saved.noticeDoc ||
-              saved.noticeNumber
+              saved.gstin || saved.financialYear || saved.requestType ||
+              saved.purchaseDoc || saved.noticeDoc || saved.noticeNumber
             ) {
               setFormData((prev) => ({ ...prev, ...saved }));
             }
@@ -101,13 +111,8 @@ export function useComplianceForm() {
   const isDirty = useCallback((): boolean => {
     if (isSubmittedSuccess) return false;
     return Boolean(
-      formData.gstin ||
-      formData.financialYear ||
-      formData.requestType ||
-      formData.purchaseDoc ||
-      formData.salesDoc ||
-      formData.noticeDoc ||
-      formData.noticeNumber
+      formData.gstin || formData.financialYear || formData.requestType ||
+      formData.purchaseDoc || formData.salesDoc || formData.noticeDoc || formData.noticeNumber
     );
   }, [formData, isSubmittedSuccess]);
 
@@ -148,9 +153,14 @@ export function useComplianceForm() {
     isSubmitted: () => isSubmittedSuccess,
   });
 
+  const modifiedDocsRef = useRef<Set<string>>(new Set());
+
   const updateField = useCallback(
     <K extends keyof ComplianceFormData>(field: K, value: ComplianceFormData[K]) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
+      if (field === "purchaseDoc" || field === "salesDoc" || field === "noticeDoc") {
+        modifiedDocsRef.current.add(field);
+      }
     },
     []
   );
@@ -164,6 +174,13 @@ export function useComplianceForm() {
     });
   }, []);
 
+  const setFieldError = useCallback(
+    (field: keyof ValidationErrors, message: string) => {
+      setErrors((prev) => ({ ...prev, [field]: message }));
+    },
+    []
+  );
+
   // Instant GSTIN sanitization and validation
   const handleGstinChange = useCallback(
     (text: string) => {
@@ -171,7 +188,12 @@ export function useComplianceForm() {
       updateField("gstin", cleaned);
 
       if (cleaned.length === 15) {
-        if (!isValidGstin(cleaned)) {
+        if (!isValidGstStateCode(cleaned.slice(0, 2))) {
+          setErrors((prev) => ({
+            ...prev,
+            gstin: "Invalid State/UT code in GSTIN (format: 29AAAAA0000A1Z5)",
+          }));
+        } else if (!isValidGstin(cleaned)) {
           setErrors((prev) => ({
             ...prev,
             gstin: "Invalid GSTIN format (e.g. 29AAAAA0000A1Z5)",
@@ -187,18 +209,35 @@ export function useComplianceForm() {
   );
 
   // Edit action triggered from Review Step
-  const handleEditStep = useCallback((_section?: string) => {
+  const handleEditStep = useCallback((section?: string) => {
     setIsEditMode(true);
+    setEditSection(section || null);
+    modifiedDocsRef.current.clear();
     setCurrentStep(0);
   }, []);
+
+  // Safe navigation back to Review step from Edit Mode
+  const handleReturnToReview = useCallback(() => {
+    if (isSaving || isSubmitting) return;
+    setIsEditMode(false);
+    setEditSection(null);
+    setCurrentStep(1);
+  }, [isSaving, isSubmitting]);
 
   // Continue or Save & Review action: Saves to DB (POST or PUT) and fetches back from DB
   const handleContinue = useCallback(async () => {
     if (currentStep === 0) {
       const { isValid, errors: validationErrors } = validateComplianceForm(formData);
-      if (!isValid) {
-        setErrors(validationErrors);
-        const errorList = Object.values(validationErrors).filter(Boolean);
+      const activeErrors = { ...errors, ...validationErrors };
+      const hasErrors = !isValid || Object.keys(activeErrors).length > 0;
+      if (hasErrors) {
+        Keyboard.dismiss();
+        setErrors(activeErrors);
+        const errorList = Object.values(activeErrors).filter(Boolean);
+        const firstField = FIELD_ORDER.find((f) => Boolean(activeErrors[f]));
+        if (firstField && options?.onValidationError) {
+          options.onValidationError(firstField);
+        }
         Alert.alert(
           "Required Fields Missing",
           errorList.length > 0
@@ -208,14 +247,18 @@ export function useComplianceForm() {
         return;
       }
 
+      if (isSaving) return;
+
       setIsSaving(true);
       try {
         let activeId = complianceId;
 
         if (activeId) {
-          // 1. PUT update to existing database record
-          logger.debug("[Compliance Review] Updating record in DB", { gstin: formData.gstin, activeId });
-          await gstComplianceApi.updateCompliance(formData.gstin, activeId, formData);
+          // 1. PUT update to existing database record; only upload newly picked/modified docs
+          const changedDocs = Array.from(modifiedDocsRef.current);
+          logger.debug("[Compliance Review] Updating record in DB", { gstin: formData.gstin, activeId, changedDocs });
+          await gstComplianceApi.updateCompliance(formData.gstin, activeId, formData, changedDocs);
+          modifiedDocsRef.current.clear();
         } else {
           // 1. POST create new record in database
           logger.debug("[Compliance Review] Saving new compliance record in DB");
@@ -230,40 +273,63 @@ export function useComplianceForm() {
           }
         }
 
-        // 2. GET retrieve record from DB by ID to populate Review section
-        if (activeId) {
-          logger.debug("[Compliance Review] Fetching record from DB", { gstin: formData.gstin, activeId });
-          const fetchedDto = await gstComplianceApi.getCompliance(formData.gstin, activeId);
-          logger.debug("[Compliance Review] Retrieved from DB", { hasDto: !!fetchedDto });
-          setDbReviewData(fetchedDto);
-        }
-
+        // Advance to Review immediately now that the save succeeded and active ID is resolved.
         if (isEditMode) {
           setIsEditMode(false);
+          setEditSection(null);
+          setDbReviewData((prev: any) => ({
+            ...prev,
+            gstin: formData.gstin,
+            financialYear: formData.financialYear,
+            requestType: formData.requestType === "Reconciliation Support" ? "RECONCILIATION_SUPPORT" : "NOTICE_RESPONSE",
+            gstr2bNumber: formData.gstr2bRef,
+            noticeNumber: formData.noticeNumber,
+            noticeIssueDate: formData.noticeIssueDate,
+            replyDueDate: formData.replyDueDate,
+            message: formData.requestType === "Reconciliation Support" ? formData.reconciliationRemarks : formData.noticeRemarks,
+          }));
         }
-
         setCurrentStep(1);
+
+        // 2. Non-blocking background sync for review DTO if activeId exists.
+        // Step 1 review screen renders completely from `formData` and `complianceId`.
+        // A background fetch failure does NOT block the user or report a save error.
+        if (activeId) {
+          const targetId = activeId;
+          activeSaveIdRef.current = targetId;
+          void gstComplianceApi.getCompliance(formData.gstin, targetId)
+            .then((fetchedDto) => {
+              if (activeSaveIdRef.current === targetId && isMountedRef.current) {
+                logger.debug("[Compliance Review] Background DTO retrieved", { hasDto: !!fetchedDto });
+                setDbReviewData(fetchedDto);
+              }
+            })
+            .catch((fetchErr) => {
+              logger.debug("[Compliance Review] Non-blocking background fetch skipped", { error: fetchErr });
+            });
+        }
       } catch (err) {
-        logger.error("[useComplianceForm] Error saving/fetching compliance record", { error: err });
-        Alert.alert(
-          "Save Failed",
-          getErrorMessage(err) || "Failed to save details to database. Please check your inputs and try again."
-        );
+        logger.error("[useComplianceForm] Error saving compliance record", { error: err });
+        Alert.alert("Save Failed", sanitizeComplianceSaveError(err));
       } finally {
         setIsSaving(false);
       }
     } else {
       setShowConfirmModal(true);
     }
-  }, [currentStep, isEditMode, formData, complianceId]);
+  }, [currentStep, isEditMode, formData, complianceId, errors, isSaving, options]);
 
   const handleBack = useCallback(() => {
-    if (currentStep === 1) {
+    if (isEditMode && currentStep === 0) {
+      handleReturnToReview();
+    } else if (currentStep === 1) {
       setCurrentStep(0);
     } else {
       router.back();
     }
-  }, [currentStep, router]);
+  }, [isEditMode, currentStep, handleReturnToReview, router]);
+
+  const confirmSubmitRef = useRef<() => Promise<void>>(async () => {});
 
   // Execute backend submission
   const handleConfirmSubmit = useCallback(async () => {
@@ -301,7 +367,12 @@ export function useComplianceForm() {
           result.error || "Unable to submit your request. Please check your connection and retry.",
           [
             { text: "Cancel", style: "cancel" },
-            { text: "Retry", onPress: handleConfirmSubmit },
+            {
+              text: "Retry",
+              onPress: () => {
+                void confirmSubmitRef.current?.();
+              },
+            },
           ]
         );
       }
@@ -312,13 +383,22 @@ export function useComplianceForm() {
         "Could not communicate with the server. Please verify your internet connection.",
         [
           { text: "Cancel", style: "cancel" },
-          { text: "Retry", onPress: handleConfirmSubmit },
+          {
+            text: "Retry",
+            onPress: () => {
+              void confirmSubmitRef.current?.();
+            },
+          },
         ]
       );
     } finally {
       setIsSubmitting(false);
     }
   }, [formData, complianceId, router, draftGuard]);
+
+  useEffect(() => {
+    confirmSubmitRef.current = handleConfirmSubmit;
+  }, [handleConfirmSubmit]);
 
   const getButtonText = useCallback((): string => {
     if (isEditMode && currentStep === 0) {
@@ -334,6 +414,8 @@ export function useComplianceForm() {
     currentStep,
     setCurrentStep,
     isEditMode,
+    editSection,
+    setEditSection,
     formData,
     errors,
     isSubmitting,
@@ -345,10 +427,12 @@ export function useComplianceForm() {
     draftGuard,
     updateField,
     clearError,
+    setFieldError,
     handleGstinChange,
     handleEditStep,
     handleContinue,
     handleBack,
+    handleReturnToReview,
     handleConfirmSubmit,
     getButtonText,
   };

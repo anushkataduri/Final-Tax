@@ -141,7 +141,7 @@ export const StepPromoters: React.FC = () => {
         />
       ))}
 
-      {!isOpc && (
+      {(!isOpc || directors.length === 0) && (
         <TouchableOpacity style={styles.addBtn} onPress={handleAddPromoter} activeOpacity={0.7}>
           <Ionicons name="add-circle-outline" size={20} color="#083B75" />
           <Text style={styles.addBtnText}>+ Add Promoter / Director</Text>

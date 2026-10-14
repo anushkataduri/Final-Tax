@@ -78,7 +78,7 @@ export const StepProposedNames: React.FC = () => {
           placeholder="Enter primary proposed company name"
           placeholderTextColor="#94A3B8"
         />
-        <Text style={styles.suffixLabel}>Legal suffix: {suffix}</Text>
+        {!!suffix && <Text style={styles.suffixLabel}>Legal suffix: {suffix}</Text>}
         {!!fieldErrors.proposedName1 && <Text style={styles.errorText}>{fieldErrors.proposedName1}</Text>}
       </View>
 
@@ -92,7 +92,7 @@ export const StepProposedNames: React.FC = () => {
           placeholder="Enter alternative proposed company name"
           placeholderTextColor="#94A3B8"
         />
-        <Text style={styles.suffixLabel}>Legal suffix: {suffix}</Text>
+        {!!suffix && <Text style={styles.suffixLabel}>Legal suffix: {suffix}</Text>}
         {!!fieldErrors.proposedName2 && <Text style={styles.errorText}>{fieldErrors.proposedName2}</Text>}
       </View>
     </CompanySectionCard>

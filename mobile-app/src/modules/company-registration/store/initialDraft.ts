@@ -15,7 +15,7 @@ export const initialDraft: CompanyRegistrationDraft = {
     proposedName2: '',
     proposedName3: '',
     nameSuffix: '',
-    nameAvailabilityStatus: 'Available',
+    nameAvailabilityStatus: undefined,
     registeredAddressLine: '',
     registeredCity: '',
     registeredDistrict: '',

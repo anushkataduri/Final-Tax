@@ -26,8 +26,8 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({ onAddPartner }) => {
   const [aadhaar, setAadhaar] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [profitSharingRatio, setProfitSharingRatio] = useState('50');
-  const [capitalContribution, setCapitalContribution] = useState('50000');
+  const [profitSharingRatio, setProfitSharingRatio] = useState('');
+  const [capitalContribution, setCapitalContribution] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateField = (field: string, val: string) => {
@@ -79,8 +79,8 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({ onAddPartner }) => {
     setAadhaar('');
     setEmail('');
     setPhone('');
-    setProfitSharingRatio('50');
-    setCapitalContribution('50000');
+    setProfitSharingRatio('');
+    setCapitalContribution('');
     setErrors({});
   };
 

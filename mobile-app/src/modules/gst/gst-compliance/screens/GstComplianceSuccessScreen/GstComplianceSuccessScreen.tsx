@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Animated,
   Alert,
   BackHandler,
+  Platform,
+  Clipboard,
 } from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -14,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/shared/hooks/useTheme";
 import { BrandColors } from "@/shared/theme";
+import { logger } from "@/core/logging/logger";
 import {
   styles,
   getRootThemeStyle,
@@ -52,9 +55,9 @@ export function GstComplianceSuccessScreen() {
   const estimatedResponse = params.estimatedResponse || "Within 24 Hours";
 
   // Animations
-  const scaleAnim = useRef(new Animated.Value(0.5)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-  const cardSlideAnim = useRef(new Animated.Value(30)).current;
+  const [scaleAnim] = useState(() => new Animated.Value(0.5));
+  const [opacityAnim] = useState(() => new Animated.Value(0));
+  const [cardSlideAnim] = useState(() => new Animated.Value(30));
 
   useEffect(() => {
     Animated.parallel([
@@ -77,13 +80,13 @@ export function GstComplianceSuccessScreen() {
     ]).start();
   }, [scaleAnim, opacityAnim, cardSlideAnim]);
 
-  const handleGoDashboard = () => {
+  const handleGoDashboard = useCallback(() => {
     router.replace("/(main)/home");
-  };
+  }, [router]);
 
-  const handleTrackRequest = () => {
+  const handleTrackRequest = useCallback(() => {
     router.replace("/(main)/applications");
-  };
+  }, [router]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -91,11 +94,59 @@ export function GstComplianceSuccessScreen() {
       return true;
     });
     return () => sub.remove();
+  }, [handleGoDashboard]);
+
+  const [isCopied, setIsCopied] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
   }, []);
 
-  const handleCopyRef = () => {
-    Alert.alert("Reference ID Copied", `Reference ID ${refId} has been copied.`);
-  };
+  const handleCopyRef = useCallback(async () => {
+    let success = false;
+
+    // 1. Web modern navigator.clipboard
+    if (Platform.OS === "web") {
+      try {
+        if (typeof navigator !== "undefined" && navigator?.clipboard?.writeText) {
+          await navigator.clipboard.writeText(refId);
+          success = true;
+        }
+      } catch (err) {
+        logger.debug("[GstComplianceSuccessScreen] Web navigator.clipboard error", { error: err });
+      }
+    }
+
+    // 2. React Native / React Native Web Clipboard API
+    if (!success) {
+      try {
+        if (Clipboard && typeof Clipboard.setString === "function") {
+          Clipboard.setString(refId);
+          success = true;
+        }
+      } catch (err) {
+        logger.debug("[GstComplianceSuccessScreen] Clipboard.setString error", { error: err });
+      }
+    }
+
+    if (success) {
+      setIsCopied(true);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => {
+        setIsCopied(false);
+      }, 2500);
+    } else {
+      Alert.alert(
+        "Copy Unavailable",
+        `Unable to copy to clipboard on this device. Your Reference ID is ${refId}. Please note it down.`
+      );
+    }
+  }, [refId]);
 
   const paddingTop = Math.max(insets.top, 20);
   const paddingBottom = Math.max(insets.bottom, 20);
@@ -158,11 +209,20 @@ export function GstComplianceSuccessScreen() {
           ]}
         >
           <View style={styles.refRow}>
-            <View>
+            <View style={styles.refTextCol}>
               <Text style={[styles.refLabel, getRefLabelThemeStyle(isDark)]}>
                 Reference ID
               </Text>
-              <Text style={[styles.refValue, getRefValueThemeStyle()]}>
+              <Text
+                style={[
+                  styles.refValue,
+                  getRefValueThemeStyle(),
+                  refId.length > 20 && styles.refValueLong,
+                ]}
+                selectable={true}
+                accessibilityRole="text"
+                accessibilityLabel={`Reference ID: ${refId}`}
+              >
                 {refId}
               </Text>
             </View>
@@ -170,20 +230,35 @@ export function GstComplianceSuccessScreen() {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={handleCopyRef}
-              style={[styles.copyButton, getCopyBtnThemeStyle(isDark)]}
+              style={[styles.copyButton, getCopyBtnThemeStyle(isDark, isCopied)]}
+              accessibilityRole="button"
+              accessibilityLabel={isCopied ? "Reference ID copied" : "Copy Reference ID"}
+              accessibilityHint="Copies the submission reference ID to your clipboard"
             >
               <Ionicons
-                name="copy-outline"
+                name={isCopied ? "checkmark-circle-outline" : "copy-outline"}
                 size={16}
-                color={BrandColors.PRIMARY_BLUE_ACCENT}
+                color={
+                  isCopied
+                    ? isDark
+                      ? "#4ADE80"
+                      : "#16A34A"
+                    : BrandColors.PRIMARY_BLUE_ACCENT
+                }
               />
               <Text
                 style={[
                   styles.copyText,
-                  { color: BrandColors.PRIMARY_BLUE_ACCENT },
+                  {
+                    color: isCopied
+                      ? isDark
+                        ? "#4ADE80"
+                        : "#16A34A"
+                      : BrandColors.PRIMARY_BLUE_ACCENT,
+                  },
                 ]}
               >
-                Copy
+                {isCopied ? "Copied!" : "Copy"}
               </Text>
             </TouchableOpacity>
           </View>

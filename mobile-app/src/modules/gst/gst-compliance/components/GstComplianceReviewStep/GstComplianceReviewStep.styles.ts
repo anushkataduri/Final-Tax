@@ -48,7 +48,6 @@ export const styles = StyleSheet.create({
   readySubDark: {
     color: "#BBF7D0",
   },
-
   card: {
     borderRadius: 16,
     borderWidth: 1,
@@ -68,7 +67,6 @@ export const styles = StyleSheet.create({
     backgroundColor: "#1E293B",
     borderColor: "#334155",
   },
-
   cardHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -82,7 +80,6 @@ export const styles = StyleSheet.create({
   cardTitleDark: {
     color: "#F8FAFC",
   },
-
   editBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -97,7 +94,6 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
     color: BrandColors.PRIMARY_ORANGE,
   },
-
   divider: {
     height: 1,
     backgroundColor: "#F1F5F9",
@@ -106,7 +102,6 @@ export const styles = StyleSheet.create({
   dividerDark: {
     backgroundColor: "#334155",
   },
-
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -143,8 +138,6 @@ export const styles = StyleSheet.create({
   valueMissing: {
     color: "#EF4444",
   },
-
-  // Document item row in review step
   docRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -184,19 +177,34 @@ export const styles = StyleSheet.create({
   docTitleTextDark: {
     color: "#F8FAFC",
   },
-  docMetaText: {
+  docMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginTop: 2,
+    gap: 4,
+  },
+  docFileName: {
     fontSize: 11.5,
     color: "#64748B",
-    marginTop: 1,
+    flexShrink: 1,
   },
-  docMetaTextDark: {
+  docFileNameDark: {
     color: "#94A3B8",
+  },
+  docFileSizeBadge: {
+    fontSize: 11.5,
+    fontWeight: "600",
+    color: "#475569",
+    flexShrink: 0,
+  },
+  docFileSizeBadgeDark: {
+    color: "#CBD5E1",
   },
   docStatusMissing: {
     color: "#DC2626",
     fontWeight: "500",
   },
-
   docViewBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -220,8 +228,6 @@ export const styles = StyleSheet.create({
   docViewBtnTextDark: {
     color: "#93C5FD",
   },
-
-  // Preview Modal
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.65)",
@@ -270,15 +276,151 @@ export const styles = StyleSheet.create({
     height: 300,
     borderRadius: 8,
   },
-  pdfFallbackBox: {
+  pdfWebContainer: {
+    width: "100%",
+    height: 380,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  webActionRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 8,
+    width: "100%",
+  },
+  webActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    backgroundColor: "#EFF6FF",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  webActionBtnDark: {
+    backgroundColor: "#1E3A8A",
+    borderColor: "#2563EB",
+  },
+  webActionBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1D4ED8",
+  },
+  webActionBtnTextDark: {
+    color: "#93C5FD",
+  },
+  nativeFallbackBox: {
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    width: "100%",
     gap: 12,
-    paddingVertical: 30,
   },
-  pdfFallbackText: {
-    fontSize: 13,
+  nativeDocInfoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 12,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    width: "100%",
+  },
+  nativeDocInfoCardDark: {
+    backgroundColor: "#0F172A",
+    borderColor: "#334155",
+  },
+  nativeDocDetailsCol: {
+    flex: 1,
+  },
+  nativeDocTitle: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    color: BrandColors.TEXT_PRIMARY,
+  },
+  nativeDocTitleDark: {
+    color: "#F8FAFC",
+  },
+  nativeDocMeta: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  nativeDocMetaDark: {
+    color: "#94A3B8",
+  },
+  nativeNoticeText: {
+    fontSize: 12,
     color: "#64748B",
     textAlign: "center",
+    lineHeight: 16,
+    maxWidth: 300,
+  },
+  nativeNoticeTextDark: {
+    color: "#94A3B8",
+  },
+  externalShareBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: BrandColors.PRIMARY_ORANGE,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  externalShareBtnDisabled: {
+    opacity: 0.6,
+  },
+  externalShareBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  nativeErrorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    padding: 8,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 6,
+    marginTop: 6,
+    width: "100%",
+  },
+  nativeErrorBoxDark: {
+    backgroundColor: "#450A0A",
+  },
+  nativeErrorText: {
+    fontSize: 11.5,
+    color: "#DC2626",
+    flex: 1,
+  },
+  nativeErrorTextDark: {
+    color: "#FCA5A5",
+  },
+  previewDoneBtn: {
+    margin: 14,
+    marginTop: 0,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F1F5F9",
+  },
+  previewDoneBtnDark: {
+    backgroundColor: "#334155",
+  },
+  previewDoneBtnText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#475569",
+  },
+  previewDoneBtnTextDark: {
+    color: "#F1F5F9",
   },
 });

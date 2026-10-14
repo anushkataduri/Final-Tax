@@ -90,18 +90,28 @@ export const styles = StyleSheet.create({
   },
   uploadedFileInfoRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginTop: 6,
     gap: 6,
   },
   checkCircle: {
+    marginTop: 2,
     marginRight: 2,
+  },
+  uploadedFileDetails: {
+    flex: 1,
   },
   uploadedFileName: {
     fontSize: Typography.fontSize.xs + 1.5,
     fontWeight: "600",
     color: "#065F46",
-    flex: 1,
+    flexShrink: 1,
+  },
+  uploadedFileSizeText: {
+    fontSize: Typography.fontSize.xs,
+    color: "#047857",
+    fontWeight: "500",
+    marginTop: 2,
   },
   uploadedActionsRow: {
     flexDirection: "row",

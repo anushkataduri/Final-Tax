@@ -50,9 +50,6 @@ export type FormErrors = Partial<Record<keyof GstBusinessFormData, string>>;
 const BANK_FIELD_KEYS = BANK_FIELD_NAMES as readonly (keyof GstBusinessFormData)[];
 const SIGNATORY_FIELD_KEYS = SIGNATORY_FIELD_NAMES as readonly (keyof GstBusinessFormData)[];
 
-
-// --- PROPS INTERFACE ---
-
 interface Props {
   data: GstBusinessFormData;
   onChange: (fields: Partial<GstBusinessFormData>) => void;
@@ -62,8 +59,6 @@ interface Props {
   initialExpandedSection?: string | null;
   onSectionLayout?: (section: "bank" | "signatory", y: number) => void;
 }
-
-// --- MAIN COMPONENT ---
 
 export const GstBusinessStep: React.FC<Props> = ({
   data,
@@ -79,52 +74,27 @@ export const GstBusinessStep: React.FC<Props> = ({
   const bankYRef = useRef(0);
   const signatoryYRef = useRef(0);
 
-  const bankErrorCount = useMemo(
-    () => BANK_FIELD_KEYS.filter((field) => Boolean(errors[field])).length,
-    [errors]
-  );
-  const signatoryErrorCount = useMemo(
-    () => SIGNATORY_FIELD_KEYS.filter((field) => Boolean(errors[field])).length,
-    [errors]
-  );
-
+  const bankErrorCount = useMemo(() => BANK_FIELD_KEYS.filter((f) => Boolean(errors[f])).length, [errors]);
+  const signatoryErrorCount = useMemo(() => SIGNATORY_FIELD_KEYS.filter((f) => Boolean(errors[f])).length, [errors]);
   const hasBankErrors = bankErrorCount > 0;
   const hasSignatoryErrors = signatoryErrorCount > 0;
 
-  const isBankExpanded =
-    hasBankErrors ||
-    (userToggledBank !== null
-      ? userToggledBank
-      : initialExpandedSection === "bank");
-  const isSignatoryExpanded =
-    hasSignatoryErrors ||
-    (userToggledSignatory !== null
-      ? userToggledSignatory
-      : initialExpandedSection === "signatory");
+  const isBankExpanded = hasBankErrors || (userToggledBank !== null ? userToggledBank : initialExpandedSection === "bank");
+  const isSignatoryExpanded = hasSignatoryErrors || (userToggledSignatory !== null ? userToggledSignatory : initialExpandedSection === "signatory");
 
   useEffect(() => {
-    if (initialExpandedSection === "bank" || hasBankErrors) {
-      setUserToggledBank(true);
-      const timer = setTimeout(() => {
-        if (bankYRef.current > 0) {
-          onRequestScrollToSection?.("bank", bankYRef.current);
-        }
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [initialExpandedSection, hasBankErrors, onRequestScrollToSection]);
-
-  useEffect(() => {
-    if (initialExpandedSection === "signatory" || hasSignatoryErrors) {
-      setUserToggledSignatory(true);
-      const timer = setTimeout(() => {
-        if (signatoryYRef.current > 0) {
-          onRequestScrollToSection?.("signatory", signatoryYRef.current);
-        }
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [initialExpandedSection, hasSignatoryErrors, onRequestScrollToSection]);
+    const shouldExpandBank = initialExpandedSection === "bank" || hasBankErrors;
+    const shouldExpandSignatory = initialExpandedSection === "signatory" || hasSignatoryErrors;
+    const target = shouldExpandBank ? "bank" : shouldExpandSignatory ? "signatory" : null;
+    if (!target) return;
+    const timer = setTimeout(() => {
+      if (shouldExpandBank) setUserToggledBank(true);
+      if (shouldExpandSignatory) setUserToggledSignatory(true);
+      const y = target === "bank" ? bankYRef.current : signatoryYRef.current;
+      if (y > 0) onRequestScrollToSection?.(target, y);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [initialExpandedSection, hasBankErrors, hasSignatoryErrors, onRequestScrollToSection]);
 
   const updateField = useCallback(
     <K extends keyof GstBusinessFormData>(field: K, value: GstBusinessFormData[K]) => {
@@ -149,23 +119,17 @@ export const GstBusinessStep: React.FC<Props> = ({
   );
 
   const handleInputChange = useCallback(
-    (field: string, text: string) => {
-      updateField(field as keyof GstBusinessFormData, text);
-    },
+    (field: string, text: string) => updateField(field as keyof GstBusinessFormData, text),
     [updateField],
   );
 
   const handleInputBlur = useCallback(
-    (field: string) => {
-      blurField(field as keyof GstBusinessFormData);
-    },
+    (field: string) => blurField(field as keyof GstBusinessFormData),
     [blurField],
   );
 
   const handleSelectField = useCallback(
-    (field: string, val: string) => {
-      updateField(field as keyof GstBusinessFormData, val);
-    },
+    (field: string, val: string) => updateField(field as keyof GstBusinessFormData, val),
     [updateField],
   );
 
@@ -181,6 +145,7 @@ export const GstBusinessStep: React.FC<Props> = ({
         transform?: (val: string) => string;
         onChangeOverride?: (val: string) => void;
         onBlurOverride?: (val: string) => void;
+        errorOverride?: string;
       },
     ) => {
       const val = (data?.[field] as string) ?? "";
@@ -208,7 +173,7 @@ export const GstBusinessStep: React.FC<Props> = ({
                 }
               : handleInputBlur
           }
-          error={errors?.[field]}
+          error={options?.errorOverride ?? errors?.[field]}
           placeholder={placeholder}
           keyboardType={options?.keyboardType}
           maxLength={options?.maxLength}
@@ -291,7 +256,7 @@ export const GstBusinessStep: React.FC<Props> = ({
     </SectionCard>
   );
 
-  const { pinLoading, ifscLoading, handlePinLookup, handleIfscLookup } = useGstFieldLookups({
+  const { pinLoading, ifscLoading, ifscError, handlePinLookup, handleIfscChange } = useGstFieldLookups({
     data,
     onChange,
   });
@@ -361,9 +326,7 @@ export const GstBusinessStep: React.FC<Props> = ({
           setUserToggledBank(next);
           if (next) {
             Keyboard.dismiss();
-            if (bankYRef.current > 0) {
-              onRequestScrollToSection?.("bank", bankYRef.current);
-            }
+            if (bankYRef.current > 0) onRequestScrollToSection?.("bank", bankYRef.current);
           }
         }}
       >
@@ -374,11 +337,8 @@ export const GstBusinessStep: React.FC<Props> = ({
           autoCapitalize: "characters",
           maxLength: 11,
           transform: sanitizeAlphanumericUpper,
-          onChangeOverride: (code) => {
-            const clean = sanitizeAlphanumericUpper(code);
-            updateField("ifscCode", clean);
-            if (clean.length === 11) handleIfscLookup(clean);
-          },
+          onChangeOverride: handleIfscChange,
+          errorOverride: ifscError || undefined,
         })}
         {ifscLoading && <Text style={styles.lookupInfoText}>Looking up IFSC code...</Text>}
         <View style={styles.row}>
@@ -415,9 +375,7 @@ export const GstBusinessStep: React.FC<Props> = ({
           setUserToggledSignatory(next);
           if (next) {
             Keyboard.dismiss();
-            if (signatoryYRef.current > 0) {
-              onRequestScrollToSection?.("signatory", signatoryYRef.current);
-            }
+            if (signatoryYRef.current > 0) onRequestScrollToSection?.("signatory", signatoryYRef.current);
           }
         }}
       >

@@ -10,7 +10,17 @@ import { tokenRefreshManager } from "@/core/authentication/tokenRefreshManager";
 import { getResolvedCustomerId } from "@/modules/gst/gst-filing/hooks/gstFilingHelpers";
 import { appendFilePart } from "@/shared/utils/formDataFile";
 import { logger } from "@/core/logging/logger";
+import { ApiError } from "@/core/api/apiError";
 import type { ComplianceFormData } from "@/modules/gst/validation/complianceSchema";
+
+/**
+ * Justified multipart upload timeout (45 seconds).
+ * Standard JSON requests in TaxEdge use 30 seconds (`apiClient.ts`). For GST Compliance,
+ * payloads carry up to two 10 MiB attachments (up to 20 MiB total). On mobile uplinks
+ * (3-5 Mbps), 10 MiB takes ~20-35 seconds. A 45-second timeout accommodates legitimate
+ * uploads without hanging indefinitely on stalled connections.
+ */
+export const GST_COMPLIANCE_UPLOAD_TIMEOUT_MS = 45000;
 
 /** Compliance form values; callers may attach the resolved customer id. */
 type ComplianceSubmission = ComplianceFormData & { customerId?: string };
@@ -127,10 +137,21 @@ export const gstComplianceApi = {
     return new Promise<string>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", url);
+      xhr.timeout = GST_COMPLIANCE_UPLOAD_TIMEOUT_MS;
 
       if (token) {
         xhr.setRequestHeader("Authorization", `Bearer ${token}`);
       }
+
+      xhr.ontimeout = () => {
+        reject(
+          new ApiError(
+            "Compliance upload timed out. Please check your network connection and try again.",
+            408,
+            "TIMEOUT",
+          ),
+        );
+      };
 
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
@@ -143,25 +164,34 @@ export const gstComplianceApi = {
           }
         } else {
           let errText = xhr.responseText;
+          let errorCode = "API_ERROR";
+          let errorDetails: Record<string, string[]> | undefined = undefined;
           try {
             const parsed = JSON.parse(xhr.responseText);
             if (parsed.message) errText = parsed.message;
+            if (parsed.code) errorCode = parsed.code;
+            if (parsed.errors) errorDetails = parsed.errors;
           } catch (parseErr) {
             logger.debug("[gstComplianceApi] Non-JSON error response from createCompliance", { status: xhr.status, error: parseErr });
           }
-          reject(new Error(errText || `Server responded with ${xhr.status}`));
+          reject(new ApiError(errText || `Server responded with ${xhr.status}`, xhr.status, errorCode, errorDetails));
         }
       };
 
       xhr.onerror = () => {
-        reject(new Error("Network connection error during compliance submission."));
+        reject(new ApiError("Network connection error during compliance submission.", 0, "NETWORK_ERROR"));
       };
 
       xhr.send(formData);
     });
   },
 
-  updateCompliance: async (gstin: string, id: string, data: ComplianceSubmission) => {
+  updateCompliance: async (
+    gstin: string,
+    id: string,
+    data: ComplianceSubmission,
+    modifiedDocKeys?: string[],
+  ) => {
     const formData = new FormData();
     const custId = await getResolvedCustomerId();
 
@@ -185,7 +215,12 @@ export const gstComplianceApi = {
 
     formData.append("data", JSON.stringify(dto));
 
-    if (data.purchaseDoc?.uri) {
+    // Only upload documents if modifiedDocKeys is not provided (backward compatibility)
+    // or if the specific document is explicitly marked as modified.
+    const shouldUploadPurchase =
+      Boolean(data.purchaseDoc?.uri) &&
+      (!modifiedDocKeys || modifiedDocKeys.includes("purchaseDoc"));
+    if (shouldUploadPurchase && data.purchaseDoc) {
       appendFilePart(formData, "reconciliationFile1", {
         uri: data.purchaseDoc.uri,
         name: data.purchaseDoc.name || "recon1.jpg",
@@ -193,7 +228,10 @@ export const gstComplianceApi = {
       });
     }
 
-    if (data.salesDoc?.uri) {
+    const shouldUploadSales =
+      Boolean(data.salesDoc?.uri) &&
+      (!modifiedDocKeys || modifiedDocKeys.includes("salesDoc"));
+    if (shouldUploadSales && data.salesDoc) {
       appendFilePart(formData, "reconciliationFile2", {
         uri: data.salesDoc.uri,
         name: data.salesDoc.name || "recon2.jpg",
@@ -201,7 +239,10 @@ export const gstComplianceApi = {
       });
     }
 
-    if (data.noticeDoc?.uri) {
+    const shouldUploadNotice =
+      Boolean(data.noticeDoc?.uri) &&
+      (!modifiedDocKeys || modifiedDocKeys.includes("noticeDoc"));
+    if (shouldUploadNotice && data.noticeDoc) {
       appendFilePart(formData, "noticeFile", {
         uri: data.noticeDoc.uri,
         name: data.noticeDoc.name || "notice.jpg",
@@ -216,7 +257,18 @@ export const gstComplianceApi = {
     return new Promise<string>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("PUT", url);
+      xhr.timeout = GST_COMPLIANCE_UPLOAD_TIMEOUT_MS;
       if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+      xhr.ontimeout = () => {
+        reject(
+          new ApiError(
+            "Compliance update timed out. Please check your network connection and try again.",
+            408,
+            "TIMEOUT",
+          ),
+        );
+      };
 
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
@@ -229,16 +281,20 @@ export const gstComplianceApi = {
           }
         } else {
           let errText = xhr.responseText;
+          let errorCode = "API_ERROR";
+          let errorDetails: Record<string, string[]> | undefined = undefined;
           try {
             const parsed = JSON.parse(xhr.responseText);
             if (parsed.message) errText = parsed.message;
+            if (parsed.code) errorCode = parsed.code;
+            if (parsed.errors) errorDetails = parsed.errors;
           } catch (parseErr) {
             logger.debug("[gstComplianceApi] Non-JSON error response from updateCompliance", { status: xhr.status, error: parseErr });
           }
-          reject(new Error(errText || `Server responded with ${xhr.status}`));
+          reject(new ApiError(errText || `Server responded with ${xhr.status}`, xhr.status, errorCode, errorDetails));
         }
       };
-      xhr.onerror = () => reject(new Error("Network connection error during compliance update."));
+      xhr.onerror = () => reject(new ApiError("Network connection error during compliance update.", 0, "NETWORK_ERROR"));
       xhr.send(formData);
     });
   },

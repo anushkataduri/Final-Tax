@@ -27,6 +27,8 @@ export interface FloatingLabelInputProps extends TextInputProps {
   rightElement?: React.ReactNode;
   onClear?: () => void;
   onFocusScroll?: () => void;
+  showCharCount?: boolean;
+  maxLength?: number;
 }
 
 export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
@@ -43,6 +45,8 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
   onFocusScroll,
   multiline = false,
   numberOfLines = 1,
+  showCharCount = false,
+  maxLength,
   onFocus,
   onBlur,
   style,
@@ -55,7 +59,7 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
   const hasValue = Boolean(value && value.toString().length > 0);
 
   // Animated value: 0 when empty & unfocused, 1 when focused or has content
-  const animatedValue = useRef(new Animated.Value(hasValue ? 1 : 0)).current;
+  const [animatedValue] = useState(() => new Animated.Value(hasValue ? 1 : 0));
 
   useEffect(() => {
     Animated.timing(animatedValue, {
@@ -63,7 +67,7 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
       duration: 180,
       useNativeDriver: false,
     }).start();
-  }, [isFocused, hasValue]);
+  }, [isFocused, hasValue, animatedValue]);
 
   const handleFocus = (e: any) => {
     setIsFocused(true);
@@ -117,9 +121,9 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
     ? "#334155"
     : "#CBD5E1";
 
-  // Label text: shows floatingLabel (or label) when elevated, placeholder (or label) when resting inside
+  // Label text: shows floatingLabel (or label) when elevated, label (or floatingLabel) when resting inside
   const elevatedLabelText = floatingLabel || label;
-  const restingLabelText = placeholder || label;
+  const restingLabelText = label || floatingLabel || placeholder;
   const currentLabelText = isFocused || hasValue ? elevatedLabelText : restingLabelText;
 
   const animatedWrapperStyle = {
@@ -172,7 +176,9 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
           multiline={multiline}
           numberOfLines={numberOfLines}
           textAlignVertical={multiline ? "top" : "center"}
-          placeholderTextColor="transparent"
+          placeholder={isFocused && !hasValue ? placeholder : undefined}
+          placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+          maxLength={showCharCount ? undefined : maxLength}
           style={[
             styles.textInput,
             getTextInputDynamicStyle(isDark, multiline),
@@ -199,11 +205,29 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
         ) : null}
       </View>
 
-      {/* Inline Error Message */}
-      {error ? (
-        <View style={styles.errorRow}>
-          <Ionicons name="alert-circle" size={13} color="#DC2626" />
-          <Text style={styles.errorText}>{error}</Text>
+      {/* Helper Row: Inline Error on Left, Character Counter on Right */}
+      {error || (showCharCount && typeof maxLength === "number") ? (
+        <View style={styles.helperRow}>
+          {error ? (
+            <View style={styles.errorRow}>
+              <Ionicons name="alert-circle" size={13} color="#DC2626" />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : (
+            <View style={styles.errorSpacer} />
+          )}
+
+          {showCharCount && typeof maxLength === "number" ? (
+            <Text
+              style={[
+                styles.charCountText,
+                isDark && styles.charCountTextDark,
+                (value?.toString().length || 0) > maxLength && styles.charCountTextError,
+              ]}
+            >
+              {value?.toString().length || 0}/{maxLength}
+            </Text>
+          ) : null}
         </View>
       ) : null}
     </View>

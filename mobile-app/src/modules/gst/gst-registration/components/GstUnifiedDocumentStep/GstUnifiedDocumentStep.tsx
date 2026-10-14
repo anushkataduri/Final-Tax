@@ -7,7 +7,7 @@ import React, { useState } from "react";
 import { View, Text } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
-import { styles, getProgressFillStyle } from "./GstUnifiedDocumentStep.styles";
+import { styles } from "./GstUnifiedDocumentStep.styles";
 import { AddressProofSelectModal } from "./GstDocumentModals";
 import { GstDocumentCard } from "@/modules/gst/components/GstDocumentCard";
 import {
@@ -106,8 +106,6 @@ export const GstUnifiedDocumentStep: React.FC<Props> = ({
   );
   const selectedCount = documents.reduce((c, d) => (d.fileUri ? c + 1 : c), 0);
   const totalCount = documents.length;
-  const progressPercent =
-    totalCount > 0 ? (selectedCount / totalCount) * 100 : 0;
 
   const currentAddressDoc = documents.find((d) => d.id === "address-proof");
 
@@ -126,14 +124,6 @@ export const GstUnifiedDocumentStep: React.FC<Props> = ({
               {selectedCount}/{totalCount} Added
             </Text>
           </View>
-        </View>
-        <View style={styles.progressBarTrack}>
-          <View
-            style={[
-              styles.progressBarFill,
-              getProgressFillStyle(progressPercent),
-            ]}
-          />
         </View>
         {selectedCount > 0 && (
           <Text style={styles.progressSubtitle}>

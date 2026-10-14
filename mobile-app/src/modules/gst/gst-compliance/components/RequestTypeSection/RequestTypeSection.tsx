@@ -8,6 +8,8 @@ import {
   ComplianceFormData,
   UploadedDocInfo,
   ValidationErrors,
+  validateNoticeDates,
+  NOTICE_MAX_FILE_SIZE_BYTES,
 } from "@/modules/gst/validation/complianceSchema";
 import {
   RECONCILIATION_ALLOWED_EXTENSIONS,
@@ -27,6 +29,8 @@ export interface RequestTypeSectionProps {
   ) => void;
   onClearError: (field: keyof ValidationErrors) => void;
   onScrollField?: (fieldName: string) => void;
+  onSetError?: (field: keyof ValidationErrors, message: string) => void;
+  onSectionLayout?: (section: string, relativeY: number) => void;
 }
 
 export const RequestTypeSection: React.FC<RequestTypeSectionProps> = ({
@@ -35,6 +39,8 @@ export const RequestTypeSection: React.FC<RequestTypeSectionProps> = ({
   onUpdateField,
   onClearError,
   onScrollField,
+  onSetError,
+  onSectionLayout,
 }) => {
   const { isDark } = useTheme();
 
@@ -64,61 +70,80 @@ export const RequestTypeSection: React.FC<RequestTypeSectionProps> = ({
             </View>
           </View>
 
-        {/* 1. Purchase Register (Required - Image 1 Card) */}
-        <FileUploadCard
-          title="Purchase Register"
-          description="Upload purchase register or Excel/CSV records"
-          required
-          allowedExtensions={RECONCILIATION_ALLOWED_EXTENSIONS}
-          uploadedDoc={formData.purchaseDoc}
-          onDocChange={(doc: UploadedDocInfo | null) => {
-            onUpdateField("purchaseDoc", doc);
-            if (doc) onClearError("purchaseDoc");
-          }}
-          error={errors.purchaseDoc}
-          onClearError={() => onClearError("purchaseDoc")}
-        />
+        {/* Reconciliation Documents: Purchase & Sales Registers */}
+        <View onLayout={(e) => onSectionLayout?.("documents", e.nativeEvent.layout.y)}>
+          <FileUploadCard
+            title="Purchase Register"
+            description="Upload purchase register or Excel/CSV records"
+            required
+            allowedExtensions={RECONCILIATION_ALLOWED_EXTENSIONS}
+            uploadedDoc={formData.purchaseDoc}
+            onDocChange={(doc: UploadedDocInfo | null) => {
+              onUpdateField("purchaseDoc", doc);
+              if (doc) onClearError("purchaseDoc");
+            }}
+            error={errors.purchaseDoc}
+            onClearError={() => onClearError("purchaseDoc")}
+            onError={(msg) => onSetError?.("purchaseDoc", msg)}
+          />
 
-        {/* 2. Sales Register (Optional - Image 1 Card) */}
-        <FileUploadCard
-          title="Sales Register"
-          description="Upload sales register or outward supplies statement (Optional)"
-          required={false}
-          allowedExtensions={RECONCILIATION_ALLOWED_EXTENSIONS}
-          uploadedDoc={formData.salesDoc}
-          onDocChange={(doc: UploadedDocInfo | null) => {
-            onUpdateField("salesDoc", doc);
-            if (doc) onClearError("salesDoc");
-          }}
-          error={errors.salesDoc}
-          onClearError={() => onClearError("salesDoc")}
-        />
+          <FileUploadCard
+            title="Sales Register"
+            description="Upload sales register or outward supplies statement (Optional)"
+            required={false}
+            allowedExtensions={RECONCILIATION_ALLOWED_EXTENSIONS}
+            uploadedDoc={formData.salesDoc}
+            onDocChange={(doc: UploadedDocInfo | null) => {
+              onUpdateField("salesDoc", doc);
+              if (doc) onClearError("salesDoc");
+            }}
+            error={errors.salesDoc}
+            onClearError={() => onClearError("salesDoc")}
+            onError={(msg) => onSetError?.("salesDoc", msg)}
+          />
+        </View>
 
-        {/* 3. GSTR-2B Reference (Optional Floating Label) */}
-        <FloatingLabelInput
-          label="GSTR-2B Reference"
-          floatingLabel="GSTR-2B Reference"
-          placeholder="Enter GSTR-2B reference or ARN"
-          value={formData.gstr2bRef}
-          onChangeText={(text) => onUpdateField("gstr2bRef", text)}
-          autoCapitalize="characters"
-          cardBackground={cardBg}
-          onClear={() => onUpdateField("gstr2bRef", "")}
-          onFocusScroll={() => onScrollField?.("gstr2bRef")}
-        />
+        {/* Reconciliation Parameters: GSTR-2B Reference & Remarks */}
+        <View onLayout={(e) => onSectionLayout?.("recon", e.nativeEvent.layout.y)}>
+          <FloatingLabelInput
+            label="GSTR-2B Reference"
+            floatingLabel="GSTR-2B Reference"
+            placeholder="Enter GSTR-2B reference or ARN"
+            value={formData.gstr2bRef}
+            onChangeText={(text) => {
+              onUpdateField("gstr2bRef", text);
+              if (errors.gstr2bRef) onClearError("gstr2bRef");
+            }}
+            autoCapitalize="characters"
+            error={errors.gstr2bRef}
+            cardBackground={cardBg}
+            onClear={() => {
+              onUpdateField("gstr2bRef", "");
+              if (errors.gstr2bRef) onClearError("gstr2bRef");
+            }}
+            onFocusScroll={() => onScrollField?.("gstr2bRef")}
+          />
+        </View>
 
-        {/* 4. Remarks (Optional Floating Label Multiline) */}
-        <FloatingLabelInput
-          label="Remarks (Optional)"
-          floatingLabel="Remarks (Optional)"
-          placeholder="Tell us anything our CA should know..."
-          value={formData.reconciliationRemarks}
-          onChangeText={(text) => onUpdateField("reconciliationRemarks", text)}
-          multiline
-          numberOfLines={3}
-          cardBackground={cardBg}
-          onFocusScroll={() => onScrollField?.("reconciliationRemarks")}
-        />
+        <View onLayout={(e) => onSectionLayout?.("reconciliationRemarks", e.nativeEvent.layout.y)}>
+          <FloatingLabelInput
+            label="Remarks (Optional)"
+            floatingLabel="Remarks (Optional)"
+            placeholder="Tell us anything our CA should know..."
+            value={formData.reconciliationRemarks}
+            onChangeText={(text) => {
+              onUpdateField("reconciliationRemarks", text);
+              if (errors.reconciliationRemarks) onClearError("reconciliationRemarks");
+            }}
+            error={errors.reconciliationRemarks}
+            maxLength={500}
+            showCharCount
+            multiline
+            numberOfLines={3}
+            cardBackground={cardBg}
+            onFocusScroll={() => onScrollField?.("reconciliationRemarks")}
+          />
+        </View>
         </View>
       </Animated.View>
     );
@@ -146,82 +171,110 @@ export const RequestTypeSection: React.FC<RequestTypeSectionProps> = ({
           </View>
         </View>
 
-      {/* 1. Notice Number (Required Floating Label) */}
-      <FloatingLabelInput
-        label="Notice Number"
-        floatingLabel="Notice Number"
-        placeholder="Enter notice number"
-        required
-        value={formData.noticeNumber}
-        onChangeText={(text) => {
-          const formatted = text.replace(/[^a-zA-Z0-9\/-]/g, "").toUpperCase();
-          onUpdateField("noticeNumber", formatted);
-          if (formatted) onClearError("noticeNumber");
-        }}
-        autoCapitalize="characters"
-        maxLength={30}
-        error={errors.noticeNumber}
-        cardBackground={cardBg}
-        onClear={() => {
-          onUpdateField("noticeNumber", "");
-          onClearError("noticeNumber");
-        }}
-        onFocusScroll={() => onScrollField?.("noticeNumber")}
-      />
+        {/* Notice Details: Number & Dates */}
+        <View onLayout={(e) => onSectionLayout?.("notice", e.nativeEvent.layout.y)}>
+          <FloatingLabelInput
+            label="Notice Number"
+            floatingLabel="Notice Number"
+            placeholder="Enter notice number"
+            required
+            value={formData.noticeNumber}
+            onChangeText={(text) => {
+              const formatted = text.replace(/[^a-zA-Z0-9\/-]/g, "").toUpperCase();
+              onUpdateField("noticeNumber", formatted);
+              if (formatted) onClearError("noticeNumber");
+            }}
+            autoCapitalize="characters"
+            maxLength={30}
+            error={errors.noticeNumber}
+            cardBackground={cardBg}
+            onClear={() => {
+              onUpdateField("noticeNumber", "");
+              onClearError("noticeNumber");
+            }}
+            onFocusScroll={() => onScrollField?.("noticeNumber")}
+          />
 
-      {/* 2. Notice Issue Date (Required) */}
-      <NativeDatePickerInput
-        label="Notice Issue Date"
-        value={formData.noticeIssueDate}
-        onChange={(date) => {
-          onUpdateField("noticeIssueDate", date);
-          onClearError("noticeIssueDate");
-        }}
-        required
-        error={errors.noticeIssueDate}
-        placeholder="Select Notice Issue Date"
-      />
+          <NativeDatePickerInput
+            label="Notice Issue Date"
+            value={formData.noticeIssueDate}
+            onChange={(date) => {
+              onUpdateField("noticeIssueDate", date);
+              if (date.trim()) {
+                onClearError("noticeIssueDate");
+              }
+              if (formData.replyDueDate && formData.replyDueDate.trim()) {
+                const { dueDateError } = validateNoticeDates(date, formData.replyDueDate);
+                if (dueDateError) {
+                  onSetError?.("replyDueDate", dueDateError);
+                } else {
+                  onClearError("replyDueDate");
+                }
+              }
+            }}
+            required
+            error={errors.noticeIssueDate}
+            placeholder="Select Notice Issue Date"
+          />
 
-      {/* 3. Reply Due Date (Required) */}
-      <NativeDatePickerInput
-        label="Reply Due Date"
-        value={formData.replyDueDate}
-        onChange={(date) => {
-          onUpdateField("replyDueDate", date);
-          onClearError("replyDueDate");
-        }}
-        required
-        error={errors.replyDueDate}
-        placeholder="Select Reply Due Date"
-      />
+          <NativeDatePickerInput
+            label="Reply Due Date"
+            value={formData.replyDueDate}
+            onChange={(date) => {
+              onUpdateField("replyDueDate", date);
+              const { dueDateError } = validateNoticeDates(formData.noticeIssueDate, date);
+              if (dueDateError) {
+                onSetError?.("replyDueDate", dueDateError);
+              } else {
+                onClearError("replyDueDate");
+              }
+            }}
+            required
+            error={errors.replyDueDate}
+            placeholder="Select Reply Due Date"
+            validateMinDate={formData.noticeIssueDate || undefined}
+          />
+        </View>
 
-      {/* 4. Upload Notice Copy (Required - Image 1 Card) */}
-      <FileUploadCard
-        title="Upload Notice Copy"
-        description="Upload official GST notice or assessment order"
-        required
-        allowedExtensions={NOTICE_ALLOWED_EXTENSIONS}
-        uploadedDoc={formData.noticeDoc}
-        onDocChange={(doc: UploadedDocInfo | null) => {
-          onUpdateField("noticeDoc", doc);
-          if (doc) onClearError("noticeDoc");
-        }}
-        error={errors.noticeDoc}
-        onClearError={() => onClearError("noticeDoc")}
-      />
+        {/* Notice Document */}
+        <View onLayout={(e) => onSectionLayout?.("documents", e.nativeEvent.layout.y)}>
+          <FileUploadCard
+            title="Upload Notice Copy"
+            description="Upload official GST notice or assessment order"
+            required
+            allowedExtensions={NOTICE_ALLOWED_EXTENSIONS}
+            maxSizeBytes={NOTICE_MAX_FILE_SIZE_BYTES}
+            uploadedDoc={formData.noticeDoc}
+            onDocChange={(doc: UploadedDocInfo | null) => {
+              onUpdateField("noticeDoc", doc);
+              if (doc) onClearError("noticeDoc");
+            }}
+            error={errors.noticeDoc}
+            onClearError={() => onClearError("noticeDoc")}
+            onError={(msg) => onSetError?.("noticeDoc", msg)}
+          />
+        </View>
 
       {/* 5. Remarks (Optional Floating Label Multiline) */}
-      <FloatingLabelInput
-        label="Remarks (Optional)"
-        floatingLabel="Remarks (Optional)"
-        placeholder="Add any important information for our CA"
-        value={formData.noticeRemarks}
-        onChangeText={(text) => onUpdateField("noticeRemarks", text)}
-        multiline
-        numberOfLines={3}
-        cardBackground={cardBg}
-        onFocusScroll={() => onScrollField?.("noticeRemarks")}
-      />
+      <View onLayout={(e) => onSectionLayout?.("noticeRemarks", e.nativeEvent.layout.y)}>
+        <FloatingLabelInput
+          label="Remarks (Optional)"
+          floatingLabel="Remarks (Optional)"
+          placeholder="Add any important information for our CA"
+          value={formData.noticeRemarks}
+          onChangeText={(text) => {
+            onUpdateField("noticeRemarks", text);
+            if (errors.noticeRemarks) onClearError("noticeRemarks");
+          }}
+          error={errors.noticeRemarks}
+          maxLength={500}
+          showCharCount
+          multiline
+          numberOfLines={3}
+          cardBackground={cardBg}
+          onFocusScroll={() => onScrollField?.("noticeRemarks")}
+        />
+      </View>
       </View>
     </Animated.View>
   );

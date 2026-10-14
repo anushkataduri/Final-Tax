@@ -44,6 +44,7 @@ export interface GstDocumentCardProps {
   dropdownValue?: string;
   onDropdownPress?: () => void;
   triggerUploadKey?: number;
+  maxSizeBytes?: number;
 }
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -57,6 +58,7 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
   dropdownValue,
   onDropdownPress,
   triggerUploadKey,
+  maxSizeBytes = MAX_FILE_SIZE_BYTES,
 }) => {
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
@@ -64,6 +66,7 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
 
   useEffect(() => {
     if (triggerUploadKey && triggerUploadKey > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowSourceModal(true);
     }
   }, [triggerUploadKey]);
@@ -87,8 +90,10 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
     const fileName = asset.name || `${item.id}_document.pdf`;
     const extension = fileName.split(".").pop()?.toUpperCase() || "PDF";
 
-    if (asset.size && asset.size > MAX_FILE_SIZE_BYTES) {
-      const err = "File exceeds 10 MB limit. Please select a smaller file.";
+    const effectiveMaxSize = maxSizeBytes ?? MAX_FILE_SIZE_BYTES;
+    if (asset.size && asset.size > effectiveMaxSize) {
+      const maxMb = Math.round(effectiveMaxSize / (1024 * 1024));
+      const err = `File exceeds ${maxMb} MB limit. Please select a smaller file.`;
       onUploadError?.(item.id, err);
       return;
     }
@@ -216,9 +221,20 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
                 color="#059669"
                 style={styles.checkCircle}
               />
-              <Text style={styles.uploadedFileName} numberOfLines={1}>
-                {`${item.fileName || "Uploaded document"} (${item.fileSize || "0.01 MB"})`}
-              </Text>
+              <View style={styles.uploadedFileDetails}>
+                <Text
+                  style={styles.uploadedFileName}
+                  numberOfLines={2}
+                  ellipsizeMode="middle"
+                >
+                  {item.fileName || "Uploaded document"}
+                </Text>
+                {item.fileSize ? (
+                  <Text style={styles.uploadedFileSizeText}>
+                    {item.fileSize}
+                  </Text>
+                ) : null}
+              </View>
             </View>
           )}
         </View>
@@ -312,6 +328,7 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
         fileName={item.fileName}
         fileSize={item.fileSize}
         fileTypeLabel={item.fileTypeLabel}
+        mimeType={item.mimeType}
         onClose={() => setShowViewModal(false)}
       />
     </View>

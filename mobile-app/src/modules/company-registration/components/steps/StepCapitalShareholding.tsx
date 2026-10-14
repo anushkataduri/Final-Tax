@@ -33,7 +33,7 @@ export const StepCapitalShareholding: React.FC = () => {
     0
   );
 
-  const faceValue = Number(company.faceValuePerShare) || 10;
+  const faceValue = Number(company.faceValuePerShare) || 0;
   const authCapital = Number(company.authorizedCapital) || 0;
   const totalAuthShares = faceValue > 0 ? Math.floor(authCapital / faceValue) : 0;
   const derivedSubscribedCapital = totalSubscribedShares * faceValue;
@@ -159,7 +159,7 @@ export const StepCapitalShareholding: React.FC = () => {
             <Text style={styles.label}>Authorised Shares (Calculated)</Text>
             <View style={styles.readOnlyInput}>
               <Text style={{ fontSize: 14, fontWeight: '600', color: '#263238' }}>
-                {totalAuthShares ? totalAuthShares.toLocaleString() : '0'} shares
+                {totalAuthShares ? `${totalAuthShares.toLocaleString()} shares` : '—'}
               </Text>
             </View>
           </View>
@@ -168,7 +168,7 @@ export const StepCapitalShareholding: React.FC = () => {
             <Text style={styles.label}>Subscribed Capital (Calculated)</Text>
             <View style={styles.readOnlyInput}>
               <Text style={{ fontSize: 14, fontWeight: '600', color: '#263238' }}>
-                ₹{derivedSubscribedCapital ? derivedSubscribedCapital.toLocaleString('en-IN') : '0'}
+                {derivedSubscribedCapital ? `₹${derivedSubscribedCapital.toLocaleString('en-IN')}` : '—'}
               </Text>
             </View>
           </View>
@@ -207,7 +207,7 @@ export const StepCapitalShareholding: React.FC = () => {
                         {dir.name || `Promoter / Director #${idx + 1}`}
                       </Text>
                       <Text style={styles.shareDetailText}>
-                        PAN: {dir.pan || 'N/A'} • Subscribed Amount: ₹{allocatedAmount.toLocaleString('en-IN')}
+                        PAN: {dir.pan || 'N/A'} • Subscribed Amount: {allocatedAmount > 0 ? `₹${allocatedAmount.toLocaleString('en-IN')}` : '—'}
                       </Text>
                     </View>
 
@@ -251,7 +251,7 @@ export const StepCapitalShareholding: React.FC = () => {
                         <Text style={styles.shareInputLabel}>Amount (Calculated)</Text>
                         <View style={[styles.smallInput, { backgroundColor: '#F8FAFC' }]}>
                           <Text style={{ fontSize: 13, fontWeight: '600', color: '#263238' }}>
-                            ₹{allocatedAmount.toLocaleString('en-IN')}
+                            {allocatedAmount > 0 ? `₹${allocatedAmount.toLocaleString('en-IN')}` : '—'}
                           </Text>
                         </View>
                       </View>
@@ -266,13 +266,13 @@ export const StepCapitalShareholding: React.FC = () => {
               <View style={styles.totalsRow}>
                 <Text style={styles.totalsLabel}>Total Subscribed Shares</Text>
                 <Text style={styles.totalsValue}>
-                  {totalSubscribedShares ? totalSubscribedShares.toLocaleString() : '0'}
+                  {totalSubscribedShares ? totalSubscribedShares.toLocaleString() : '—'}
                 </Text>
               </View>
               <View style={styles.totalsRow}>
                 <Text style={styles.totalsLabel}>Total Share Allocation</Text>
                 <Text style={styles.totalsValue}>
-                  {isOpc || totalSubscribedShares > 0 ? '100%' : '--'}
+                  {isOpc || totalSubscribedShares > 0 ? '100%' : '—'}
                 </Text>
               </View>
             </View>

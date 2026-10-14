@@ -53,17 +53,6 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     color: BrandColors.PRIMARY_ORANGE,
   },
-  progressBarTrack: {
-    height: 6,
-    backgroundColor: "#F1F5F9",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: BrandColors.PRIMARY_ORANGE,
-    borderRadius: 3,
-  },
   categorySection: {
     marginBottom: 18,
   },
@@ -368,10 +357,6 @@ export const styles = StyleSheet.create({
   actionDisabled: {
     opacity: 0.45,
   },
-});
-
-export const getProgressFillStyle = (progressPercent: number) => ({
-  width: `${progressPercent}%` as any,
 });
 
 export const getIconBoxStyle = (backgroundColor: string) => ({

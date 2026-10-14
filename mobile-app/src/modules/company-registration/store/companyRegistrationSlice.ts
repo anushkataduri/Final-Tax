@@ -78,7 +78,7 @@ export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set
     }),
   addDirector: (director) =>
     set((state) => {
-      if (state.draft.company.companyType === 'One Person Company (OPC)') {
+      if (state.draft.company.companyType === 'One Person Company (OPC)' && state.draft.directors.length >= 1) {
         return state;
       }
       const nextErrors = { ...state.fieldErrors };

@@ -1,9 +1,9 @@
 import { isFutureDate } from "@/shared/formatters/dateFormatter";
 import {
-  validateEmail,
   validateFullName,
 } from "@/shared/validators/indianTaxValidators";
 import { isNotEmpty, PaymentValidators } from "@/shared/validators/paymentValidators";
+import { isIanaDelegatedTld } from "./ianaTldData";
 
 /**
  * GST & Tax Validation Utilities
@@ -40,6 +40,67 @@ export const parseAnyDate = (value?: string | null): Date | null => {
   }
   return null;
 };
+
+/**
+ * RFC 5322-compliant local part pattern (no spaces, no consecutive dots, max 64 chars).
+ */
+const EMAIL_LOCAL_REGEX = /^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*$/;
+
+/**
+ * Domain label pattern: 1-63 alphanumeric chars or internal hyphens.
+ */
+const DOMAIN_LABEL_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
+
+/**
+ * Strict email validation for GST Registration & Compliance modules.
+ * Ensures:
+ * 1. Single '@' separating local part and domain.
+ * 2. Local part: <= 64 chars, no spaces, no consecutive/leading/trailing dots (RFC 5322).
+ * 3. Domain: <= 253 chars, at least one dot, valid DNS labels (1-63 chars, alphanumeric with internal hyphens).
+ * 4. TLD: Must be an active delegated Top-Level Domain in the official IANA Root Zone Database.
+ *    Strictly verifies 2-letter ccTLDs, generic TLDs, and IDN Punycode TLDs against delegated data.
+ *    Strictly rejects appended suffixes such as .comabc, .com123, or .orgxyz.
+ *
+ * Note: Validating IANA delegation verifies syntax and root-level delegation; it does not query live
+ * DNS records, verify full-domain registration, or confirm mailbox existence.
+ */
+export function isValidGstEmail(raw?: string | null): boolean {
+  if (!raw) return false;
+  const email = raw.trim();
+  if (!email || email.length > 150) return false;
+
+  // No whitespace allowed inside the email
+  if (/\s/.test(email)) return false;
+
+  // Must contain exactly one '@'
+  const atIndex = email.indexOf("@");
+  if (atIndex === -1 || atIndex !== email.lastIndexOf("@")) return false;
+
+  const local = email.slice(0, atIndex);
+  const domain = email.slice(atIndex + 1);
+
+  // Validate local part
+  if (!local || local.length > 64) return false;
+  if (local.startsWith(".") || local.endsWith(".")) return false;
+  if (!EMAIL_LOCAL_REGEX.test(local)) return false;
+
+  // Validate domain part
+  if (!domain || domain.length > 253) return false;
+  if (domain.startsWith(".") || domain.endsWith(".")) return false;
+
+  const labels = domain.split(".");
+  if (labels.length < 2) return false;
+
+  // Every label must be non-empty and syntactically valid
+  const allLabelsValid = labels.every(
+    (label) => label.length >= 1 && label.length <= 63 && DOMAIN_LABEL_REGEX.test(label)
+  );
+  if (!allLabelsValid) return false;
+
+  // Validate final Top-Level Domain (TLD) against official IANA Root Zone Database
+  const tld = labels[labels.length - 1].toLowerCase();
+  return isIanaDelegatedTld(tld);
+}
 
 export const GstValidators = {
   isValidBusinessName: (value: string): boolean => {
@@ -80,10 +141,10 @@ export const GstValidators = {
   },
 
   /**
-   * Validates Email Address format
+   * Validates Email Address format using strict RFC syntax and recognized TLD rules.
    */
   isValidEmail: (email: string): boolean => {
-    return validateEmail(email);
+    return isValidGstEmail(email);
   },
 
   isBankAccountMatch: (account: string, confirmation: string): boolean =>
@@ -229,7 +290,7 @@ export const GstValidators = {
         if (!GstValidators.isValidMobile(value)) return "Enter a valid 10-digit mobile number";
         return "";
       case "signatoryEmail":
-        if (!validateEmail(value)) return "Enter a valid email address";
+        if (!isValidGstEmail(value)) return "Enter a valid email address";
         return "";
       default:
         return "";

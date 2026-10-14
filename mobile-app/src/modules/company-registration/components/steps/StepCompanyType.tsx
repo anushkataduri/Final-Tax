@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
@@ -52,12 +52,6 @@ export const StepCompanyType: React.FC = () => {
   const selectedType = useCompanyRegistrationStore((state) => state.draft.company.companyType);
   const setCompanyType = useCompanyRegistrationStore((state) => state.setCompanyType);
   const errorText = useCompanyRegistrationStore((state) => state.fieldErrors.companyType);
-
-  useEffect(() => {
-    if (!selectedType) {
-      setCompanyType('Private Limited');
-    }
-  }, [selectedType, setCompanyType]);
 
   return (
     <View style={styles.container}>

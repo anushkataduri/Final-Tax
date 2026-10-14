@@ -1,5 +1,4 @@
 import { StyleSheet, Platform, ViewStyle, TextStyle } from "react-native";
-import { BrandColors } from "@/shared/theme";
 
 export const styles = StyleSheet.create({
   rootContainer: {
@@ -38,17 +37,44 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  errorRow: {
+  helperRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginTop: 6,
-    marginLeft: 2,
+    paddingHorizontal: 2,
+    gap: 8,
+  },
+  errorRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 5,
+  },
+  errorSpacer: {
+    flex: 1,
   },
   errorText: {
+    flex: 1,
     fontSize: 12,
     color: "#DC2626",
     fontWeight: "500",
+    lineHeight: 16,
+  },
+  charCountText: {
+    fontSize: 11.5,
+    color: "#64748B",
+    fontWeight: "500",
+    textAlign: "right",
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  charCountTextDark: {
+    color: "#94A3B8",
+  },
+  charCountTextError: {
+    color: "#DC2626",
+    fontWeight: "600",
   },
 });
 
