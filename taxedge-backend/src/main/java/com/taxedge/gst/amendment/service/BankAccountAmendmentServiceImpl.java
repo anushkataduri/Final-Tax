@@ -10,7 +10,7 @@ import com.taxedge.gst.amendment.dto.BankAccountAmendmentViewDto;
 import com.taxedge.gst.amendment.entity.BankAccountAmendmentEntity;
 import com.taxedge.gst.amendment.mapper.BankAccountAmendmentMapper;
 import com.taxedge.gst.amendment.repository.BankAccountAmendmentRepository;
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.gst.registration.entity.Business;
 import com.taxedge.gst.registration.enums.AccountType;
 import com.taxedge.gst.registration.enums.RegisterationStatus;

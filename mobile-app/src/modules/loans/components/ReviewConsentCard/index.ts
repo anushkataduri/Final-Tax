@@ -1,0 +1,1 @@
+export { ReviewConsentCard } from "./ReviewConsentCard";

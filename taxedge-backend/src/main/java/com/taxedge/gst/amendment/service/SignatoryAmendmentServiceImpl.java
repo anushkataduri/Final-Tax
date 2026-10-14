@@ -11,7 +11,7 @@ import com.taxedge.gst.amendment.dto.SignatoryAmendmentViewDto;
 import com.taxedge.gst.amendment.entity.SignatoryAmendmentEntity;
 import com.taxedge.gst.amendment.mapper.SignatoryAmendmentMapper;
 import com.taxedge.gst.amendment.repository.SignatoryAmendmentRepository;
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.gst.registration.entity.Business;
 import com.taxedge.gst.registration.enums.RegisterationStatus;
 import com.taxedge.gst.registration.repository.BusinessRepository;

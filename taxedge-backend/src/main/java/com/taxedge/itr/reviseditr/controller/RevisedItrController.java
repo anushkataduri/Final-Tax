@@ -64,6 +64,13 @@ public class RevisedItrController {
 		return ResponseEntity.ok(result);
 	}
 
+	@PostMapping("/submit")
+	public ResponseEntity<String> submitRevisedItr(
+	        @RequestParam String revisedItrId,
+	        @RequestParam(required = false) String pushToken) {
+	    return ResponseEntity.ok(revisedItrService.submitRevisedItr(revisedItrId, pushToken));
+	}
+
 	// =========================
 	// Revision Reason
 	// =========================

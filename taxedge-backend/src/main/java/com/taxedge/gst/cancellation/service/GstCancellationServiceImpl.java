@@ -12,8 +12,8 @@ import com.taxedge.customer.repository.CustomerRepository;
 import com.taxedge.gst.cancellation.dto.GstCancellationDto;
 import com.taxedge.gst.cancellation.dto.GstCancellationResponseDto;
 import com.taxedge.gst.cancellation.entity.GstCancellation;
-import com.taxedge.gst.exception.DuplicateResourceException;
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.DuplicateResourceException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.gst.cancellation.mapper.GstCancellationMapper;
 import com.taxedge.gst.cancellation.repository.GstCancellationRepository;
 

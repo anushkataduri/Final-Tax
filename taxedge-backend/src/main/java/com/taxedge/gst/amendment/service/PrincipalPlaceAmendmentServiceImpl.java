@@ -10,7 +10,7 @@ import com.taxedge.gst.amendment.dto.PrincipalPlaceAmendmentViewDto;
 import com.taxedge.gst.amendment.entity.PrincipalPlaceAmendmentEntity;
 import com.taxedge.gst.amendment.mapper.PrincipalPlaceAmendmentMapper;
 import com.taxedge.gst.amendment.repository.PrincipalPlaceAmendmentRepository;
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.gst.registration.entity.Business;
 import com.taxedge.gst.registration.enums.NatureOfPremises;
 import com.taxedge.gst.registration.enums.RegisterationStatus;

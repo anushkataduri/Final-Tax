@@ -5,7 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.taxedge.customer.entity.Customer;
 import com.taxedge.customer.repository.CustomerRepository;
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.loan.personalloan.dto.PersonalLoanApplicationDto;
 import com.taxedge.loan.personalloan.entity.PersonalLoanApplication;
 import com.taxedge.loan.personalloan.mapper.PersonalLoanApplicationMapper;

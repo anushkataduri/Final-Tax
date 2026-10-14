@@ -10,7 +10,7 @@ import com.taxedge.gst.amendment.dto.LegalNameAmendmentViewDto;
 import com.taxedge.gst.amendment.entity.LegalNameAmendmentEntity;
 import com.taxedge.gst.amendment.mapper.LegalNameAmendmentMapper;
 import com.taxedge.gst.amendment.repository.LegalNameAmendmentRepository;
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.gst.registration.entity.Business;
 import com.taxedge.gst.registration.enums.RegisterationStatus;
 import com.taxedge.gst.registration.repository.BusinessRepository;

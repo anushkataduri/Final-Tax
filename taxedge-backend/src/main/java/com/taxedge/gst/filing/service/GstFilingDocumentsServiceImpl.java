@@ -11,11 +11,11 @@ import com.taxedge.gst.filing.dto.GstFilingDocumentsDto;
 import com.taxedge.gst.filing.entity.GstFiling;
 import com.taxedge.gst.filing.entity.GstFilingDocuments;
 import com.taxedge.gst.filing.enums.GstDocumentType;
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.gst.filing.mapper.GstFilingDocumentsMapper;
 import com.taxedge.gst.filing.repository.GstFilingDocumentsRepository;
 import com.taxedge.gst.filing.repository.GstFilingRepository;
-import com.taxedge.gst.validator.GstFileUploadValidator;
+import com.taxedge.validator.GstFileUploadValidator;
 
 import lombok.RequiredArgsConstructor;
 

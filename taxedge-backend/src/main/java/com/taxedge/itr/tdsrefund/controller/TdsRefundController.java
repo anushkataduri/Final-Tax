@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.taxedge.itr.tdsrefund.dto.TdsRefundDto;
@@ -33,6 +34,13 @@ public class TdsRefundController {
     public ResponseEntity<String> updateBankAccount(@PathVariable String id,
                                                     @Valid @RequestBody TdsRefundDto dto) {
         return ResponseEntity.ok(service.updateTds(id, dto));
+    }
+
+    @PostMapping("/submit")
+    public ResponseEntity<String> submitTdsRefund(
+            @RequestParam String id,
+            @RequestParam(required = false) String pushToken) {
+        return ResponseEntity.ok(service.submitTdsRefund(id, pushToken));
     }
 
     @GetMapping("/get/{id}")

@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import com.taxedge.itr.Exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.itr.filing.dto.SalaryIncomeDto;
 import com.taxedge.itr.filing.entity.ItrFiling;
 import com.taxedge.itr.filing.entity.SalaryIncome;

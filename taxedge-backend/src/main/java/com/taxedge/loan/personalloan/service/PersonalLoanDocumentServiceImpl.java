@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.loan.personalloan.dto.PersonalLoanDocumentDto;
 import com.taxedge.loan.personalloan.entity.PersonalLoanApplication;
 import com.taxedge.loan.personalloan.entity.PersonalLoanDocument;

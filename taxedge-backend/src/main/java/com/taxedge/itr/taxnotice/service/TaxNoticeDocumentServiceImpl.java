@@ -7,8 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.taxedge.gst.validator.GstFileUploadValidator;
-import com.taxedge.itr.Exception.ResourceNotFoundException;
+import com.taxedge.validator.GstFileUploadValidator;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.itr.taxnotice.dto.TaxNoticeDocumentDto;
 import com.taxedge.itr.taxnotice.entity.TaxNoticeAssistance;
 import com.taxedge.itr.taxnotice.entity.TaxNoticeDocument;

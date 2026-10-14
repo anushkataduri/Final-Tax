@@ -1,0 +1,135 @@
+import { StyleSheet } from "react-native";
+import { BrandColors, Spacing, Typography } from "@/shared/theme";
+
+export const styles = StyleSheet.create({
+  card: {
+    backgroundColor: BrandColors.WHITE,
+    borderRadius: 16,
+    padding: Spacing.base,
+    marginBottom: Spacing.base,
+    borderWidth: 1,
+    borderColor: BrandColors.CARD_BORDER,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  iconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#FEF0E6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: Spacing.xs + 2,
+  },
+  title: {
+    fontSize: Typography.fontSize.md,
+    fontWeight: "700",
+    color: BrandColors.TEXT_PRIMARY,
+  },
+  subtitle: {
+    fontSize: Typography.fontSize.xs,
+    color: BrandColors.TEXT_SECONDARY,
+    marginBottom: Spacing.base,
+    lineHeight: 18,
+  },
+  sectionSubHeader: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: "700",
+    color: BrandColors.TEXT_PRIMARY,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  fieldWrapper: {
+    marginBottom: Spacing.md,
+  },
+  twoColRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  col: {
+    flex: 1,
+  },
+  fieldLabel: {
+    fontSize: Typography.fontSize.xs + 1,
+    fontWeight: "600",
+    color: BrandColors.TEXT_PRIMARY,
+    marginBottom: 6,
+  },
+  requiredStar: {
+    color: BrandColors.PRIMARY_ORANGE,
+  },
+  input: {
+    height: 48,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 10,
+    paddingHorizontal: Spacing.md,
+    fontSize: Typography.fontSize.sm,
+    color: BrandColors.TEXT_PRIMARY,
+  },
+  inputError: {
+    borderColor: "#DC2626",
+    backgroundColor: "#FEF2F2",
+  },
+  errorText: {
+    fontSize: Typography.fontSize.xs,
+    color: "#DC2626",
+    marginTop: 4,
+    marginLeft: 2,
+  },
+  toggleBox: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  toggleLabel: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: "600",
+    color: BrandColors.TEXT_PRIMARY,
+    marginBottom: Spacing.sm,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  toggleBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: BrandColors.WHITE,
+  },
+  toggleBtnActive: {
+    backgroundColor: BrandColors.PRIMARY_BLUE,
+    borderColor: BrandColors.PRIMARY_BLUE,
+  },
+  toggleBtnText: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: "600",
+    color: BrandColors.TEXT_SECONDARY,
+  },
+  toggleBtnTextActive: {
+    color: BrandColors.WHITE,
+  },
+  permanentSection: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+  },
+});

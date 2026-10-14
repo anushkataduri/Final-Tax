@@ -12,7 +12,7 @@ import com.taxedge.gst.filing.dto.GstFilingDto;
 import com.taxedge.gst.filing.entity.GstFiling;
 import com.taxedge.gst.filing.enums.FilingType;
 import com.taxedge.gst.filing.enums.TaxCalculationMethod;
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.gst.filing.mapper.GstFilingMapper;
 import com.taxedge.gst.filing.repository.GstFilingRepository;
 import com.taxedge.gst.registration.enums.RegisterationStatus;

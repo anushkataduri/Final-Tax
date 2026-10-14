@@ -1,10 +1,11 @@
 package com.taxedge.itr.reviseditr.service;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import com.taxedge.itr.Exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.itr.reviseditr.dto.RevisionReasonDto;
 import com.taxedge.itr.reviseditr.entity.RevisedItr;
 import com.taxedge.itr.reviseditr.entity.RevisionReasonEntity;
@@ -30,6 +31,15 @@ public class RevisionReasonServiceImpl implements RevisionReasonService {
 		RevisedItr revisedItr = revisedItrRepository.findById(dto.getRevisedItrId())
 				.orElseThrow(() -> new ResourceNotFoundException(
 						"Revised ITR not found with revisedItrId: " + dto.getRevisedItrId()));
+
+		// Upsert check: If reason already exists for this revisedItrId, update it instead of inserting duplicate
+		Optional<RevisionReasonEntity> existingOpt = revisionReasonRepository.findByRevisedItrRevisedItrId(dto.getRevisedItrId());
+		if (existingOpt.isPresent()) {
+			RevisionReasonEntity existing = existingOpt.get();
+			revisionReasonMapper.updateEntity(dto, existing);
+			revisionReasonRepository.save(existing);
+			return "Revision reason registered successfully. Revision Reason ID: " + existing.getRevisionReasonId();
+		}
 
 		RevisionReasonEntity revisionReason = RevisionReasonEntity.builder()
 				.revisionReasonId("RR" + UUID.randomUUID().toString().replace("-", "")).reason(dto.getReason())
