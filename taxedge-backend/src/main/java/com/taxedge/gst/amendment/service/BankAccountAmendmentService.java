@@ -16,4 +16,8 @@ public interface BankAccountAmendmentService {
 
     BankAccountAmendmentViewDto updateBankAccountAmendment(Long id, String bankName, String accountNumber,
                                                            String ifscCode, AccountType accountType, MultipartFile file) throws IOException;
+
+    String submitAmendment(Long id, String gstId, String pushToken);
+
+    
 }

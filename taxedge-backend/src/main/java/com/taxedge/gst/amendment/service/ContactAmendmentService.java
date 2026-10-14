@@ -11,4 +11,8 @@ public interface ContactAmendmentService {
     ContactAmendmentViewDto getAmendmentById(Long id);
 
     ContactAmendmentViewDto updateContactAmendment(Long id, String mobileNumber, String email, MultipartFile file) throws IOException;
+
+    String submitAmendment(Long id, String gstId, String pushToken);
+
+    
 }

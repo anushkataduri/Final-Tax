@@ -1,9 +1,11 @@
 package com.taxedge.gst.compliance.service;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.taxedge.customer.entity.Customer;
@@ -15,18 +17,26 @@ import com.taxedge.gst.compliance.enums.ComplianceRequestType;
 import com.taxedge.gst.exception.ResourceNotFoundException;
 import com.taxedge.gst.compliance.mapper.GstComplianceMapper;
 import com.taxedge.gst.compliance.repository.GstComplianceRepository;
+import com.taxedge.gst.registration.enums.RegisterationStatus;
 import com.taxedge.gst.validator.GstFileUploadValidator;
+import com.taxedge.messaging.service.EmailService;
+import com.taxedge.notification.service.FcmNotificationService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class GstComplianceServiceImpl implements GstComplianceService {
 
 	private final GstComplianceRepository gstComplianceRepository;
 	private final CustomerRepository customerRepository;
 	private final GstComplianceMapper gstComplianceMapper;
 	private final GstFileUploadValidator gstFileUploadValidator;
+	private final FcmNotificationService fcmNotificationService;
+	private final EmailService emailService;
 
 	@Override
 	public GstComplianceResponseDto createCompliance(GstComplianceDto gstComplianceDto,
@@ -316,5 +326,59 @@ public class GstComplianceServiceImpl implements GstComplianceService {
 	private String generateComplianceId() {
 
 		return "COM" + UUID.randomUUID().toString().replace("-", "");
+	}
+
+	@Override
+	public String submitCompliance(String complianceId, String pushToken) {
+
+		GstCompliance compliance = gstComplianceRepository.findById(complianceId)
+				.orElseThrow(() -> new ResourceNotFoundException("GST compliance not found with id: " + complianceId));
+
+		RegisterationStatus currentStatus = compliance.getStatus();
+		if (currentStatus != null && currentStatus != RegisterationStatus.DRAFT && currentStatus != RegisterationStatus.REJECTED) {
+			throw new IllegalStateException(
+					"GST compliance " + complianceId + " cannot be submitted. Current status: " + currentStatus);
+		}
+
+		compliance.setStatus(RegisterationStatus.SUBMITTED);
+		compliance.setSubmittedAt(LocalDateTime.now());
+		gstComplianceRepository.save(compliance);
+
+		Customer customer = compliance.getCustomer();
+
+		// Save token if new or changed
+		if (pushToken != null && !pushToken.isBlank() && customer != null && !pushToken.equals(customer.getPushToken())) {
+			customer.setPushToken(pushToken);
+			customerRepository.save(customer);
+		}
+
+		String resolvedToken = (pushToken != null && !pushToken.isBlank())
+				? pushToken
+				: (customer != null ? customer.getPushToken() : null);
+
+		String applicantName = (customer != null && customer.getName() != null && !customer.getName().isBlank())
+				? customer.getName()
+				: compliance.getGstin();
+
+		if (resolvedToken != null && !resolvedToken.isBlank() && fcmNotificationService != null) {
+			try {
+				fcmNotificationService.sendSuccessNotification(resolvedToken, applicantName);
+			} catch (Exception ex) {
+				log.error("Push notification failed for GST compliance id {}", complianceId, ex);
+			}
+		}
+
+		// Confirmation email
+		try {
+			if (customer != null && customer.getEmail() != null && !customer.getEmail().isBlank() && emailService != null) {
+				String recipientEmail = customer.getEmail();
+				String recipientName = (customer.getName() != null && !customer.getName().isBlank()) ? customer.getName() : "Valued Customer";
+				emailService.sendRegistrationEmail(recipientEmail, recipientName);
+			}
+		} catch (Exception ex) {
+			log.error("Confirmation email failed for GST compliance id {}", complianceId, ex);
+		}
+
+		return "GST compliance submitted successfully. Compliance ID: " + complianceId;
 	}
 }

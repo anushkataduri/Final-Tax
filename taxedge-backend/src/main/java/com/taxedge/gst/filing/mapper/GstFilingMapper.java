@@ -15,6 +15,10 @@ public interface GstFilingMapper {
     @Mapping(target = "gstfilingId", ignore = true)
     @Mapping(target = "customer", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "submittedAt", ignore = true)
+    @Mapping(target = "documents", ignore = true)
+    @Mapping(target = "status", ignore = true)
     GstFiling toEntity(GstFilingDto dto);
 
     @Mapping(target = "customerId", source = "customer.custId")
@@ -23,5 +27,9 @@ public interface GstFilingMapper {
     @Mapping(target = "gstfilingId", ignore = true)
     @Mapping(target = "customer", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "submittedAt", ignore = true)
+    @Mapping(target = "documents", ignore = true)
+    @Mapping(target = "status", ignore = true)
     void updateEntity(GstFilingDto dto, @MappingTarget GstFiling entity);
 }

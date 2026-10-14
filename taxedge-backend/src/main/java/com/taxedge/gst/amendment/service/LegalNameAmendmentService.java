@@ -13,4 +13,8 @@ public interface LegalNameAmendmentService {
     LegalNameAmendmentViewDto getAmendmentById(Long id);
 
     LegalNameAmendmentViewDto updateLegalNameAmendment(Long id, String newLegalName, MultipartFile file) throws IOException;
+
+    String submitAmendment(Long id, String gstId, String pushToken);
+
+    
 }

@@ -213,10 +213,8 @@ test("the old competing calendar implementations are gone", () => {
 test("every date field that opens a calendar goes through the shared dialog and keeps its own format and limits", () => {
   const consumers: Record<string, string[]> = {
     "shared/components/UniversalDatePicker/UniversalDatePicker.tsx": ["<DatePickerDialog", "minimumDate={effectiveMinDate}", "maximumDate={maximumDate}", "formatOutput(selectedDate)"],
-    "modules/loans/project-finance/components/ProjectFinanceDatePicker/ProjectFinanceDatePicker.tsx": ["<DatePickerDialog", "formatDate(selectedDate)", 'placeholder = "DD MMM YYYY"'],
     "modules/itr/taxNotice/components/common/TaxNoticeDatePickerInput/TaxNoticeDatePickerInput.tsx": ["<DatePickerDialog", "minimumDate={minimumDate}", "maximumDate={maximumDate}", "onChange(formatDateToString(dateToSave))"],
     "modules/gst/gst-cancellation/screens/GstCancellationScreen/GstCancellationScreen.tsx": ["<DatePickerDialog", "formatDateDDMMYYYY(date)", "parseDDMMYYYY(flow.form.cancellationDate)", "flow.clearError(\"cancellationDate\")"],
-    "modules/loans/property-loan/components/PropertyLoanApplicantStep/PropertyLoanApplicantStep.tsx": ["<DatePickerDialog", "formatDateToDDMMYYYY(selectedDate)", "maximumDate={new Date()}", 'return `${day}/${month}/${year}`'],
   };
   for (const [file, needles] of Object.entries(consumers)) {
     const source = src(file);
@@ -230,7 +228,6 @@ test("existing date wrappers and their consumers are still wired", () => {
   assert.ok(src("modules/gst/gst-registration/components/GstBusinessStep/GstBusinessStep.tsx").includes("<UniversalDatePicker"));
   assert.ok(src("modules/authentication/screens/Register/RegisterScreen.tsx").includes("<UniversalDatePicker"));
   assert.ok(src("modules/itr/taxNotice/screens/NoticeSummaryScreen/NoticeSummaryScreen.tsx").includes("parseStringToDate"));
-  assert.equal((src("modules/loans/project-finance/components/EpcExecutionCard/EpcExecutionCard.tsx").match(/<ProjectFinanceDatePicker/g) || []).length, 3);
 });
 
 // ===============================================================================================
@@ -303,11 +300,8 @@ const SCREENS_WITH_KEYBOARD_AWARE_SCROLLER = [
   "modules/itr/revisedItr/screens/RevisionReasonScreen/RevisionReasonScreen.tsx",
   "modules/itr/taxNotice/screens/NoticeDocumentsScreen/NoticeDocumentsScreen.tsx",
   "modules/itr/taxNotice/screens/UploadNoticeScreen/UploadNoticeScreen.tsx",
-  "modules/loans/project-finance/screens/ProjectFinanceScreen/ProjectFinanceScreen.tsx",
   "app/service/[id].tsx",
   "components/screens/profile/PersonalDetailsModal.tsx",
-  "modules/loans/project-finance/components/CustomersOfftakersCard/CustomerModal.tsx",
-  "modules/loans/project-finance/components/ProductsServicesCard/ProductModal.tsx",
   "modules/itr/components/BankSelectorModal/BankSelectorModal.tsx",
 ];
 
@@ -319,7 +313,6 @@ const SCREENS_WITH_FIXED_BOTTOM_BAR = [
   "modules/itr/revisedItr/screens/RevisionReasonScreen/RevisionReasonScreen.tsx",
   "modules/itr/taxNotice/screens/NoticeDocumentsScreen/NoticeDocumentsScreen.tsx",
   "modules/itr/taxNotice/screens/UploadNoticeScreen/UploadNoticeScreen.tsx",
-  "modules/loans/project-finance/screens/ProjectFinanceScreen/ProjectFinanceScreen.tsx",
 ];
 
 test("form screens and modals use the one keyboard-aware scroller", () => {
@@ -368,8 +361,6 @@ test("the shared scroller measures the keyboard once it has settled, so a parent
 
 test("screens that already handled the keyboard are left as they were", () => {
   for (const file of [
-    "modules/loans/business-loan/screens/BusinessLoanScreen/BusinessLoanScreen.tsx",
-    "modules/loans/personal-loan/screens/PersonalLoanScreen/PersonalLoanScreen.tsx",
     "modules/gst/gst-filing/screens/GstFilingScreen/GstFilingScreen.tsx",
     "modules/authentication/screens/AuthenticationScreen.tsx",
   ]) {

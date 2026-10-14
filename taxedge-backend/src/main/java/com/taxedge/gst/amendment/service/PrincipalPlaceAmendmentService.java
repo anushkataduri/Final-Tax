@@ -18,4 +18,7 @@ public interface PrincipalPlaceAmendmentService {
     PrincipalPlaceAmendmentViewDto updateAmendment(Long id, String address, String city, String district,
                                                    String state, String pinCode, NatureOfPremises natureOfPremises,
                                                    MultipartFile file) throws IOException;
+
+    String submitAmendment(Long id, String gstId, String pushToken);
+
 }

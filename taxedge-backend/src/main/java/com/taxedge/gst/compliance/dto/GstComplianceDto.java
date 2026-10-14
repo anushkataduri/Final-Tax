@@ -3,6 +3,7 @@ package com.taxedge.gst.compliance.dto;
 import java.time.LocalDate;
 
 import com.taxedge.gst.compliance.enums.ComplianceRequestType;
+import com.taxedge.gst.registration.enums.RegisterationStatus;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -44,4 +45,7 @@ public class GstComplianceDto {
     private byte[] noticeFile;
 
     private String message;
+
+    @Builder.Default
+    private RegisterationStatus status = RegisterationStatus.DRAFT;
 }

@@ -1,0 +1,1 @@
+export { LoansPromoBanner } from "./LoansPromoBanner";

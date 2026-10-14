@@ -17,4 +17,10 @@ public interface AdditionalPlaceAmendmentService {
 
     AdditionalPlaceAmendmentViewDto updateAdditionalPlace(Long id, String address, String city, String pinCode,
                                                          NatureOfPremises natureOfPremises, MultipartFile file) throws IOException;
+
+    String submitAmendment(Long id, String gstId, String pushToken);
+
+    default String submitAmendment(String gstId, String pushToken) {
+        return submitAmendment(null, gstId, pushToken);
+    }
 }
