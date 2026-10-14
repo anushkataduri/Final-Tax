@@ -14,11 +14,11 @@ import com.taxedge.gst.compliance.dto.GstComplianceDto;
 import com.taxedge.gst.compliance.dto.GstComplianceResponseDto;
 import com.taxedge.gst.compliance.entity.GstCompliance;
 import com.taxedge.gst.compliance.enums.ComplianceRequestType;
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.gst.compliance.mapper.GstComplianceMapper;
 import com.taxedge.gst.compliance.repository.GstComplianceRepository;
 import com.taxedge.gst.registration.enums.RegisterationStatus;
-import com.taxedge.gst.validator.GstFileUploadValidator;
+import com.taxedge.validator.GstFileUploadValidator;
 import com.taxedge.messaging.service.EmailService;
 import com.taxedge.notification.service.FcmNotificationService;
 

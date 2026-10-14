@@ -10,7 +10,7 @@ import com.taxedge.gst.amendment.dto.ContactAmendmentViewDto;
 import com.taxedge.gst.amendment.entity.ContactAmendmentEntity;
 import com.taxedge.gst.amendment.mapper.ContactAmendmentMapper;
 import com.taxedge.gst.amendment.repository.ContactAmendmentRepository;
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.gst.registration.entity.Business;
 import com.taxedge.gst.registration.enums.RegisterationStatus;
 import com.taxedge.gst.registration.repository.BusinessRepository;

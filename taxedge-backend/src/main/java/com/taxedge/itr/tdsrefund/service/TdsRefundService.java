@@ -11,5 +11,7 @@ public interface TdsRefundService {
     TdsRefundDto getTds(String id);
 
     TdsRefundDto getTdsByCustId(String custId);
+
+    String submitTdsRefund(String id, String pushToken);
 }
 

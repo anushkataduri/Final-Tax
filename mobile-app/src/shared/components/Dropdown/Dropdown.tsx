@@ -21,11 +21,12 @@ export interface DropdownOption {
 export interface DropdownProps {
   label?: string;
   value?: string;
-  options: Array<string | DropdownOption>;
+  options: (string | DropdownOption)[];
   placeholder?: string;
   onSelect: (value: string) => void;
   error?: string | null;
   required?: boolean;
+  disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -37,6 +38,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   onSelect,
   error,
   required = false,
+  disabled = false,
   style,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -59,19 +61,32 @@ export const Dropdown: React.FC<DropdownProps> = ({
         style={[
           styles.selector,
           error ? styles.selectorError : undefined,
+          disabled ? styles.selectorDisabled : undefined,
         ]}
-        onPress={() => dismissKeyboardThen(() => setModalVisible(true))}
-        activeOpacity={0.8}
+        onPress={() => {
+          if (!disabled) {
+            dismissKeyboardThen(() => setModalVisible(true));
+          }
+        }}
+        activeOpacity={disabled ? 1 : 0.8}
+        accessibilityRole="combobox"
+        accessibilityLabel={label || placeholder}
+        accessibilityState={{ disabled }}
       >
         <Text
           style={[
             styles.selectorText,
             !selectedOption && styles.placeholderText,
+            disabled && styles.disabledText,
           ]}
         >
           {selectedOption ? selectedOption.label : placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+        <Ionicons
+          name="chevron-down"
+          size={20}
+          color={disabled ? Colors.textMuted : Colors.textSecondary}
+        />
       </TouchableOpacity>
 
       {error && <Text style={styles.errorText}>{error}</Text>}
@@ -161,6 +176,14 @@ const styles = StyleSheet.create({
   },
   selectorError: {
     borderColor: Colors.error,
+  },
+  selectorDisabled: {
+    backgroundColor: "#F1F5F9",
+    borderColor: "#E2E8F0",
+    opacity: 0.7,
+  },
+  disabledText: {
+    color: Colors.textMuted,
   },
   selectorText: {
     fontSize: 15,

@@ -3,7 +3,7 @@ package com.taxedge.loan.machineryloan.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.loan.machineryloan.dto.MachineryLoanDocumentDto;
 import com.taxedge.loan.machineryloan.entity.MachineryLoanApplication;
 import com.taxedge.loan.machineryloan.entity.MachineryLoanDocument;

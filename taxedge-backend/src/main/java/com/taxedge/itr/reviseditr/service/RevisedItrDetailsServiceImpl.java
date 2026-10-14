@@ -1,10 +1,11 @@
 package com.taxedge.itr.reviseditr.service;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import com.taxedge.itr.Exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.itr.reviseditr.dto.RevisedItrDetailsDto;
 import com.taxedge.itr.reviseditr.entity.RevisedItr;
 import com.taxedge.itr.reviseditr.entity.RevisedItrDetails;
@@ -28,6 +29,15 @@ public class RevisedItrDetailsServiceImpl implements RevisedItrDetailsService {
 		RevisedItr revisedItr = revisedItrRepository.findById(dto.getRevisedItrId())
 				.orElseThrow(() -> new ResourceNotFoundException(
 						"Revised ITR not found with revisedItrId: " + dto.getRevisedItrId()));
+
+		// Upsert check: If details already exist for this revisedItrId, update them instead of inserting duplicate
+		Optional<RevisedItrDetails> existingOpt = revisedItrDetailsRepository.findByRevisedItrRevisedItrId(dto.getRevisedItrId());
+		if (existingOpt.isPresent()) {
+			RevisedItrDetails existing = existingOpt.get();
+			revisedItrDetailsMapper.updateEntity(dto, existing);
+			revisedItrDetailsRepository.save(existing);
+			return "Revised ITR details registered successfully. Details ID: " + existing.getDetailsId();
+		}
 
 		RevisedItrDetails details = RevisedItrDetails.builder()
 				.detailsId("RITR" + UUID.randomUUID().toString().replace("-", ""))

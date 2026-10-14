@@ -3,7 +3,7 @@ package com.taxedge.loan.businessloan.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.loan.businessloan.dto.BusinessLoanBankingDto;
 import com.taxedge.loan.businessloan.entity.BusinessLoanApplication;
 import com.taxedge.loan.businessloan.entity.BusinessLoanBanking;

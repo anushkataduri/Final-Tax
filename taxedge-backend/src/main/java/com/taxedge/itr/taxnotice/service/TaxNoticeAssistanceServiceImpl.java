@@ -9,8 +9,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.taxedge.customer.entity.Customer;
 import com.taxedge.customer.repository.CustomerRepository;
-import com.taxedge.gst.validator.GstFileUploadValidator;
-import com.taxedge.itr.Exception.ResourceNotFoundException;
+import com.taxedge.validator.GstFileUploadValidator;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.itr.taxnotice.dto.TaxNoticeAssistanceDto;
 import com.taxedge.itr.taxnotice.entity.TaxNoticeAssistance;
 import com.taxedge.itr.taxnotice.mapper.TaxNoticeAssistanceMapper;

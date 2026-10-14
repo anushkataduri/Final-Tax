@@ -2,6 +2,10 @@ package com.taxedge.itr.tdsrefund.entity;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import com.taxedge.gst.registration.enums.RegisterationStatus;
 import com.taxedge.itr.tdsrefund.enums.AccountType;
 
 import jakarta.persistence.Column;
@@ -69,6 +73,19 @@ public class TdsRefund {
     @Column(name = "mobile_number", nullable = false, length = 10)
     private String mobileNumber;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private RegisterationStatus status = RegisterationStatus.DRAFT;
+
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Column(name = "submitted_at")
+    private LocalDateTime submittedAt;
 }
