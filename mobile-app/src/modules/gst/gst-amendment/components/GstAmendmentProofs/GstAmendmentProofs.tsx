@@ -63,8 +63,6 @@ export const GstAmendmentProofs: React.FC<GstAmendmentProofsProps> = ({
               name: asset.name,
               size: asset.size,
             });
-          } else if (onBrowseFiles) {
-            onBrowseFiles();
           }
         }}
         onRemove={() => onDeleteDoc()}

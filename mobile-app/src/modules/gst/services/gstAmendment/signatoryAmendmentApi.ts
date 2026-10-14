@@ -1,6 +1,7 @@
 import type { AmendmentFileInput, AmendmentRecord, ExistingSignatoryDto } from "./gstAmendmentApi.types";
 import { apiClient } from "@/core/api/apiClient";
 import { uploadAmendmentWithFile, formatFile } from "./gstAmendmentTransport";
+import { parseAnyDate } from "@/modules/gst/utils/gstValidators";
 
 /** Authorised Signatories amendment endpoints. */
 export const signatoryAmendmentApi = {
@@ -23,18 +24,14 @@ export const signatoryAmendmentApi = {
       formData.append("newSignatoryPan", signatoryPan);
 
       if (signatoryDob) {
-        const separator = signatoryDob.includes("-") ? "-" : "/";
-        const parts = signatoryDob.split(separator);
-        switch (parts.length) {
-          case 3:
-            const d = parts[0].padStart(2, "0");
-            const m = parts[1].padStart(2, "0");
-            const y = parts[2];
-            formData.append("newSignatoryDob", `${y}-${m}-${d}`);
-            break;
-          default:
-            formData.append("newSignatoryDob", signatoryDob);
-            break;
+        const parsed = parseAnyDate(signatoryDob);
+        if (parsed) {
+          const y = parsed.getFullYear();
+          const m = String(parsed.getMonth() + 1).padStart(2, "0");
+          const d = String(parsed.getDate()).padStart(2, "0");
+          formData.append("newSignatoryDob", `${y}-${m}-${d}`);
+        } else {
+          formData.append("newSignatoryDob", signatoryDob);
         }
       }
 

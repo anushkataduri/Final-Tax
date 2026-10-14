@@ -19,13 +19,15 @@ interface GstAmendmentSuccessProps {
   submissionResult: SubmissionResult;
   insets: { top: number; bottom: number };
   onTrack: () => void;
-  onOpenApplications: () => void;
+  onGoHome?: () => void;
+  onOpenApplications?: () => void;
 }
 
 export const GstAmendmentSuccess: React.FC<GstAmendmentSuccessProps> = ({
   submissionResult,
   insets,
   onTrack,
+  onGoHome,
   onOpenApplications,
 }) => {
   return (
@@ -100,9 +102,9 @@ export const GstAmendmentSuccess: React.FC<GstAmendmentSuccessProps> = ({
           <TouchableOpacity
             style={styles.successHomeBtn}
             activeOpacity={0.8}
-            onPress={onOpenApplications}
+            onPress={onGoHome || onOpenApplications}
           >
-            <Text style={styles.successHomeBtnText}>Go to My Applications</Text>
+            <Text style={styles.successHomeBtnText}>Go to Home</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
