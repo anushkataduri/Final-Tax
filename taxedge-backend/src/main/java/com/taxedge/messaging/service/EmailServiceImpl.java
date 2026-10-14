@@ -61,4 +61,39 @@ public class EmailServiceImpl implements EmailService{
             log.error("Welcome email failed for customer [{}] ({})", custId, toEmail, ex);
         }
     }
+
+    @Async("mailExecutor")
+    @Override
+    public void sendRegistrationEmail(String toEmail, String recipientName) {
+        if (toEmail == null || toEmail.isBlank()) {
+            log.warn("GST registration confirmation email skipped: email address is blank");
+            return;
+        }
+
+        try {
+            Context context = new Context();
+            context.setVariable("name", recipientName != null && !recipientName.isBlank() ? recipientName : "Valued Customer");
+
+            String html = templateEngine.process("email/submit-email", context);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(
+                    message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                    StandardCharsets.UTF_8.name());
+
+            String senderFrom = (from != null && !from.isBlank()) ? from : "noreply@taxedge.com";
+            String senderName = (fromName != null && !fromName.isBlank()) ? fromName : "TaxEdge";
+
+            helper.setFrom(senderFrom, senderName);
+            helper.setTo(toEmail);
+            helper.setSubject("Registration Application Submitted");
+            helper.setText(html, true);
+
+            mailSender.send(message);
+            log.info("registration confirmation email sent successfully to ({})", toEmail);
+
+        } catch (Exception ex) {
+            log.error("Failed to send  registration confirmation email to ({})", toEmail, ex);
+        }
+    }
 }

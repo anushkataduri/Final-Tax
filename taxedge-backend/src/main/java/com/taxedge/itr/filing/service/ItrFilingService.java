@@ -10,4 +10,6 @@ public interface ItrFilingService {
     String updateItrFiling(String itrId, ItrFilingPostDto dto);
 
     ItrFiling getItrFiling(String itrId);
+
+    String submitItrFiling(String itrId, String pushToken);
 }

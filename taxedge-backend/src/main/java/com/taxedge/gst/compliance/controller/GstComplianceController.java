@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -115,5 +116,19 @@ public class GstComplianceController {
 
 			throw new IllegalArgumentException(message);
 		}
+	}
+
+	@PostMapping("/submit")
+	public ResponseEntity<String> submitGstCompliance(
+			@RequestParam(name = "complianceId", required = false) String complianceId,
+			@RequestParam(name = "id", required = false) String id,
+			@RequestParam(required = false) String pushToken) {
+
+		String targetId = complianceId != null && !complianceId.isBlank() ? complianceId : id;
+		if (targetId == null || targetId.isBlank()) {
+			throw new IllegalArgumentException("complianceId is required");
+		}
+
+		return ResponseEntity.ok(complianceService.submitCompliance(targetId, pushToken));
 	}
 }

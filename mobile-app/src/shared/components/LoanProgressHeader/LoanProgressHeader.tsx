@@ -16,6 +16,10 @@ export interface LoanProgressHeaderProps {
   onBack?: () => void;
   /** Optional settings press handler */
   onSettings?: () => void;
+  /** Replaces the "Step X of Y • subtitle" line when set. */
+  stepLabel?: string;
+  /** Hides the progress bar, e.g. on a stand-alone edit screen. */
+  hideProgress?: boolean;
 }
 
 export const LOAN_PROGRESS_CONFIG = {
@@ -48,6 +52,8 @@ export const LoanProgressHeader: React.FC<LoanProgressHeaderProps> = ({
   subtitle,
   onBack,
   onSettings,
+  stepLabel,
+  hideProgress = false,
 }) => {
   // Determine 1-based step number cleanly
   const displayStep = currentStep === 0 ? 1 : currentStep;
@@ -73,7 +79,7 @@ export const LoanProgressHeader: React.FC<LoanProgressHeaderProps> = ({
         <View style={styles.centerContent}>
           <Text style={styles.titleText}>{title}</Text>
           <Text style={styles.stepText}>
-            Step {displayStep} of {totalSteps} • {subtitle}
+            {stepLabel ?? `Step ${displayStep} of ${totalSteps} • ${subtitle}`}
           </Text>
         </View>
 
@@ -91,9 +97,11 @@ export const LoanProgressHeader: React.FC<LoanProgressHeaderProps> = ({
         )}
       </View>
 
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-      </View>
+      {hideProgress ? null : (
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+        </View>
+      )}
     </View>
   );
 };

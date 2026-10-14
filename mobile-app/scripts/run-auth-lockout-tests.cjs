@@ -141,6 +141,10 @@ const stubs = {
   "modules/authentication/services/authStorage": {
     authStorage: {
       getUserByMobile: (m) => userStore.get(m) ?? null,
+      getUser: () => {
+        const s = calls.session;
+        return s?.activeMobile ? (userStore.get(s.activeMobile) ?? null) : null;
+      },
       saveUser: (u) => void userStore.set(u.mobileNumber, u),
       saveSession(s) {
         calls.sessionCleared = false;
@@ -150,7 +154,7 @@ const stubs = {
         calls.sessionCleared = true;
         calls.session = null;
       },
-      getSession: () => ({ isLoggedIn: false, activeMobile: null }),
+      getSession: () => calls.session ?? ({ isLoggedIn: false, activeMobile: null }),
     },
   },
   "utils/pushNotificationService": { registerForPushNotificationsAsync: async () => null },

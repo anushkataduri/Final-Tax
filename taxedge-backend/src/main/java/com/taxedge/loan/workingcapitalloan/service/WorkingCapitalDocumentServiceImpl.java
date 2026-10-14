@@ -5,7 +5,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.loan.workingcapitalloan.dto.WorkingCapitalDocumentDto;
 import com.taxedge.loan.workingcapitalloan.entity.WorkingCapitalApplication;
 import com.taxedge.loan.workingcapitalloan.entity.WorkingCapitalDocument;

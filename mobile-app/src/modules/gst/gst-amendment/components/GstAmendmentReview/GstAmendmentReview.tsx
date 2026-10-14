@@ -37,6 +37,7 @@ interface GstAmendmentReviewProps {
   scrollViewRef: React.RefObject<ScrollView | null>;
   onEdit: () => void;
   onSubmit: () => void;
+  onSaveDraft?: () => void;
   amendmentId?: number | null;
   dbReviewData?: any;
 }
@@ -54,6 +55,7 @@ export const GstAmendmentReview: React.FC<GstAmendmentReviewProps> = ({
   scrollViewRef,
   onEdit,
   onSubmit,
+  onSaveDraft,
   amendmentId,
   dbReviewData,
 }) => {
@@ -81,20 +83,12 @@ export const GstAmendmentReview: React.FC<GstAmendmentReviewProps> = ({
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
-      {/* Header */}
+      {/* Header (No back arrow: edits are accessed via the dedicated Edit button) */}
       <View style={[styles.headerBar, getHeaderBarStyle(insets.top)]}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={onEdit}
-          style={styles.roundBackButton}
-        >
-          <Ionicons name="chevron-back" size={22} color={BrandColors.PRIMARY_BLUE} />
-        </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
           <Text style={styles.headerMainTitle}>Review Amendment</Text>
           <Text style={styles.headerSubtitle}>Confirm details before submission</Text>
         </View>
-        <View style={styles.placeholderBox} />
       </View>
 
       <ScrollView

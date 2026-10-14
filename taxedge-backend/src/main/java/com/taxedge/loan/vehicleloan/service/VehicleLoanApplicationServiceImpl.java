@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.taxedge.customer.entity.Customer;
 import com.taxedge.customer.repository.CustomerRepository;
-import com.taxedge.itr.Exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.loan.vehicleloan.dto.VehicleLoanApplicationDto;
 import com.taxedge.loan.vehicleloan.entity.VehicleLoanApplication;
 import com.taxedge.loan.vehicleloan.enums.ExistingLoanStatus;

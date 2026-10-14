@@ -1,6 +1,7 @@
 package com.taxedge.gst.amendment.service;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -8,30 +9,37 @@ import java.util.stream.Collectors;
 
 import com.taxedge.customer.entity.Customer;
 import com.taxedge.customer.repository.CustomerRepository;
+import com.taxedge.gst.amendment.dto.AdditionalPlaceAmendmentViewDto;
+import com.taxedge.gst.amendment.entity.AdditionalPlaceAmendmentEntity;
+import com.taxedge.gst.amendment.mapper.AdditionalPlaceAmendmentMapper;
+import com.taxedge.gst.amendment.repository.AdditionalPlaceAmendmentRepository;
+import com.taxedge.exception.ResourceNotFoundException;
+import com.taxedge.gst.registration.enums.NatureOfPremises;
+import com.taxedge.gst.registration.enums.RegisterationStatus;
+import com.taxedge.gst.registration.repository.BusinessRepository;
+import com.taxedge.messaging.service.EmailService;
+import com.taxedge.notification.service.FcmNotificationService;
+import com.taxedge.security.jwt.JwtPrincipal;
+
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.taxedge.gst.amendment.dto.AdditionalPlaceAmendmentViewDto;
-import com.taxedge.gst.amendment.entity.AdditionalPlaceAmendmentEntity;
-import com.taxedge.gst.amendment.mapper.AdditionalPlaceAmendmentMapper;
-import com.taxedge.gst.amendment.repository.AdditionalPlaceAmendmentRepository;
-import com.taxedge.gst.exception.ResourceNotFoundException;
-import com.taxedge.gst.registration.enums.NatureOfPremises;
-import com.taxedge.gst.registration.repository.BusinessRepository;
-import com.taxedge.security.jwt.JwtPrincipal;
-
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AdditionalPlaceAmendmentServiceImpl implements AdditionalPlaceAmendmentService {
 
     private final BusinessRepository businessRepository;
     private final CustomerRepository customerRepository;
     private final AdditionalPlaceAmendmentRepository additionalPlaceRepository;
     private final AdditionalPlaceAmendmentMapper amendmentMapper;
+    private final FcmNotificationService fcmNotificationService;
+    private final EmailService emailService;
 
     private Customer resolveAndVerifyCustomer(String customerId, String gstId) {
         String resolvedCustId = null;
@@ -134,5 +142,69 @@ public class AdditionalPlaceAmendmentServiceImpl implements AdditionalPlaceAmend
         entity = additionalPlaceRepository.save(entity);
 
         return amendmentMapper.toDto(entity);
+    }
+
+    @Override
+    @Transactional
+    public String submitAmendment(Long id, String gstId, String pushToken) {
+        AdditionalPlaceAmendmentEntity amendment;
+
+        if (id != null) {
+            amendment = additionalPlaceRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Additional place amendment not found with id: " + id));
+        } else if (gstId != null && !gstId.isBlank()) {
+            String trimmedGst = gstId.trim();
+            amendment = additionalPlaceRepository.findFirstByGstNumberOrderByCreatedAtDesc(trimmedGst)
+                    .orElseThrow(() -> new ResourceNotFoundException("Additional place amendment not found for GST number: " + trimmedGst));
+        } else {
+            throw new IllegalArgumentException("Either id or gstId is required to submit amendment");
+        }
+
+        RegisterationStatus currentStatus = amendment.getStatus();
+        if (currentStatus != null && currentStatus != RegisterationStatus.DRAFT && currentStatus != RegisterationStatus.REJECTED) {
+            throw new IllegalStateException(
+                    "Additional place amendment " + amendment.getId() + " cannot be submitted. Current status: " + currentStatus);
+        }
+
+        amendment.setStatus(RegisterationStatus.SUBMITTED);
+        amendment.setSubmittedAt(LocalDateTime.now());
+        additionalPlaceRepository.save(amendment);
+
+        Customer customer = amendment.getCustomer();
+
+        // Save token if new or changed
+        if (pushToken != null && !pushToken.isBlank() && customer != null && !pushToken.equals(customer.getPushToken())) {
+            customer.setPushToken(pushToken);
+            customerRepository.save(customer);
+        }
+
+        String resolvedToken = (pushToken != null && !pushToken.isBlank())
+                ? pushToken
+                : (customer != null ? customer.getPushToken() : null);
+
+        String applicantName = (customer != null && customer.getName() != null && !customer.getName().isBlank())
+                ? customer.getName()
+                : amendment.getGstNumber();
+
+        if (resolvedToken != null && !resolvedToken.isBlank() && fcmNotificationService != null) {
+            try {
+                fcmNotificationService.sendSuccessNotification(resolvedToken, applicantName);
+            } catch (Exception ex) {
+                log.error("Push notification failed for additional place amendment id {}", amendment.getId(), ex);
+            }
+        }
+
+        // Confirmation email
+        try {
+            if (customer != null && customer.getEmail() != null && !customer.getEmail().isBlank() && emailService != null) {
+                String recipientEmail = customer.getEmail();
+                String recipientName = (customer.getName() != null && !customer.getName().isBlank()) ? customer.getName() : "Valued Customer";
+                emailService.sendRegistrationEmail(recipientEmail, recipientName);
+            }
+        } catch (Exception ex) {
+            log.error("Confirmation email failed for additional place amendment id {}", amendment.getId(), ex);
+        }
+
+        return "Additional place amendment submitted successfully. Amendment ID: " + amendment.getId();
     }
 }

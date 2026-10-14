@@ -132,8 +132,8 @@ export class ApiClient {
         if (clean.includes(":8081")) {
           clean = clean.replace(":8081", `:${SERVER_PORT}`);
         }
-        if (clean.includes("192.168.88.28")) {
-          clean = clean.replace("192.168.88.28", SERVER_IP);
+        if (clean.includes("192.168.88.28") || clean.includes("192.168.88.31")) {
+          clean = clean.replace(/192\.168\.88\.\d+/, SERVER_IP);
         }
         await AsyncStorage.setItem(STORAGE_KEY_SERVER_URL, clean);
         this.setBaseUrl(clean);

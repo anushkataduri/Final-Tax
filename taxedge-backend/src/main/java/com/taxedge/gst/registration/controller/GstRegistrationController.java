@@ -1,7 +1,7 @@
 package com.taxedge.gst.registration.controller;
 
 import java.io.IOException;
-import org.springframework.web.bind.annotation.RequestBody;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
 import com.taxedge.gst.registration.dto.BusinessRequest;
 import com.taxedge.gst.registration.dto.BusinessResponse;
 import com.taxedge.gst.registration.dto.BusinessUpdateRequest;
@@ -60,6 +61,8 @@ public class GstRegistrationController {
 
 		return ResponseEntity.ok(result);
 	}
+
+	
 
 	@PostMapping(value = "/documents/{gstId}/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<String> uploadFile(@PathVariable String gstId,
@@ -138,4 +141,16 @@ public class GstRegistrationController {
 
 		return ResponseEntity.ok(result);
 	}
+	
+	
+	
+	
+	@PostMapping("/submit")
+	public ResponseEntity<String> submitGstRegistration(
+	        @RequestParam String gstId,
+	        @RequestParam(required = false) String pushToken) {
+	    return ResponseEntity.ok(businessService.submitRegistration(gstId, pushToken));
+	}
+	
+	
 }

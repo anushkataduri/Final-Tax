@@ -7,8 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.taxedge.gst.validator.GstFileUploadValidator;
-import com.taxedge.itr.Exception.ResourceNotFoundException;
+import com.taxedge.validator.GstFileUploadValidator;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.itr.filing.dto.DocumentDto;
 import com.taxedge.itr.filing.entity.ItrDocument;
 import com.taxedge.itr.filing.entity.ItrFiling;
@@ -34,12 +34,14 @@ public class ItrDocumentServiceImpl implements ItrDocumentService {
 
 	@Override
 	public String registerDocuments(String itrId, MultipartFile form16PartAPartB, MultipartFile form26as,
-			MultipartFile aisTis, MultipartFile bankAccountStatement, MultipartFile salaryPayslips) throws IOException {
+			MultipartFile aisTis, MultipartFile bankAccountStatement, MultipartFile salaryPayslips,
+			MultipartFile capitalGainsStatement, MultipartFile businessTurnover) throws IOException {
 
 		ItrFiling itrFiling = itrFilingRepository.findById(itrId)
 				.orElseThrow(() -> new ResourceNotFoundException("ITR Filing not found with ID: " + itrId));
 
-		validateAtLeastOneDocument(form16PartAPartB, form26as, aisTis, bankAccountStatement, salaryPayslips);
+		validateAtLeastOneDocument(form16PartAPartB, form26as, aisTis, bankAccountStatement, salaryPayslips,
+				capitalGainsStatement, businessTurnover);
 
 		if (itrDocumentRepository.existsByItrFiling_ItrId(itrId)) {
 			throw new IllegalArgumentException("Documents already exist for ITR ID: " + itrId);
@@ -50,7 +52,10 @@ public class ItrDocumentServiceImpl implements ItrDocumentService {
 				.form26as(storeFile(form26as, ItrDocumentType.FORM_26AS))
 				.aisTis(storeFile(aisTis, ItrDocumentType.AIS_TIS))
 				.bankAccountStatement(storeFile(bankAccountStatement, ItrDocumentType.BANK_ACCOUNT_STATEMENT))
-				.salaryPayslips(storeFile(salaryPayslips, ItrDocumentType.SALARY_PAYSLIPS)).build();
+				.salaryPayslips(storeFile(salaryPayslips, ItrDocumentType.SALARY_PAYSLIPS))
+				.capitalGainsStatement(storeFile(capitalGainsStatement, ItrDocumentType.CAPITAL_GAINS_STATEMENT))
+				.businessTurnover(storeFile(businessTurnover, ItrDocumentType.BUSINESS_TURNOVER))
+				.build();
 
 		ItrDocument itrDocument = itrDocumentMapper.toEntity(dto);
 
@@ -75,12 +80,14 @@ public class ItrDocumentServiceImpl implements ItrDocumentService {
 
 	@Override
 	public String updateDocuments(String documentId, MultipartFile form16PartAPartB, MultipartFile form26as,
-			MultipartFile aisTis, MultipartFile bankAccountStatement, MultipartFile salaryPayslips) throws IOException {
+			MultipartFile aisTis, MultipartFile bankAccountStatement, MultipartFile salaryPayslips,
+			MultipartFile capitalGainsStatement, MultipartFile businessTurnover) throws IOException {
 
 		ItrDocument itrDocument = itrDocumentRepository.findById(documentId).orElseThrow(
 				() -> new ResourceNotFoundException("ITR documents not found with document ID: " + documentId));
 
-		validateAtLeastOneDocument(form16PartAPartB, form26as, aisTis, bankAccountStatement, salaryPayslips);
+		validateAtLeastOneDocument(form16PartAPartB, form26as, aisTis, bankAccountStatement, salaryPayslips,
+				capitalGainsStatement, businessTurnover);
 
 		updateFile(itrDocument, form16PartAPartB, ItrDocumentType.FORM_16_PART_A_PART_B);
 
@@ -91,6 +98,10 @@ public class ItrDocumentServiceImpl implements ItrDocumentService {
 		updateFile(itrDocument, bankAccountStatement, ItrDocumentType.BANK_ACCOUNT_STATEMENT);
 
 		updateFile(itrDocument, salaryPayslips, ItrDocumentType.SALARY_PAYSLIPS);
+
+		updateFile(itrDocument, capitalGainsStatement, ItrDocumentType.CAPITAL_GAINS_STATEMENT);
+
+		updateFile(itrDocument, businessTurnover, ItrDocumentType.BUSINESS_TURNOVER);
 
 		itrDocumentRepository.save(itrDocument);
 
@@ -141,14 +152,19 @@ public class ItrDocumentServiceImpl implements ItrDocumentService {
 		case BANK_ACCOUNT_STATEMENT -> itrDocument.setBankAccountStatement(data);
 
 		case SALARY_PAYSLIPS -> itrDocument.setSalaryPayslips(data);
+
+		case CAPITAL_GAINS_STATEMENT -> itrDocument.setCapitalGainsStatement(data);
+
+		case BUSINESS_TURNOVER -> itrDocument.setBusinessTurnover(data);
 		}
 	}
 
 	private void validateAtLeastOneDocument(MultipartFile form16PartAPartB, MultipartFile form26as,
-			MultipartFile aisTis, MultipartFile bankAccountStatement, MultipartFile salaryPayslips) {
+			MultipartFile aisTis, MultipartFile bankAccountStatement, MultipartFile salaryPayslips,
+			MultipartFile capitalGainsStatement, MultipartFile businessTurnover) {
 
 		if (isEmpty(form16PartAPartB) && isEmpty(form26as) && isEmpty(aisTis) && isEmpty(bankAccountStatement)
-				&& isEmpty(salaryPayslips)) {
+				&& isEmpty(salaryPayslips) && isEmpty(capitalGainsStatement) && isEmpty(businessTurnover)) {
 
 			throw new IllegalArgumentException("At least one document is required");
 		}

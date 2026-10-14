@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from '@/shared/components/KeyboardAwareFormLayout';
 import { KeyboardStickyFooter } from '@/shared/components/KeyboardStickyFooter';
-import { LoanStepIndicator } from '@/modules/loans/components/LoanStepIndicator';
+import { LoanStepIndicator } from '@/shared/components/LoanStepIndicator';
 import { UniversalDraftModal } from '@/shared/components/UniversalDraftModal';
 import { useUniversalDraftGuard } from '@/shared/hooks/useUniversalDraftGuard';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';

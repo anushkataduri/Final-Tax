@@ -11,4 +11,6 @@ public interface GstFilingService {
     String updateFiling(String id, GstFilingDto gstFilingDto);
 
     String deleteFiling(String id);
+    
+    String submitFiling(String filingId, String pushToken);
 }

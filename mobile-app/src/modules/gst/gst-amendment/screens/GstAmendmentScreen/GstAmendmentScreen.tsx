@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { BackHandler } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApplicationStore } from "@/store/applicationStore";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
@@ -16,6 +17,32 @@ import {
 export function GstAmendmentScreen() {
   const insets = useSafeAreaInsets();
   const workflow = useGstAmendmentWorkflow();
+
+  // Android BackHandler interceptor for unsaved drafts
+  useEffect(() => {
+    const onBackPress = () => {
+      if (workflow.currentStep === "EDIT" || workflow.currentStep === "REVIEW") {
+        if (workflow.draftGuard.showDraftModal) {
+          workflow.draftGuard.handleCancel();
+          return true;
+        }
+        if (workflow.currentStep === "REVIEW") {
+          workflow.draftGuard.openDraftModal();
+          return true;
+        }
+        if (workflow.isEditMode) {
+          workflow.draftGuard.openDraftModal();
+          return true;
+        }
+        workflow.handleBackFromEdit();
+        return true;
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => backHandler.remove();
+  }, [workflow]);
 
   return (
     <>
@@ -45,9 +72,10 @@ export function GstAmendmentScreen() {
           onUpdateField={workflow.updateFormField}
           onClearError={workflow.clearError}
           onOpenPicker={workflow.openPickerModal}
+          onUploadSuccess={workflow.handleUploadSuccess}
           onBrowseFiles={workflow.handleBrowseFiles}
           onScanFile={workflow.handleScanFile}
-          onDeleteDoc={() => workflow.setSupportingDoc(null)}
+          onDeleteDoc={workflow.handleDeleteDoc}
           onToggleExpandProofs={() => workflow.setIsProofsExpanded((prev) => !prev)}
           onReviewChanges={workflow.handleReviewChanges}
           isEditMode={workflow.isEditMode}
@@ -69,9 +97,10 @@ export function GstAmendmentScreen() {
           onUpdateField={workflow.updateFormField}
           onClearError={workflow.clearError}
           onOpenPicker={workflow.openPickerModal}
+          onUploadSuccess={workflow.handleUploadSuccess}
           onBrowseFiles={workflow.handleBrowseFiles}
           onScanFile={workflow.handleScanFile}
-          onDeleteDoc={() => workflow.setSupportingDoc(null)}
+          onDeleteDoc={workflow.handleDeleteDoc}
           onToggleExpandProofs={() => workflow.setIsProofsExpanded((prev) => !prev)}
           onReviewChanges={workflow.handleReviewChanges}
           isEditMode={workflow.isEditMode}
@@ -93,6 +122,7 @@ export function GstAmendmentScreen() {
           scrollViewRef={workflow.scrollViewRef}
           onEdit={workflow.handleEditFromReview}
           onSubmit={workflow.handleSubmitAmendment}
+          onSaveDraft={workflow.handleExplicitSaveDraft}
           amendmentId={workflow.amendmentId}
           dbReviewData={workflow.dbReviewData}
         />
@@ -108,6 +138,7 @@ export function GstAmendmentScreen() {
               workflow.router.push(`/application/${workflow.submissionResult.appId}`);
             }
           }}
+          onGoHome={() => workflow.router.replace("/(main)/home")}
           onOpenApplications={() => workflow.router.push("/(main)/applications")}
         />
       )}

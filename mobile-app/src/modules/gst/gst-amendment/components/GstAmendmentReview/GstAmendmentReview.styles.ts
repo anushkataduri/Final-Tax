@@ -32,7 +32,7 @@ export const styles = StyleSheet.create({
   },
   headerTitleWrap: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: 0,
   },
   headerMainTitle: {
     fontSize: Typography.fontSize.xxl,
@@ -224,5 +224,59 @@ export const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  saveDraftCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    padding: 16,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+    gap: 12,
+  },
+  saveDraftHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  saveDraftIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#F1F5F9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  saveDraftTitleWrap: {
+    flex: 1,
+  },
+  saveDraftTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  saveDraftSubtitle: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#64748B",
+    marginTop: 1,
+  },
+  saveDraftBtn: {
+    height: 42,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  saveDraftBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#334155",
   },
 });

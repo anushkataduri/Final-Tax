@@ -1,5 +1,23 @@
 package com.taxedge.gst.amendment.service;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import com.taxedge.customer.entity.Customer;
+import com.taxedge.customer.repository.CustomerRepository;
+import com.taxedge.gst.amendment.dto.LegalNameAmendmentViewDto;
+import com.taxedge.gst.amendment.entity.LegalNameAmendmentEntity;
+import com.taxedge.gst.amendment.mapper.LegalNameAmendmentMapper;
+import com.taxedge.gst.amendment.repository.LegalNameAmendmentRepository;
+import com.taxedge.exception.ResourceNotFoundException;
+import com.taxedge.gst.registration.entity.Business;
+import com.taxedge.gst.registration.enums.RegisterationStatus;
+import com.taxedge.gst.registration.repository.BusinessRepository;
+import com.taxedge.messaging.service.EmailService;
+import com.taxedge.notification.service.FcmNotificationService;
+import com.taxedge.security.jwt.JwtPrincipal;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -7,20 +25,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.taxedge.customer.entity.Customer;
-import com.taxedge.customer.repository.CustomerRepository;
-import com.taxedge.gst.amendment.dto.LegalNameAmendmentViewDto;
-import com.taxedge.gst.registration.entity.Business;
-import com.taxedge.gst.amendment.entity.LegalNameAmendmentEntity;
-import com.taxedge.gst.exception.ResourceNotFoundException;
-import com.taxedge.gst.registration.repository.BusinessRepository;
-import com.taxedge.gst.amendment.mapper.LegalNameAmendmentMapper;
-import com.taxedge.gst.amendment.repository.LegalNameAmendmentRepository;
-import com.taxedge.security.jwt.JwtPrincipal;
-
-import java.io.IOException;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +37,8 @@ public class LegalNameAmendmentServiceImpl implements LegalNameAmendmentService 
     private final CustomerRepository customerRepository;
     private final LegalNameAmendmentRepository amendmentRepository;
     private final LegalNameAmendmentMapper amendmentMapper;
+    private final FcmNotificationService fcmNotificationService;
+    private final EmailService emailService;
 
     private Customer resolveAndVerifyCustomer(String customerId, String gstId) {
         String resolvedCustId = null;
@@ -175,5 +181,69 @@ public class LegalNameAmendmentServiceImpl implements LegalNameAmendmentService 
         log.info("Successfully updated legal name amendment [id: {}]", id);
 
         return amendmentMapper.toDto(entity);
+    }
+
+    @Override
+    @Transactional
+    public String submitAmendment(Long id, String gstId, String pushToken) {
+        LegalNameAmendmentEntity amendment;
+
+        if (id != null) {
+            amendment = amendmentRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Legal name amendment not found with id: " + id));
+        } else if (gstId != null && !gstId.isBlank()) {
+            String trimmedGst = gstId.trim();
+            amendment = amendmentRepository.findByGstNumber(trimmedGst)
+                    .orElseThrow(() -> new ResourceNotFoundException("Legal name amendment not found for GST number: " + trimmedGst));
+        } else {
+            throw new IllegalArgumentException("Either id or gstId is required to submit amendment");
+        }
+
+        RegisterationStatus currentStatus = amendment.getStatus();
+        if (currentStatus != null && currentStatus != RegisterationStatus.DRAFT && currentStatus != RegisterationStatus.REJECTED) {
+            throw new IllegalStateException(
+                    "Legal name amendment " + amendment.getId() + " cannot be submitted. Current status: " + currentStatus);
+        }
+
+        amendment.setStatus(RegisterationStatus.SUBMITTED);
+        amendment.setSubmittedAt(LocalDateTime.now());
+        amendmentRepository.save(amendment);
+
+        Customer customer = amendment.getCustomer();
+
+        // Save token if new or changed
+        if (pushToken != null && !pushToken.isBlank() && customer != null && !pushToken.equals(customer.getPushToken())) {
+            customer.setPushToken(pushToken);
+            customerRepository.save(customer);
+        }
+
+        String resolvedToken = (pushToken != null && !pushToken.isBlank())
+                ? pushToken
+                : (customer != null ? customer.getPushToken() : null);
+
+        String applicantName = (customer != null && customer.getName() != null && !customer.getName().isBlank())
+                ? customer.getName()
+                : amendment.getGstNumber();
+
+        if (resolvedToken != null && !resolvedToken.isBlank() && fcmNotificationService != null) {
+            try {
+                fcmNotificationService.sendSuccessNotification(resolvedToken, applicantName);
+            } catch (Exception ex) {
+                log.error("Push notification failed for legal name amendment id {}", amendment.getId(), ex);
+            }
+        }
+
+        // Confirmation email
+        try {
+            if (customer != null && customer.getEmail() != null && !customer.getEmail().isBlank() && emailService != null) {
+                String recipientEmail = customer.getEmail();
+                String recipientName = (customer.getName() != null && !customer.getName().isBlank()) ? customer.getName() : "Valued Customer";
+                emailService.sendRegistrationEmail(recipientEmail, recipientName);
+            }
+        } catch (Exception ex) {
+            log.error("Confirmation email failed for legal name amendment id {}", amendment.getId(), ex);
+        }
+
+        return "Legal name amendment submitted successfully. Amendment ID: " + amendment.getId();
     }
 }

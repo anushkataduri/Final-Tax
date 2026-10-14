@@ -20,4 +20,6 @@ public class DocumentDto {
 	private byte[] bankAccountStatement;
 
 	private byte[] salaryPayslips;
+	private byte[] capitalGainsStatement;
+	private byte[] businessTurnover;
 }

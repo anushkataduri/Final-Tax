@@ -9,4 +9,6 @@ public interface RevisedItrService {
 	RevisedItrDto getRevisedItr(String revisedItrId);
 
 	String updateRevisedItr(String revisedItrId, RevisedItrDto dto);
+ 
+	String submitRevisedItr(String revisedItrId, String pushToken);
 }

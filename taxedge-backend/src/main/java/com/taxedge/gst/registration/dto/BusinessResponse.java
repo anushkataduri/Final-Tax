@@ -8,6 +8,7 @@ import com.taxedge.gst.registration.enums.ConstitutionOfBusiness;
 import com.taxedge.gst.registration.enums.NatureOfBusiness;
 import com.taxedge.gst.registration.enums.PlaceOfBusiness;
 import com.taxedge.gst.registration.enums.ReasonForRegistration;
+import com.taxedge.gst.registration.enums.RegisterationStatus;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -77,4 +78,6 @@ public class BusinessResponse {
     private String signatoryMobile;
 
     private String signatoryEmail;
+
+    private RegisterationStatus status;
 }

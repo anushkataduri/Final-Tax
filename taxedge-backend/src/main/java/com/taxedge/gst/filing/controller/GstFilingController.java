@@ -125,4 +125,18 @@ public class GstFilingController {
 
 		return ResponseEntity.ok(result);
 	}
+
+	@PostMapping("/submit")
+	public ResponseEntity<String> submitGstFiling(
+			@RequestParam(name = "filingId", required = false) String filingId,
+			@RequestParam(name = "gstfilingId", required = false) String gstfilingId,
+			@RequestParam(required = false) String pushToken) {
+
+		String targetId = filingId != null && !filingId.isBlank() ? filingId : gstfilingId;
+		if (targetId == null || targetId.isBlank()) {
+			throw new IllegalArgumentException("filingId is required");
+		}
+
+		return ResponseEntity.ok(gstFilingService.submitFiling(targetId, pushToken));
+	}
 }

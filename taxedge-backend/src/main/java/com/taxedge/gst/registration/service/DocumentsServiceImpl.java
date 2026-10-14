@@ -13,11 +13,11 @@ import com.taxedge.gst.registration.entity.Business;
 import com.taxedge.gst.registration.entity.Documents;
 import com.taxedge.gst.registration.enums.DocumentsType;
 import com.taxedge.gst.registration.enums.PrincipalPlaceAddressType;
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.gst.registration.mapper.DocumentsMapper;
 import com.taxedge.gst.registration.repository.BusinessRepository;
 import com.taxedge.gst.registration.repository.DocumentsRepository;
-import com.taxedge.gst.validator.GstFileUploadValidator;
+import com.taxedge.validator.GstFileUploadValidator;
 
 import lombok.RequiredArgsConstructor;
 

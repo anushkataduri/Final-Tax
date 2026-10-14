@@ -59,6 +59,14 @@ public class GstAmendmentController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/legal-name/submit")
+    public ResponseEntity<String> submitLegalNameAmendment(
+            @RequestParam(required = false) String gstId,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String pushToken) {
+        return ResponseEntity.ok(legalNameService.submitAmendment(id, gstId, pushToken));
+    }
+
     // ==========================================
     // 2. Principal Place Amendment
     // ==========================================
@@ -95,6 +103,14 @@ public class GstAmendmentController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/principal-place/submit")
+    public ResponseEntity<String> submitPrincipalPlaceAmendment(
+            @RequestParam(required = false) String gstId,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String pushToken) {
+        return ResponseEntity.ok(principalPlaceService.submitAmendment(id, gstId, pushToken));
+    }
+
     // ==========================================
     // 3. Additional Place Amendment
     // ==========================================
@@ -127,6 +143,14 @@ public class GstAmendmentController {
         AdditionalPlaceAmendmentViewDto result = additionalPlaceService.updateAdditionalPlace(
                 id, dto.getAddress(), dto.getCity(), dto.getPinCode(), dto.getNatureOfPremises(), file);
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping({"/additional-place/submit", "/submit"})
+    public ResponseEntity<String> submitAdditionalPlaceAmendment(
+            @RequestParam(required = false) String gstId,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String pushToken) {
+        return ResponseEntity.ok(additionalPlaceService.submitAmendment(id, gstId, pushToken));
     }
 
     // ==========================================
@@ -165,6 +189,14 @@ public class GstAmendmentController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/bank-account/submit")
+    public ResponseEntity<String> submitBankAccountAmendment(
+            @RequestParam(required = false) String gstId,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String pushToken) {
+        return ResponseEntity.ok(bankAccountService.submitAmendment(id, gstId, pushToken));
+    }
+
     // ==========================================
     // 5. Contact Details Amendment
     // ==========================================
@@ -197,6 +229,14 @@ public class GstAmendmentController {
         ContactAmendmentViewDto response = contactService.updateContactAmendment(
                 id, dto.getNewMobileNumber(), dto.getNewEmail(), file);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/contact/submit")
+    public ResponseEntity<String> submitContactAmendment(
+            @RequestParam(required = false) String gstId,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String pushToken) {
+        return ResponseEntity.ok(contactService.submitAmendment(id, gstId, pushToken));
     }
 
     // ==========================================
@@ -233,5 +273,13 @@ public class GstAmendmentController {
                 id, dto.getNewSignatoryName(), dto.getNewSignatoryPan(), dto.getNewSignatoryDob(),
                 dto.getNewDesignation(), dto.getNewSignatoryMobile(), dto.getNewSignatoryEmail(), file);
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/signatory/submit")
+    public ResponseEntity<String> submitSignatoryAmendment(
+            @RequestParam(required = false) String gstId,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String pushToken) {
+        return ResponseEntity.ok(signatoryService.submitAmendment(id, gstId, pushToken));
     }
 }

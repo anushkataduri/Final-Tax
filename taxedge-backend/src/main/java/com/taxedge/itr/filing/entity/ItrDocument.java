@@ -49,4 +49,12 @@ public class ItrDocument {
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "salary_payslips", columnDefinition = "bytea")
     private byte[] salaryPayslips;
+
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "capital_gains_statement", columnDefinition = "bytea")
+    private byte[] capitalGainsStatement;
+
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "business_turnover", columnDefinition = "bytea")
+    private byte[] businessTurnover;
 }

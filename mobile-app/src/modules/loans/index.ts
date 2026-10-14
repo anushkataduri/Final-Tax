@@ -1,23 +1,32 @@
-// Core Loan Services
-export * from "./business-loan";
-export * from "./personal-loan";
-export * from "./home-loan";
-export * from "./property-loan";
-export * from "./vehicle-loan";
-export * from "./working-capital";
-export * from "./machinery-loan";
-export * from "./project-finance";
-export * from "./msme-loan";
+export { LoansMainScreen } from "./screens/LoansMainScreen";
+export { LoanKycScreen } from "./screens/LoanKycScreen";
+export { LoanDocumentUploadScreen } from "./screens/LoanDocumentUploadScreen";
+export { LoanReviewScreen } from "./screens/LoanReviewScreen";
+export { LoanUnderReviewScreen } from "./screens/LoanUnderReviewScreen";
 
-// Loan Status Engine
-export * from "./loan-status";
+// Product barrels
+export * from "./businessWorkingCapital";
+export * from "./personalLoan";
 
-// Marketplace Hub
-export * from "./screens/LoansScreen";
-
-// Services, Types & Validation
-export * from "./services/LoansService";
-export * from "./services/loansApi";
-export * from "./types/loans.types";
-export * from "./validation/loansSchema";
-export * from "./navigation/LoansNavigator";
+// Shared infrastructure
+export { LOAN_CATEGORIES } from "./constants/loanCategories";
+export { useLoansStore } from "./store/loansStore";
+export { validateLoanKyc, isApplicantAdult } from "./validation/loanKycValidation";
+export { validateReviewSubmission } from "./validation/loanReviewValidation";
+export { getRequiredDocuments, getPersonalLoanDocuments } from "./constants/loanDocuments";
+export { getLoanDocumentProgress, validateLoanDocumentFile } from "./validation/loanDocumentsValidation";
+export { loanKycService } from "./services/loanKycService";
+export type { LoanCategory, LoanCategoryId } from "./types/loanCategory.types";
+export type {
+  LoanKycData,
+  LoanKycAddress,
+  LoanKycErrors,
+  LoanKycVerificationStatus,
+  LoansFlowState,
+} from "./types/loanKyc.types";
+export type {
+  LoanDocumentRequirement,
+  LoanDocumentUpload,
+  LoanReviewState,
+  LoanReviewErrors,
+} from "./types/loanReview.types";

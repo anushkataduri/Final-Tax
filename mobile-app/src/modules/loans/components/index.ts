@@ -1,10 +1,14 @@
-export * from "./EligibilityCard";
-export * from "./LoanCard";
-export * from "./LoanStatusTracker";
-export * from "./LoanTypeSelector";
-
-// Shared loan building blocks (not yet adopted by the individual loan slices)
-export * from "./LoanStepIndicator";
-export * from "./LoanCustomerCard";
-export * from "./DocumentPreviewModal";
-export * from "./LoanAmountInput";
+export { LoanCategoryCard } from "./LoanCategoryCard";
+export { LoansHeader } from "./LoansHeader";
+export { KycStatusBanner } from "./KycStatusBanner";
+export { CustomerIdentitySection } from "./CustomerIdentitySection";
+export { AddressSection } from "./AddressSection";
+export { KycConsentCard } from "./KycConsentCard";
+export { ApplicationSummarySection } from "./ApplicationSummarySection";
+export { DocumentRequirementCard } from "./DocumentRequirementCard";
+export { DocumentProgressSummary } from "./DocumentProgressSummary";
+export { ReviewConsentCard } from "./ReviewConsentCard";
+export { LoanFlowHeader } from "./LoanFlowHeader";
+export { LoanNextStepPlaceholder } from "./LoanNextStepPlaceholder";
+export { ReviewDocumentsSummary } from "./ReviewDocumentsSummary";
+export { MoneyInputField } from "./MoneyInputField";

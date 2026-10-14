@@ -12,12 +12,17 @@ import com.taxedge.gst.filing.dto.GstFilingDto;
 import com.taxedge.gst.filing.entity.GstFiling;
 import com.taxedge.gst.filing.enums.FilingType;
 import com.taxedge.gst.filing.enums.TaxCalculationMethod;
-import com.taxedge.gst.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.gst.filing.mapper.GstFilingMapper;
 import com.taxedge.gst.filing.repository.GstFilingRepository;
+import com.taxedge.gst.registration.enums.RegisterationStatus;
+import com.taxedge.messaging.service.EmailService;
+import com.taxedge.notification.service.FcmNotificationService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -26,6 +31,8 @@ public class GstFilingServiceImpl implements GstFilingService {
 	private final GstFilingRepository gstFilingRepository;
 	private final CustomerRepository customerRepository;
 	private final GstFilingMapper gstFilingMapper;
+	private final FcmNotificationService fcmNotificationService;
+	private final EmailService emailService;
 
 	@Override
 	public String createFiling(GstFilingDto dto) {
@@ -198,5 +205,59 @@ public class GstFilingServiceImpl implements GstFilingService {
 	private String generateFilingId() {
 
 		return "FIL" + UUID.randomUUID().toString().replace("-", "");
+	}
+
+	@Override
+	public String submitFiling(String filingId, String pushToken) {
+
+		GstFiling filing = gstFilingRepository.findById(filingId)
+				.orElseThrow(() -> new ResourceNotFoundException("GST filing not found with id: " + filingId));
+
+		RegisterationStatus currentStatus = filing.getStatus();
+		if (currentStatus != null && currentStatus != RegisterationStatus.DRAFT && currentStatus != RegisterationStatus.REJECTED) {
+			throw new IllegalStateException(
+					"GST filing " + filingId + " cannot be submitted. Current status: " + currentStatus);
+		}
+
+		filing.setStatus(RegisterationStatus.SUBMITTED);
+		filing.setSubmittedAt(LocalDateTime.now());
+		gstFilingRepository.save(filing);
+
+		Customer customer = filing.getCustomer();
+
+		// Save token if new or changed
+		if (pushToken != null && !pushToken.isBlank() && customer != null && !pushToken.equals(customer.getPushToken())) {
+			customer.setPushToken(pushToken);
+			customerRepository.save(customer);
+		}
+
+		String resolvedToken = (pushToken != null && !pushToken.isBlank())
+				? pushToken
+				: (customer != null ? customer.getPushToken() : null);
+
+		String applicantName = (customer != null && customer.getName() != null && !customer.getName().isBlank())
+				? customer.getName()
+				: filing.getGstin();
+
+		if (resolvedToken != null && !resolvedToken.isBlank() && fcmNotificationService != null) {
+			try {
+				fcmNotificationService.sendSuccessNotification(resolvedToken, applicantName);
+			} catch (Exception ex) {
+				log.error("Push notification failed for GST filing id {}", filingId, ex);
+			}
+		}
+
+		// Confirmation email
+		try {
+			if (customer != null && customer.getEmail() != null && !customer.getEmail().isBlank() && emailService != null) {
+				String recipientEmail = customer.getEmail();
+				String recipientName = (customer.getName() != null && !customer.getName().isBlank()) ? customer.getName() : "Valued Customer";
+				emailService.sendRegistrationEmail(recipientEmail, recipientName);
+			}
+		} catch (Exception ex) {
+			log.error("Confirmation email failed for GST filing id {}", filingId, ex);
+		}
+
+		return "GST filing submitted successfully. Filing ID: " + filingId;
 	}
 }

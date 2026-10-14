@@ -58,6 +58,13 @@ public class ItrFilingController {
 		return ResponseEntity.ok(result);
 	}
 
+	@PostMapping("/submit")
+	public ResponseEntity<String> submitItrFiling(
+	        @RequestParam String itrId,
+	        @RequestParam(required = false) String pushToken) {
+	    return ResponseEntity.ok(itrFilingService.submitItrFiling(itrId, pushToken));
+	}
+
 	// ==========================================
 	// 2. ITR DOCUMENT ENDPOINTS
 	// ==========================================
@@ -68,10 +75,12 @@ public class ItrFilingController {
 			@RequestParam(value = "form26as", required = false) MultipartFile form26as,
 			@RequestParam(value = "aisTis", required = false) MultipartFile aisTis,
 			@RequestParam(value = "bankAccountStatement", required = false) MultipartFile bankAccountStatement,
-			@RequestParam(value = "salaryPayslips", required = false) MultipartFile salaryPayslips) throws IOException {
+			@RequestParam(value = "salaryPayslips", required = false) MultipartFile salaryPayslips,
+			@RequestParam(value = "capitalGainsStatement", required = false) MultipartFile capitalGainsStatement,
+			@RequestParam(value = "businessTurnover", required = false) MultipartFile businessTurnover) throws IOException {
 
 		String result = itrDocumentService.registerDocuments(itrId, form16PartAPartB, form26as, aisTis,
-				bankAccountStatement, salaryPayslips);
+				bankAccountStatement, salaryPayslips, capitalGainsStatement, businessTurnover);
 
 		return new ResponseEntity<>(result, HttpStatus.CREATED);
 	}
@@ -90,10 +99,12 @@ public class ItrFilingController {
 			@RequestParam(value = "form26as", required = false) MultipartFile form26as,
 			@RequestParam(value = "aisTis", required = false) MultipartFile aisTis,
 			@RequestParam(value = "bankAccountStatement", required = false) MultipartFile bankAccountStatement,
-			@RequestParam(value = "salaryPayslips", required = false) MultipartFile salaryPayslips) throws IOException {
+			@RequestParam(value = "salaryPayslips", required = false) MultipartFile salaryPayslips,
+			@RequestParam(value = "capitalGainsStatement", required = false) MultipartFile capitalGainsStatement,
+			@RequestParam(value = "businessTurnover", required = false) MultipartFile businessTurnover) throws IOException {
 
 		String result = itrDocumentService.updateDocuments(documentId, form16PartAPartB, form26as, aisTis,
-				bankAccountStatement, salaryPayslips);
+				bankAccountStatement, salaryPayslips, capitalGainsStatement, businessTurnover);
 
 		return ResponseEntity.ok(result);
 	}

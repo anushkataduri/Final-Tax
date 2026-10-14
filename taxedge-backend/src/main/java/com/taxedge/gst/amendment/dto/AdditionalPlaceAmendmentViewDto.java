@@ -3,6 +3,7 @@ package com.taxedge.gst.amendment.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import com.taxedge.gst.registration.enums.NatureOfPremises;
+import com.taxedge.gst.registration.enums.RegisterationStatus;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,4 +25,7 @@ public class AdditionalPlaceAmendmentViewDto {
     private String businessGstId;
     private String gstNumber;
     private String customerId;
+
+    @Builder.Default
+    private RegisterationStatus status = RegisterationStatus.DRAFT;
 }

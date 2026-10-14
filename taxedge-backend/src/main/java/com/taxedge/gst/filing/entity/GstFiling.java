@@ -2,12 +2,17 @@ package com.taxedge.gst.filing.entity;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import com.taxedge.customer.entity.Customer;
 import com.taxedge.gst.filing.enums.FilingFrequency;
 import com.taxedge.gst.filing.enums.FilingType;
 import com.taxedge.gst.filing.enums.ReturnType;
 import com.taxedge.gst.filing.enums.TaxCalculationMethod;
+import com.taxedge.gst.registration.enums.RegisterationStatus;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,6 +21,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
@@ -74,7 +80,23 @@ public class GstFiling {
 
 	@Column(name = "estimated_eligible_itc")
 	private Long estimatedEligibleItc;
+	
+	@OneToOne(mappedBy = "gstFiling", cascade = CascadeType.ALL, orphanRemoval = true)
+	private GstFilingDocuments documents;
 
-	@Column(name = "created_at", nullable = false)
+	@Builder.Default
+	@Enumerated(EnumType.STRING)
+	@Column(name = "status", nullable = false, length = 20)
+	private RegisterationStatus status = RegisterationStatus.DRAFT;
+	
+	@CreationTimestamp
+	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt;
+
+	@UpdateTimestamp
+	@Column(name = "updated_at", nullable = false)
+	private LocalDateTime updatedAt;
+
+	@Column(name = "submitted_at")
+	private LocalDateTime submittedAt;
 }
