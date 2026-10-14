@@ -32,6 +32,8 @@ export const mapNatureOfPremises = (nature?: string): string => {
       return "SHARED";
     case lower.includes("own"):
       return "OWNED";
+    case lower.includes("warehouse"):
+      return "WAREHOUSE";
     default:
       return "OTHERS";
   }

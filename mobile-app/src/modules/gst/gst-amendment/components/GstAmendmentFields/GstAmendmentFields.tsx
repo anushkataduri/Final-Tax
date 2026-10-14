@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, KeyboardTypeOptions } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { UniversalDatePicker } from "@/shared/components/UniversalDatePicker";
 import { styles } from "./GstAmendmentFields.styles";
 
 interface InputFieldProps {
@@ -93,6 +94,8 @@ interface DateFieldProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   error?: string;
+  maximumDate?: Date;
+  minimumDate?: Date;
 }
 
 export const DateField: React.FC<DateFieldProps> = ({
@@ -100,28 +103,22 @@ export const DateField: React.FC<DateFieldProps> = ({
   required = true,
   value,
   onChangeText,
-  placeholder = "dd-mm-yyyy",
+  placeholder = "Select date of birth",
   error,
+  maximumDate,
+  minimumDate,
 }) => (
-  <View style={styles.fieldGroup}>
-    <Text style={styles.fieldLabel}>
-      {label} {required && <Text style={styles.star}>*</Text>}
-    </Text>
-    <View style={[styles.dateInputWrap, Boolean(error) && styles.inputError]}>
-      <TextInput
-        style={styles.dateTextInput}
-        placeholder={placeholder}
-        placeholderTextColor="#94A3B8"
-        value={value}
-        onChangeText={onChangeText}
-        maxLength={10}
-      />
-      <View style={styles.dateIconBox}>
-        <Ionicons name="calendar-outline" size={18} color="#0284C7" />
-      </View>
-    </View>
-    {error && <Text style={styles.errorText}>{error}</Text>}
-  </View>
+  <UniversalDatePicker
+    label={label}
+    required={required}
+    value={value}
+    onChange={onChangeText}
+    placeholder={placeholder}
+    error={error}
+    valueFormat="DD-MM-YYYY"
+    maximumDate={maximumDate}
+    minimumDate={minimumDate}
+  />
 );
 
 interface PhoneFieldProps {
@@ -138,7 +135,7 @@ export const PhoneField: React.FC<PhoneFieldProps> = ({
   required = true,
   value,
   onChangeText,
-  placeholder = "XXXXX XXXXX",
+  placeholder = "Enter mobile number",
   error,
 }) => (
   <View style={styles.fieldGroup}>
