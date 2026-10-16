@@ -35,6 +35,12 @@ for (const ext of [".ts", ".tsx"]) {
   };
 }
 
+for (const ext of [".png", ".jpg", ".jpeg", ".gif", ".webp"]) {
+  require.extensions[ext] = (module, filename) => {
+    module.exports = { uri: filename };
+  };
+}
+
 // ---- "@/" alias -----------------------------------------------------------------------------
 const originalResolve = Module._resolveFilename;
 Module._resolveFilename = function (request, ...rest) {

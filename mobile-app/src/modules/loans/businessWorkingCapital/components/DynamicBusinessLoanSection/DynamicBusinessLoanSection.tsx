@@ -1,5 +1,5 @@
 import React from "react";
-import { toWholeRupees } from "@/modules/loans/utils/moneyInput";
+import { normalizeMoneyInput } from "@/modules/loans/utils/moneyInput";
 import { View, Text, TextInput } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Dropdown } from "@/shared/components/Dropdown";
@@ -11,6 +11,9 @@ import {
   BUSINESS_TEXT_LIMITS,
   isProjectCostRequired,
 } from "../../validation/businessLoanValidation";
+import {
+  BUSINESS_LOAN_PURPOSE_OPTIONS,
+} from "../../types/businessLoan.types";
 import type {
   BusinessLoanDetails,
   BusinessLoanErrors,
@@ -27,25 +30,16 @@ interface DynamicBusinessLoanSectionProps {
   ) => void;
 }
 
-const BUSINESS_PURPOSE_OPTIONS: string[] = [
-  "Business Expansion",
-  "Equipment Purchase",
-  "Renovation",
-  "Inventory Purchase",
-  "Business Setup",
-  "Other",
-];
-
 export const DynamicBusinessLoanSection: React.FC<
   DynamicBusinessLoanSectionProps
 > = ({ data, errors, onChangeField }) => {
   const handleAmountChange = (text: string) => {
-    const raw = toWholeRupees(text);
+    const raw = normalizeMoneyInput(text);
     onChangeField("loanAmount", raw);
   };
 
   const handleProjectCostChange = (text: string) => {
-    const raw = toWholeRupees(text);
+    const raw = normalizeMoneyInput(text);
     onChangeField("projectCost", raw);
   };
 
@@ -77,7 +71,13 @@ export const DynamicBusinessLoanSection: React.FC<
           <Text style={styles.currencyPrefix}>₹</Text>
           <TextInput
             style={styles.currencyInput}
-            value={data.loanAmount ? groupIndianDigits(data.loanAmount) : ""}
+            value={
+              data.loanAmount
+                ? /^\d+$/.test(data.loanAmount)
+                  ? groupIndianDigits(data.loanAmount)
+                  : data.loanAmount
+                : ""
+            }
             onChangeText={handleAmountChange}
             placeholder="e.g. 10,00,000"
             placeholderTextColor="#94A3B8"
@@ -99,7 +99,7 @@ export const DynamicBusinessLoanSection: React.FC<
         <Dropdown
           label="Purpose of Loan"
           required
-          options={BUSINESS_PURPOSE_OPTIONS}
+          options={[...BUSINESS_LOAN_PURPOSE_OPTIONS]}
           value={data.purpose}
           onSelect={(val) => onChangeField("purpose", val as BusinessLoanPurpose)}
           placeholder="Select strategic loan objective"
@@ -147,7 +147,13 @@ export const DynamicBusinessLoanSection: React.FC<
             <Text style={styles.currencyPrefix}>₹</Text>
             <TextInput
               style={styles.currencyInput}
-              value={data.projectCost ? groupIndianDigits(data.projectCost) : ""}
+              value={
+                data.projectCost
+                  ? /^\d+$/.test(data.projectCost)
+                    ? groupIndianDigits(data.projectCost)
+                    : data.projectCost
+                  : ""
+              }
               onChangeText={handleProjectCostChange}
               placeholder="e.g. 15,00,000"
               placeholderTextColor="#94A3B8"

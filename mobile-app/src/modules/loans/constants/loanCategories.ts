@@ -52,7 +52,7 @@ export const LOAN_CATEGORIES: readonly LoanCategory[] = [
   },
   {
     id: "msme-loan",
-    title: "MSME Loans",
+    title: "MSME Loan",
     description: "Support for small and medium enterprises.",
     image: require("../../../../assets/images/services/loans/msme_loan.png"),
     tint: "#EA580C",
@@ -67,3 +67,34 @@ export const LOAN_CATEGORIES: readonly LoanCategory[] = [
     tintBg: "#F1ECFE",
   },
 ];
+
+/**
+ * Resolves a loan product identifier (category ID, slug, or special product like working-capital)
+ * to its standard loan category and loanType.
+ */
+export function resolveLoanCategory(idOrSlug: string): {
+  category: LoanCategory;
+  loanType?: "business-loan" | "working-capital";
+} | null {
+  if (!idOrSlug) return null;
+  const clean = idOrSlug.trim().toLowerCase().replace(/-loans$/, "-loan");
+  if (clean === "working-capital" || clean === "working capital") {
+    const biz = LOAN_CATEGORIES.find((c) => c.id === "business-loan");
+    if (biz) return { category: biz, loanType: "working-capital" };
+  }
+  const match = LOAN_CATEGORIES.find(
+    (c) =>
+      c.id === clean ||
+      c.id === `${clean}-loan` ||
+      c.title.toLowerCase().includes(clean) ||
+      clean.includes(c.id) ||
+      clean.includes(c.title.toLowerCase())
+  );
+  if (match) {
+    return {
+      category: match,
+      loanType: match.id === "business-loan" ? "business-loan" : undefined,
+    };
+  }
+  return null;
+}

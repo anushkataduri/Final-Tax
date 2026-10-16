@@ -1,7 +1,10 @@
 /// <reference types="node" />
 import assert from "node:assert/strict";
 import { test, describe, beforeEach } from "node:test";
-import { toWholeRupees } from "../../modules/loans/utils/moneyInput";
+import {
+  normalizeMoneyInput,
+  parseWholeRupeeAmount,
+} from "../../modules/loans/utils/moneyInput";
 import {
   BUSINESS_TEXT_LIMITS,
   validateBusinessLoanForm,
@@ -49,19 +52,43 @@ const validBusiness = (): BusinessLoanFormData => {
   return form;
 };
 
+const validBusinessKyc = () => ({
+  ...createInitialKycData(),
+  fullName: "Rajesh Sharma",
+  mobile: "9876543210",
+  pan: "ABCPE1234F",
+  dob: "15-08-1985",
+  currentAddress: {
+    houseNumber: "Flat 402",
+    street: "MG Road",
+    city: "Hyderabad",
+    state: "Telangana",
+    pincode: "500001",
+  },
+  consentGiven: true,
+});
+
 describe("money input", () => {
-  test("typed and pasted amounts become whole-rupee digits", () => {
-    assert.equal(toWholeRupees("1"), "1");
-    assert.equal(toWholeRupees("₹10,00,000"), "1000000");
-    assert.equal(toWholeRupees("1,00,00,000"), "10000000");
-    assert.equal(toWholeRupees("-5000"), "5000");
-    assert.equal(toWholeRupees("abc"), "");
+  test("valid Indian currency input is normalized to whole-rupee digits", () => {
+    assert.equal(normalizeMoneyInput("1"), "1");
+    assert.equal(normalizeMoneyInput("₹10,00,000"), "1000000");
+    assert.equal(normalizeMoneyInput("1,00,00,000"), "10000000");
   });
 
-  test("a pasted decimal is truncated, never turned into extra digits", () => {
-    assert.equal(toWholeRupees("50,000.75"), "50000");
-    assert.equal(toWholeRupees("₹1,00,000.50"), "100000");
-    assert.equal(toWholeRupees(".99"), "");
+  test("malformed values are preserved for strict validation instead of being corrected", () => {
+    assert.equal(normalizeMoneyInput("-5000"), "-5000");
+    assert.equal(normalizeMoneyInput("abc"), "abc");
+    assert.equal(normalizeMoneyInput("50,000.75"), "50,000.75");
+    assert.equal(normalizeMoneyInput("₹1,00,000.50"), "1,00,000.50");
+    assert.equal(normalizeMoneyInput(".99"), ".99");
+    assert.equal(normalizeMoneyInput("1e9"), "1e9");
+    assert.equal(normalizeMoneyInput("50@000"), "50@000");
+    ["-5000", "abc", "50,000.75", "₹1,00,000.50", ".99", "1e9", "50@000"].forEach((raw) => {
+      assert.equal(parseWholeRupeeAmount(raw), null, raw);
+    });
+    assert.equal(parseWholeRupeeAmount("₹ 10,00,000"), 1000000);
+    assert.equal(parseWholeRupeeAmount("1,00,00,000"), 10000000);
+    assert.equal(parseWholeRupeeAmount("999999999999999999"), null);
   });
 });
 
@@ -94,7 +121,7 @@ describe("business validation attacks", () => {
 
   test("amounts: zero, negative text, below minimum and missing are rejected", () => {
     const form = validBusiness();
-    ["", "0", "100", "24999"].forEach((amount) => {
+    ["", "0", "-25000", "100", "24999", "50,000.75", "1e9", "50@000", "9007199254740993"].forEach((amount) => {
       form.businessLoan.loanAmount = amount;
       assert.ok(validateBusinessLoanForm(form).errors.businessLoanAmount, amount);
     });
@@ -123,6 +150,32 @@ describe("business validation attacks", () => {
     assert.ok(errors.constitutionOther);
     assert.ok(errors.activityOther);
     assert.ok(errors.businessLoanPurposeOther);
+  });
+
+  test("invalid dropdown values and overlong Other values are rejected", () => {
+    const form = validBusiness();
+    form.businessProfile.constitution = "Unknown" as never;
+    form.businessProfile.businessActivity = "Unknown" as never;
+    form.businessLoan.purpose = "Unknown" as never;
+    assert.ok(validateBusinessLoanForm(form).errors.constitution);
+    assert.ok(validateBusinessLoanForm(form).errors.businessActivity);
+    assert.ok(validateBusinessLoanForm(form).errors.businessLoanPurpose);
+
+    form.businessProfile.constitution = "Other";
+    form.businessProfile.constitutionOther = "x".repeat(BUSINESS_TEXT_LIMITS.other + 1);
+    assert.ok(validateBusinessLoanForm(form).errors.constitutionOther);
+  });
+
+  test("working capital rejects malformed monthly financial amounts and unknown purpose", () => {
+    const form = validBusiness();
+    form.loanType = "working-capital";
+    form.workingCapital.monthlySales = "-800000";
+    form.workingCapital.monthlyExpenses = "1e9";
+    form.workingCapital.purpose = "Invalid" as never;
+    const { errors } = validateBusinessLoanForm(form);
+    assert.ok(errors.monthlySales);
+    assert.ok(errors.monthlyExpenses);
+    assert.ok(errors.workingCapitalPurpose);
   });
 
   test("the other loan type's fields are never validated", () => {
@@ -170,8 +223,7 @@ describe("loan type switching", () => {
     });
     const s = useLoansStore.getState();
     s.selectCategory({ id: "business-loan", title: "Business", description: "", image: { uri: "t" } });
-    s.setKycField("fullName", "Rajesh Sharma");
-    s.setKycField("mobile", "9876543210");
+    useLoansStore.setState({ kycData: validBusinessKyc() });
     const form = validBusiness();
     s.setLoanType("business-loan");
     Object.entries(form.businessProfile).forEach(([k, v]) =>
@@ -183,14 +235,14 @@ describe("loan type switching", () => {
     Object.entries(form.workingCapital).forEach(([k, v]) =>
       useLoansStore.getState().setWorkingCapitalField(k as keyof typeof form.workingCapital, v as never)
     );
-    ["pan_card", "business_proof"].forEach((id) =>
+    ["pan_card", "business_proof", "project_quotation"].forEach((id) =>
       useLoansStore.getState().setDocumentAttachment(id, {
         id: `${id}_1`, documentId: id, fileName: `${id}.pdf`, fileUri: `file:///${id}.pdf`,
         fileSize: 10, mimeType: "application/pdf", status: "selected",
       })
     );
     useLoansStore.getState().setReviewConsent(true);
-    assert.equal(await useLoansStore.getState().submitLoanApplication(), true);
+    assert.equal(await useLoansStore.getState().submitLoanApplication(), true, JSON.stringify(useLoansStore.getState().reviewErrors));
     const sent = (captured as LoanSubmissionPayload | null)?.businessFormData;
     assert.equal(sent?.workingCapital.loanAmount, "");
     assert.equal(sent?.workingCapital.monthlySales, "");

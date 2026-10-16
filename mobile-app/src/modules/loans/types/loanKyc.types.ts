@@ -29,6 +29,7 @@ export interface LoanKycData {
   permanentAddress: LoanKycAddress;
   consentGiven: boolean;
   isProfilePrefilled?: boolean;
+  isProfileLocked?: boolean;
 }
 
 export type LoanKycErrors = {

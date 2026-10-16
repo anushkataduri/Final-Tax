@@ -3,7 +3,7 @@ import { apiClient, SERVER_IP, SERVER_PORT } from "@/core/api/apiClient";
 import { tokenManager } from "@/core/authentication/tokenManager";
 import type { TaxNoticeFormData } from "../taxNotice/types/taxNotice.types";
  
-const getBaseUrl = () => apiClient.getBaseUrl() || "http:// + SERVER_IP + : + SERVER_PORT + ";
+const getBaseUrl = () => apiClient.getBaseUrl() || `http://${SERVER_IP}:${SERVER_PORT}`;
  
 export const taxNoticeApi = {
   /**

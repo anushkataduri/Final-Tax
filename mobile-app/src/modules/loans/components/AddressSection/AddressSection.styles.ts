@@ -18,7 +18,30 @@ export const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 6,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  lockNoteRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  lockNoteText: {
+    fontSize: Typography.fontSize.xs - 1,
+    color: "#64748B",
+    marginLeft: 6,
+    flex: 1,
+    lineHeight: 16,
   },
   iconBox: {
     width: 32,
@@ -131,5 +154,29 @@ export const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: "#E2E8F0",
+  },
+  toggleBtnDisabled: {
+    opacity: 0.6,
+  },
+  lockedField: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 10,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    minHeight: 48,
+    justifyContent: "center",
+  },
+  lockedFieldValue: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: "600",
+    color: BrandColors.TEXT_PRIMARY,
+  },
+  lockedLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
   },
 });

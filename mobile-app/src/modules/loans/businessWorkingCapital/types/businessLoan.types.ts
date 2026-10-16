@@ -1,35 +1,46 @@
 export type BusinessLoanType = "business-loan" | "working-capital";
 
+export const BUSINESS_CONSTITUTION_OPTIONS = [
+  "Proprietorship",
+  "Partnership",
+  "LLP",
+  "Private Limited Company",
+  "Other",
+] as const;
+
+export const BUSINESS_ACTIVITY_OPTIONS = [
+  "Trading",
+  "Manufacturing",
+  "Retail",
+  "Services",
+  "Other",
+] as const;
+
+export const BUSINESS_LOAN_PURPOSE_OPTIONS = [
+  "Business Expansion",
+  "Equipment Purchase",
+  "Renovation",
+  "Inventory Purchase",
+  "Business Setup",
+  "Other",
+] as const;
+
+export const WORKING_CAPITAL_PURPOSE_OPTIONS = [
+  "Inventory Purchase",
+  "Supplier Payments",
+  "Operating Expenses",
+  "Payroll",
+  "Cash-Flow Gap",
+  "Seasonal Business Needs",
+  "Other",
+] as const;
+
 export type BusinessConstitution =
-  | "Proprietorship"
-  | "Partnership"
-  | "LLP"
-  | "Private Limited Company"
-  | "Other";
-
-export type BusinessActivity =
-  | "Trading"
-  | "Manufacturing"
-  | "Retail"
-  | "Services"
-  | "Other";
-
-export type BusinessLoanPurpose =
-  | "Business Expansion"
-  | "Equipment Purchase"
-  | "Renovation"
-  | "Inventory Purchase"
-  | "Business Setup"
-  | "Other";
-
+  (typeof BUSINESS_CONSTITUTION_OPTIONS)[number];
+export type BusinessActivity = (typeof BUSINESS_ACTIVITY_OPTIONS)[number];
+export type BusinessLoanPurpose = (typeof BUSINESS_LOAN_PURPOSE_OPTIONS)[number];
 export type WorkingCapitalPurpose =
-  | "Inventory Purchase"
-  | "Supplier Payments"
-  | "Operating Expenses"
-  | "Payroll"
-  | "Cash-Flow Gap"
-  | "Seasonal Business Needs"
-  | "Other";
+  (typeof WORKING_CAPITAL_PURPOSE_OPTIONS)[number];
 
 export interface CommonBusinessProfile {
   businessName: string;

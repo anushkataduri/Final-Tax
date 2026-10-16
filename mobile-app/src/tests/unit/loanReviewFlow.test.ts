@@ -37,8 +37,15 @@ function fillKycAndBusiness(loanType: "business-loan" | "working-capital") {
   s.selectCategory(category);
   s.setKycField("fullName", "Rajesh Sharma");
   s.setKycField("mobile", "9876543210");
-  s.setKycField("pan", "ABCDE1234F");
-  s.setKycField("aadhaar", "123456789012");
+  s.setKycField("pan", "ABCPE1234F");
+  s.setKycField("aadhaar", "234567890123");
+  s.setKycField("dob", "15-08-1985");
+  s.setCurrentAddressField("houseNumber", "Flat 402");
+  s.setCurrentAddressField("street", "MG Road");
+  s.setCurrentAddressField("city", "Hyderabad");
+  s.setCurrentAddressField("state", "Telangana");
+  s.setCurrentAddressField("pincode", "500001");
+  s.setConsent(true);
   s.setLoanType(loanType);
   s.setBusinessProfileField("businessName", "Sharma Enterprises");
   s.setBusinessProfileField("constitution", "Proprietorship");
@@ -102,7 +109,7 @@ describe("review summary", () => {
   test("applicant section masks Aadhaar and asks for no credit information", () => {
     fillKycAndBusiness("business-loan");
     const applicant = sectionsOf().find((s) => s.id === "applicant");
-    assert.equal(applicant?.rows.find((r) => r.label === "Aadhaar")?.value, "XXXX XXXX 9012");
+    assert.equal(applicant?.rows.find((r) => r.label === "Aadhaar")?.value, "XXXX XXXX 0123");
     assert.equal(maskAadhaar("12"), "—");
     const text = JSON.stringify(sectionsOf()).toLowerCase();
     assert.ok(!/cibil|credit score|existing loan|emi/.test(text));
@@ -172,7 +179,7 @@ describe("submission", () => {
     uploadAllRequired();
     useLoansStore.getState().setActiveStep("review");
     useLoansStore.getState().setReviewConsent(true);
-    assert.equal(await useLoansStore.getState().submitLoanApplication(), true);
+    assert.equal(await useLoansStore.getState().submitLoanApplication(), true, JSON.stringify(useLoansStore.getState().reviewErrors));
     const s = useLoansStore.getState();
     assert.equal(s.activeStep, "submitted");
     assert.ok(s.submittedApplicationId?.startsWith("TXE-LN-"));
@@ -300,7 +307,7 @@ describe("loan type switching and submission payload", () => {
     // Left over from before the customer switched loan type.
     useLoansStore.getState().setDocumentAttachment("business_proof", doc("business_proof"));
     useLoansStore.getState().setReviewConsent(true);
-    assert.equal(await useLoansStore.getState().submitLoanApplication(), true);
+    assert.equal(await useLoansStore.getState().submitLoanApplication(), true, JSON.stringify(useLoansStore.getState().reviewErrors));
     const ids = (captured as LoanSubmissionPayload | null)?.documents.map((d) => d.documentId) ?? [];
     assert.ok(ids.includes("pan_card"));
     assert.ok(!ids.includes("business_proof"));

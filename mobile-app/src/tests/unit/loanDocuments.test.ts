@@ -64,6 +64,20 @@ describe("loan document progress", () => {
     assert.equal(progress.isComplete, true);
     assert.equal(progress.optionalUploaded, 0);
   });
+
+  test("uploads with missing or invalid size metadata do not satisfy requirements", () => {
+    const badUploads = {
+      pan_card: {
+        ...upload("pan_card"),
+        fileSize: 0,
+      },
+      business_proof: upload("business_proof"),
+      project_quotation: upload("project_quotation"),
+    };
+    const progress = getLoanDocumentProgress(requirements, badUploads);
+    assert.equal(progress.isComplete, false);
+    assert.deepEqual(progress.missingRequiredIds, ["pan_card"]);
+  });
 });
 
 describe("loan document file validation", () => {
@@ -75,8 +89,13 @@ describe("loan document file validation", () => {
   });
 
   test("rejects unsupported types and oversized files with friendly messages", () => {
-    assert.match(validateLoanDocumentFile({ uri: "u", name: "a.docx", mimeType: "application/msword" }, pan) ?? "", /isn't supported/);
+    assert.match(validateLoanDocumentFile({ uri: "u", name: "a.docx", size: 100, mimeType: "application/msword" }, pan) ?? "", /isn't supported/);
     assert.match(validateLoanDocumentFile({ uri: "u", name: "a.pdf", size: pan.maxSizeBytes + 1, mimeType: "application/pdf" }, pan) ?? "", /too large/);
+  });
+
+  test("rejects missing, zero-byte and unsafe size metadata", () => {
+    assert.match(validateLoanDocumentFile({ uri: "u", name: "a.pdf", mimeType: "application/pdf" }, pan) ?? "", /size could not be verified/);
+    assert.match(validateLoanDocumentFile({ uri: "u", name: "a.pdf", size: 0, mimeType: "application/pdf" }, pan) ?? "", /empty/);
   });
 });
 
@@ -91,6 +110,27 @@ describe("loan document state", () => {
     assert.ok(store.getState().uploadedDocuments.pan_card?.fileUri);
     store.getState().setDocumentAttachment("pan_card", null);
     assert.equal(store.getState().uploadedDocuments.pan_card, undefined);
+    store.getState().resetAll();
+  });
+
+  test("changing business subtype invalidates a bank statement with different requirements", () => {
+    const store = useLoansStore;
+    store.getState().resetAll();
+    store.getState().setDocumentAttachment("bank_statement", upload("bank_statement"));
+    store.getState().setDocumentAttachment("pan_card", upload("pan_card"));
+
+    store.getState().setLoanType("working-capital");
+    assert.equal(store.getState().uploadedDocuments.bank_statement, undefined);
+    assert.ok(store.getState().uploadedDocuments.pan_card);
+    store.getState().resetAll();
+  });
+
+  test("changing GST registration invalidates the upload with a different document meaning", () => {
+    const store = useLoansStore;
+    store.getState().resetAll();
+    store.getState().setDocumentAttachment("gst_certificate", upload("gst_certificate"));
+    store.getState().setBusinessProfileField("isGstRegistered", true);
+    assert.equal(store.getState().uploadedDocuments.gst_certificate, undefined);
     store.getState().resetAll();
   });
 });

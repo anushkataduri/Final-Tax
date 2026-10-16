@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "@/hooks/use-theme";
 import { getServiceById } from "@/data/services";
+import { resolveLoanCategory } from "@/modules/loans";
 import { useApplicationStore } from "@/store/applicationStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { AppHeader } from "@/shared/components/AppHeader";
@@ -30,6 +31,14 @@ export default function ServiceDetailScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
 
+  const isLoanProduct = Boolean(id && resolveLoanCategory(id));
+
+  useEffect(() => {
+    if (isLoanProduct && id) {
+      router.replace({ pathname: "/service/loans", params: { category: id } });
+    }
+  }, [isLoanProduct, id, router]);
+
   const service = getServiceById(id || "");
 
   const createApplication = useApplicationStore((state) => state.createApplication);
@@ -38,6 +47,10 @@ export default function ServiceDetailScreen() {
   // UI state for details tabs & form toggle
   const [activeTab, setActiveTab] = useState<ServiceTab>("Overview");
   const [showForm, setShowForm] = useState(false);
+
+  if (isLoanProduct) {
+    return null;
+  }
 
   if (!service) {
     return (

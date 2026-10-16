@@ -53,22 +53,6 @@ export const styles = StyleSheet.create({
     color: "#475569",
     marginLeft: 3,
   },
-  verifiedBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#A7F3D0",
-  },
-  verifiedBadgeText: {
-    fontSize: Typography.fontSize.xs - 1,
-    fontWeight: "600",
-    color: "#047857",
-    marginLeft: 4,
-  },
   lockNoteRow: {
     flexDirection: "row",
     alignItems: "center",

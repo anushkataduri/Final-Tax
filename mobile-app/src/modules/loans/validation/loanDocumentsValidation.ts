@@ -46,43 +46,49 @@ export function resolveMimeType(file: PickedLoanFile): string | null {
   return EXTENSION_MIME[ext] ?? null;
 }
 
+const PDF_MIME = "application/pdf";
+/** Some file providers report PDFs with a generic type; the extension then decides. */
+const GENERIC_MIME_TYPES = new Set(["", "application/octet-stream", "binary/octet-stream"]);
+const PDF_ONLY_MESSAGE = "Please upload your bank statement as a PDF.";
+
+/** True when the file is a PDF by its type, or by its .pdf name when the type is generic. */
+function isPdfFile(file: PickedLoanFile): boolean {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const mime = (file.mimeType ?? "").toLowerCase();
+  if (mime.startsWith("image/") || IMAGE_EXTENSIONS.has(ext)) return false;
+  return mime === PDF_MIME || (ext === "pdf" && GENERIC_MIME_TYPES.has(mime));
+}
+
 /** Customer-facing message when the file cannot be accepted, otherwise null. */
 export function validateLoanDocumentFile(
   file: PickedLoanFile,
   requirement: LoanDocumentRequirement
 ): string | null {
+  if (!file.uri?.trim() || !file.name?.trim()) {
+    return "Choose a valid file to upload.";
+  }
+
+  if (file.size === 0) {
+    return "This file appears to be empty. Please choose another file.";
+  }
+  if (file.size === undefined || !Number.isFinite(file.size) || file.size < 0) {
+    return "The file size could not be verified. Please choose another file.";
+  }
+
   const isPdfOnly =
     requirement.allowedMimeTypes.length === 1 &&
-    requirement.allowedMimeTypes[0] === "application/pdf";
-
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
-  const resolvedMime = resolveMimeType(file);
-  const rawMime = file.mimeType?.toLowerCase();
+    requirement.allowedMimeTypes[0] === PDF_MIME;
 
   if (isPdfOnly) {
-    const isImageExt = IMAGE_EXTENSIONS.has(ext);
-    const isImageMime = Boolean(
-      (rawMime && rawMime.startsWith("image/")) ||
-      (resolvedMime && resolvedMime.startsWith("image/"))
-    );
-    const isRenamedImage = ext === "pdf" && isImageMime;
-
-    if (
-      ext !== "pdf" ||
-      isImageExt ||
-      isImageMime ||
-      isRenamedImage ||
-      resolvedMime !== "application/pdf"
-    ) {
-      return "Please upload your bank statement as a PDF.";
-    }
+    if (!isPdfFile(file)) return PDF_ONLY_MESSAGE;
   } else {
+    const resolvedMime = resolveMimeType(file);
     if (!resolvedMime || !requirement.allowedMimeTypes.includes(resolvedMime)) {
       return "This file type isn't supported. Please upload a PDF, JPG or PNG.";
     }
   }
 
-  if (file.size && file.size > requirement.maxSizeBytes) {
+  if (file.size > requirement.maxSizeBytes) {
     const mb = Math.round(requirement.maxSizeBytes / (1024 * 1024));
     return `This file is too large. Please upload a file under ${mb} MB.`;
   }
@@ -111,7 +117,18 @@ export function getLoanDocumentProgress(
   uploads: Record<string, LoanDocumentUpload>
 ): LoanDocumentProgress {
   const isUploaded = (req: LoanDocumentRequirement): boolean =>
-    Boolean(uploads[req.id]?.fileUri);
+    Boolean(
+      uploads[req.id] &&
+        !validateLoanDocumentFile(
+          {
+            uri: uploads[req.id].fileUri,
+            name: uploads[req.id].fileName,
+            size: uploads[req.id].fileSize,
+            mimeType: uploads[req.id].mimeType,
+          },
+          req
+        )
+    );
   const required = requirements.filter((req) => req.isMandatory);
   const optional = requirements.filter((req) => !req.isMandatory);
   const missingRequiredIds = required
@@ -147,7 +164,18 @@ export function getLoanDocumentChecklist(
       id: req.id,
       name: req.name,
       isMandatory: req.isMandatory,
-      isUploaded: Boolean(stored?.fileUri),
+      isUploaded: Boolean(
+        stored &&
+          !validateLoanDocumentFile(
+            {
+              uri: stored.fileUri,
+              name: stored.fileName,
+              size: stored.fileSize,
+              mimeType: stored.mimeType,
+            },
+            req
+          )
+      ),
       fileName: stored?.fileName,
     };
   });

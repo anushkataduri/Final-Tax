@@ -1,4 +1,5 @@
 import React from "react";
+import { normalizeIndianMobile } from "../../utils/textInput";
 import { View, Text, TextInput } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { UniversalDatePicker } from "@/shared/components/UniversalDatePicker";
@@ -25,27 +26,21 @@ export const CustomerIdentitySection: React.FC<CustomerIdentitySectionProps> = (
   isLocked: propIsLocked,
 }) => {
   const reqs = requirements || {};
-  const isLocked =
-    propIsLocked !== undefined
-      ? propIsLocked
-      : Boolean(
-          data.isProfilePrefilled ||
-            (data.fullName?.trim() && data.mobile?.trim())
-        );
+  const isLocked = propIsLocked === true;
 
   const handlePanChange = (text: string) => {
-    // Only letters and numbers, max 10, uppercase
-    const clean = text.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 10);
-    onChangeField("pan", clean);
+    onChangeField("pan", text.toUpperCase());
   };
 
   const handleMobileChange = (text: string) => {
-    const clean = text.replace(/\D/g, "").slice(0, 10);
-    onChangeField("mobile", clean);
+    onChangeField("mobile", normalizeIndianMobile(text));
   };
 
   const handleAadhaarChange = (text: string) => {
-    const clean = text.replace(/\D/g, "").slice(0, 12);
+    const trimmed = text.trim();
+    const clean = /^\d{4}[\s-]\d{4}[\s-]\d{4}$/.test(trimmed)
+      ? trimmed.replace(/\D/g, "")
+      : text;
     onChangeField("aadhaar", clean);
   };
 
@@ -58,10 +53,6 @@ export const CustomerIdentitySection: React.FC<CustomerIdentitySectionProps> = (
               <Ionicons name="lock-closed" size={17} color="#083B75" />
             </View>
             <Text style={styles.title}>Verified Customer Details</Text>
-          </View>
-          <View style={styles.verifiedBadge}>
-            <Ionicons name="shield-checkmark" size={13} color="#047857" />
-            <Text style={styles.verifiedBadgeText}>Details fetched from KYC</Text>
           </View>
         </View>
 
@@ -96,39 +87,16 @@ export const CustomerIdentitySection: React.FC<CustomerIdentitySectionProps> = (
           </View>
         </View>
 
-        {/* Optional Email */}
-        {data.email ? (
-          <View style={styles.fieldWrapper}>
-            <View style={styles.lockedLabelRow}>
-              <Text style={styles.fieldLabel}>Email Address</Text>
-              <Ionicons name="lock-closed-outline" size={12} color="#94A3B8" />
-            </View>
-            <View style={styles.lockedField}>
-              <Text style={styles.lockedFieldValue}>{data.email}</Text>
-            </View>
+        {/* Email Address - Locked */}
+        <View style={styles.fieldWrapper}>
+          <View style={styles.lockedLabelRow}>
+            <Text style={styles.fieldLabel}>Email Address</Text>
+            <Ionicons name="lock-closed-outline" size={12} color="#94A3B8" />
           </View>
-        ) : (
-          <View style={styles.fieldWrapper}>
-            <Text style={styles.fieldLabel}>
-              Email Address {reqs.requireEmail && <Text style={styles.requiredStar}>*</Text>}
-            </Text>
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              value={data.email}
-              onChangeText={(val) => onChangeField("email", val.trim())}
-              placeholder="e.g. rahul.sharma@example.com"
-              placeholderTextColor="#94A3B8"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            {errors.email ? (
-              <Text style={styles.errorText}>{errors.email}</Text>
-            ) : (
-              <Text style={styles.helperText}>Optional</Text>
-            )}
+          <View style={styles.lockedField}>
+            <Text style={styles.lockedFieldValue}>{data.email || "—"}</Text>
           </View>
-        )}
+        </View>
 
         {/* PAN & Aadhaar - Locked */}
         <View style={styles.twoColRow}>
@@ -144,7 +112,7 @@ export const CustomerIdentitySection: React.FC<CustomerIdentitySectionProps> = (
             </View>
           </View>
 
-          {reqs.showAadhaar !== false && data.aadhaar ? (
+          {reqs.showAadhaar !== false ? (
             <View style={[styles.col, styles.fieldWrapper]}>
               <View style={styles.lockedLabelRow}>
                 <Text style={styles.fieldLabel}>Aadhaar Number</Text>
@@ -152,9 +120,11 @@ export const CustomerIdentitySection: React.FC<CustomerIdentitySectionProps> = (
               </View>
               <View style={styles.lockedField}>
                 <Text style={styles.lockedFieldValue}>
-                  {data.aadhaar.length >= 4
-                    ? `XXXX XXXX ${data.aadhaar.slice(-4)}`
-                    : data.aadhaar}
+                  {data.aadhaar
+                    ? data.aadhaar.length >= 4
+                      ? `XXXX XXXX ${data.aadhaar.slice(-4)}`
+                      : data.aadhaar
+                    : "—"}
                 </Text>
               </View>
             </View>
@@ -223,7 +193,6 @@ export const CustomerIdentitySection: React.FC<CustomerIdentitySectionProps> = (
           placeholder="10-digit mobile number"
           placeholderTextColor="#94A3B8"
           keyboardType="number-pad"
-          maxLength={10}
         />
         {errors.mobile ? (
           <Text style={styles.errorText}>{errors.mobile}</Text>
@@ -265,7 +234,6 @@ export const CustomerIdentitySection: React.FC<CustomerIdentitySectionProps> = (
             placeholder="ABCDE1234F"
             placeholderTextColor="#94A3B8"
             autoCapitalize="characters"
-            maxLength={10}
             autoCorrect={false}
           />
           {errors.pan ? (
@@ -285,7 +253,6 @@ export const CustomerIdentitySection: React.FC<CustomerIdentitySectionProps> = (
               placeholder="12 digits"
               placeholderTextColor="#94A3B8"
               keyboardType="number-pad"
-              maxLength={12}
             />
             {errors.aadhaar ? (
               <Text style={styles.errorText}>{errors.aadhaar}</Text>
@@ -314,4 +281,3 @@ export const CustomerIdentitySection: React.FC<CustomerIdentitySectionProps> = (
 };
 
 export default CustomerIdentitySection;
-

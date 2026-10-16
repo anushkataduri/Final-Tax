@@ -23,23 +23,47 @@ export const LoanUnderReviewScreen: React.FC<LoanUnderReviewScreenProps> = ({
   const isSynced = useLoansStore((state) => state.isSubmissionSynced);
   const businessFormData = useLoansStore((state) => state.businessFormData);
   const personalFormData = useLoansStore((state) => state.personalFormData);
+  const propertyFormData = useLoansStore((state) => state.propertyFormData);
+  const homeLoanFormData = useLoansStore((state) => state.homeLoanFormData);
+  const vehicleFormData = useLoansStore((state) => state.vehicleFormData);
+  const machineryFormData = useLoansStore((state) => state.machineryFormData);
+  const msmeFormData = useLoansStore((state) => state.msmeFormData);
   const categoryId = useLoansStore((state) => state.selectedCategory?.id);
 
   const loan = useMemo(
     () =>
-      getSubmittedLoanSummary(categoryId, businessFormData, personalFormData.loanAmount),
-    [categoryId, businessFormData, personalFormData.loanAmount]
+      getSubmittedLoanSummary(
+        categoryId,
+        businessFormData,
+        personalFormData.loanAmount,
+        propertyFormData.requestedAmount,
+        homeLoanFormData.loanAmount || homeLoanFormData.requestedAmount,
+        vehicleFormData.requestedLoanAmount,
+        machineryFormData.requestedLoanAmount,
+        msmeFormData.annualTurnover
+      ),
+    [
+      categoryId,
+      businessFormData,
+      personalFormData.loanAmount,
+      propertyFormData.requestedAmount,
+      homeLoanFormData.loanAmount,
+      homeLoanFormData.requestedAmount,
+      vehicleFormData.requestedLoanAmount,
+      machineryFormData.requestedLoanAmount,
+      msmeFormData.annualTurnover,
+    ]
   );
 
   const summary = useMemo<ApplicationSummaryRow[]>(
     () => [
       {
-        label: "Requested Amount",
+        label: categoryId === "msme-loan" ? "Annual Turnover" : "Requested Amount",
         value: loan.amountRaw.trim() ? formatCurrencyINR(loan.amountRaw) : "—",
         icon: "cash-outline",
       },
     ],
-    [loan.amountRaw]
+    [categoryId, loan.amountRaw]
   );
 
   return (

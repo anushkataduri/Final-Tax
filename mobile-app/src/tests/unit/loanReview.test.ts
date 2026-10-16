@@ -12,8 +12,8 @@ const mockKycData: LoanKycData = {
   fullName: "Rajesh Sharma",
   mobile: "9876543210",
   email: "rajesh.sharma@example.com",
-  pan: "ABCDE1234F",
-  aadhaar: "123456789012",
+  pan: "ABCPE1234F",
+  aadhaar: "234567890123",
   dob: "15-08-1985",
   currentAddress: {
     houseNumber: "Flat 402, Sai Residency",
@@ -130,6 +130,43 @@ describe("Screen 3: Review & Document Submission Suite", () => {
     assert.ok(res.errors.documents?.business_proof);
   });
 
+  test("review rejects invalid KYC for Business, Vehicle and Machinery", () => {
+    const invalidKyc = {
+      ...mockKycData,
+      consentGiven: false,
+      currentAddress: { ...mockKycData.currentAddress, state: "Atlantis" },
+    };
+    const categoryIds = ["business-loan", "vehicle-loan", "machinery-loan"] as const;
+    categoryIds.forEach((categoryId) => {
+      const result = validateReviewSubmission(
+        invalidKyc,
+        mockBusinessFormData,
+        {},
+        true,
+        undefined,
+        categoryId
+      );
+      assert.equal(result.isValid, false, categoryId);
+      assert.ok(result.errors.applicant, categoryId);
+    });
+  });
+
+  test("review treats zero-byte mandatory document uploads as missing", () => {
+    const uploads: Record<string, LoanDocumentUpload> = {
+      pan_card: { ...createMockUpload("pan_card", "PAN.pdf"), fileSize: 0 },
+      business_proof: createMockUpload("business_proof", "Business.pdf"),
+      project_quotation: createMockUpload("project_quotation", "Quote.pdf"),
+    };
+    const result = validateReviewSubmission(
+      mockKycData,
+      mockBusinessFormData,
+      uploads,
+      true
+    );
+    assert.equal(result.isValid, false);
+    assert.match(result.errors.documents?.pan_card ?? "", /empty/);
+  });
+
   test("validateReviewSubmission fails when confirmation consent is missing", () => {
     const completeDocs: Record<string, LoanDocumentUpload> = {
       pan_card: createMockUpload("pan_card", "PAN_Card.pdf"),
@@ -163,7 +200,7 @@ describe("Screen 3: Review & Document Submission Suite", () => {
       true
     );
 
-    assert.equal(res.isValid, true);
+    assert.equal(res.isValid, true, JSON.stringify(res.errors));
     assert.equal(Object.keys(res.errors.documents || {}).length, 0);
     assert.equal(res.errors.consent, undefined);
   });
@@ -179,10 +216,7 @@ describe("Screen 3: Review & Document Submission Suite", () => {
       description: "Business Credit",
       image: { uri: "test" },
     });
-    store.setKycField("fullName", "Rajesh Sharma");
-    store.setKycField("mobile", "9876543210");
-    store.setKycField("pan", "ABCDE1234F");
-    store.setCurrentAddressField("city", "Hyderabad");
+    useLoansStore.setState({ kycData: mockKycData });
 
     // Advance to Step 2
     store.setActiveStep("business-details");
@@ -224,7 +258,7 @@ describe("Screen 3: Review & Document Submission Suite", () => {
 
     // Submit application
     const submitted = await store.submitLoanApplication();
-    assert.equal(submitted, true);
+    assert.equal(submitted, true, JSON.stringify(useLoansStore.getState().reviewErrors));
     assert.equal(useLoansStore.getState().activeStep, "submitted");
     assert.ok(useLoansStore.getState().submittedApplicationId?.startsWith("TXE-LN-"));
   });

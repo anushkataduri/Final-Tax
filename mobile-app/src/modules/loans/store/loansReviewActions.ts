@@ -1,12 +1,11 @@
 import type { StoreApi } from "zustand";
-import {
-  getRequiredDocuments,
-  getPersonalLoanDocuments,
-} from "../constants/loanDocuments";
+import { resolveLoanDocumentRequirements } from "../constants/loanDocumentResolver";
 import { getLoanSubmissionService } from "../services/loanSubmissionService";
 import { validateReviewSubmission } from "../validation/loanReviewValidation";
 import { pruneBusinessFormData } from "../businessWorkingCapital/utils/pruneBusinessFormData";
-import type { LoansStoreState } from "./loansStore.types";
+import { prunePropertyFormData } from "../property/utils/propertyFlow";
+import { prunePersonalFormData } from "../personalLoan/utils/prunePersonalFormData";
+import { createInitialBusinessFormData, type LoansStoreState } from "./loansStore.types";
 
 type ReviewActionKeys =
   | "setDocumentAttachment"
@@ -60,7 +59,15 @@ export function createReviewActions(
         get().uploadedDocuments,
         get().isReviewConsentGiven,
         get().personalFormData,
-        get().selectedCategory?.id
+        get().selectedCategory?.id,
+        get().homeLoanFormData,
+        get().propertyFormData,
+        get().vehicleFormData,
+        get().invalidVehicleMoneyFields,
+        get().machineryFormData,
+        get().invalidMachineryMoneyFields,
+        get().msmeFormData,
+        get().invalidMsmeMoneyFields
       );
       set({ reviewErrors: errors });
       return isValid;
@@ -76,23 +83,46 @@ export function createReviewActions(
       try {
         const { kycData, businessFormData, uploadedDocuments } = get();
         // Only documents that apply to the selected loan type are sent
-        const requirements =
-          get().selectedCategory?.id === "personal-loan"
-            ? getPersonalLoanDocuments(get().personalFormData)
-            : getRequiredDocuments(
-                businessFormData.loanType,
-                businessFormData
-              );
+        const categoryId = get().selectedCategory?.id;
+        const isPersonal = categoryId === "personal-loan";
+        const isProperty = categoryId === "property-loan";
+        const isHome = categoryId === "home-loan";
+        const isVehicle = categoryId === "vehicle-loan";
+        const isMachinery = categoryId === "machinery-loan";
+        const isMsme = categoryId === "msme-loan";
+        const requirements = resolveLoanDocumentRequirements({
+          categoryId,
+          businessFormData,
+          personalFormData: get().personalFormData,
+          homeLoanFormData: get().homeLoanFormData,
+          propertyFormData: get().propertyFormData,
+          vehicleFormData: get().vehicleFormData,
+          machineryFormData: get().machineryFormData,
+          msmeFormData: get().msmeFormData,
+        });
         const applicableDocuments = requirements.flatMap((requirement) => {
           const upload = uploadedDocuments[requirement.id];
           return upload?.fileUri ? [upload] : [];
         });
 
         const result = await getLoanSubmissionService().submit({
-          kycData,
-          businessFormData: pruneBusinessFormData(businessFormData),
-          personalFormData: get().personalFormData,
-          categoryId: get().selectedCategory?.id,
+          // A hidden, provider-supplied Aadhaar is never sent from a personal application.
+          kycData: isPersonal ? { ...kycData, aadhaar: "" } : kycData,
+          businessFormData:
+            categoryId === "business-loan" || !categoryId
+              ? pruneBusinessFormData(businessFormData)
+              : createInitialBusinessFormData(),
+          personalFormData: isPersonal
+            ? prunePersonalFormData(get().personalFormData)
+            : undefined,
+          propertyFormData: isProperty
+            ? prunePropertyFormData(get().propertyFormData)
+            : undefined,
+          homeLoanFormData: isHome ? get().homeLoanFormData : undefined,
+          vehicleFormData: isVehicle ? get().vehicleFormData : undefined,
+          machineryFormData: isMachinery ? get().machineryFormData : undefined,
+          msmeFormData: isMsme ? get().msmeFormData : undefined,
+          categoryId,
           documents: applicableDocuments,
         });
         set({

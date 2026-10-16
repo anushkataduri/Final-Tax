@@ -43,4 +43,8 @@ export type LoanReviewErrors = {
   business?: string;
   loan?: string;
   employment?: string;
+  property?: string;
+  vehicle?: string;
+  machinery?: string;
+  msme?: string;
 };

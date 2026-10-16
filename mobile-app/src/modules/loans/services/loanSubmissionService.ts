@@ -1,13 +1,24 @@
 import type { BusinessLoanFormData } from "../businessWorkingCapital/types/businessLoan.types";
 import type { PersonalLoanFormData } from "../personalLoan/types/personalLoan.types";
+import type { PropertyLoanFormData } from "../property/types/property.types";
+import type { HomeLoanRequirementFormData } from "../homeLoan/types/homeLoan.types";
 import type { LoanKycData } from "../types/loanKyc.types";
 import type { LoanDocumentUpload } from "../types/loanReview.types";
+import type { LoanCategoryId } from "../types/loanCategory.types";
+import type { VehicleLoanFormData } from "../vehicle/types/vehicleLoan.types";
+import type { MachineryLoanFormData } from "../machinery/types/machinery.types";
+import type { MsmeLoanFormData } from "../msme/types/msmeLoan.types";
 
 export interface LoanSubmissionPayload {
   kycData: LoanKycData;
   businessFormData: BusinessLoanFormData;
   personalFormData?: PersonalLoanFormData;
-  categoryId?: string;
+  propertyFormData?: PropertyLoanFormData;
+  homeLoanFormData?: HomeLoanRequirementFormData;
+  vehicleFormData?: VehicleLoanFormData;
+  machineryFormData?: MachineryLoanFormData;
+  msmeFormData?: MsmeLoanFormData;
+  categoryId?: LoanCategoryId;
   documents: LoanDocumentUpload[];
 }
 

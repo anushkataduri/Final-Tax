@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from "react";
+import { getContinueLabel } from "../../../constants/continueLabels";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -18,14 +19,20 @@ interface BusinessLoanScreenProps {
   onContinue: () => void;
   /** Opened from Review → Edit: no back button, "Update & Continue". */
   isEditMode?: boolean;
+  /** Reached again with Back after being completed once: "Update & Continue", back stays. */
+  isRevisit?: boolean;
 }
 
 export const BusinessLoanScreen: React.FC<BusinessLoanScreenProps> = ({
   onBackToKyc,
   onContinue,
   isEditMode = false,
+  isRevisit = false,
 }) => {
-  const continueLabel = isEditMode ? "Update & Continue" : "Continue to Documents";
+  const continueLabel = getContinueLabel(
+    isEditMode || isRevisit,
+    "Continue to Documents"
+  );
   const insets = useSafeAreaInsets();
 
   const selectedCategory = useLoansStore((state) => state.selectedCategory);

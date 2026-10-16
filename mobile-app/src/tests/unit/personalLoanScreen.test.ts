@@ -236,7 +236,7 @@ describe("Personal Loan Screen 2: Employment & Income Suite", () => {
       loanAmount: "0",
     });
     assert.equal(zeroResult.isValid, false);
-    assert.equal(zeroResult.errors.loanAmount, "Enter the loan amount you need.");
+    assert.match(zeroResult.errors.loanAmount ?? "", /Minimum personal loan amount/);
 
     // Decimal amount -> whole rupees error
     const decimalResult = validatePersonalLoanForm({
@@ -307,9 +307,15 @@ describe("Personal Loan Screen 2: Employment & Income Suite", () => {
     });
     store.setKycField("fullName", "Rohan Verma");
     store.setKycField("mobile", "9876543210");
-    store.setKycField("pan", "ABCDE1234F");
+    store.setKycField("pan", "ABCPE1234F");
     store.setKycField("aadhaar", "123456789012");
     store.setKycField("dob", "1990-01-01");
+    store.setCurrentAddressField("houseNumber", "12-3");
+    store.setCurrentAddressField("street", "MG Road");
+    store.setCurrentAddressField("city", "Hyderabad");
+    store.setCurrentAddressField("state", "Telangana");
+    store.setCurrentAddressField("pincode", "500001");
+    store.setConsent(true);
     store.setPersonalEmploymentType("salaried");
     store.setPersonalLoanField("loanAmount", "250000");
     store.setPersonalLoanField("employerName", "Infosys");
@@ -345,7 +351,7 @@ describe("Personal Loan Screen 2: Employment & Income Suite", () => {
     assert.ok(screenCode.includes("Update & Continue"));
   });
 
-  test("Customer Identity is locked across Business Loan, Working Capital Loan, and Personal Loan", () => {
+  test("unverified profile data stays editable across Business, Working Capital, and Personal Loans", () => {
     authStorage.saveUser({
       name: "Anita Rao", mobileNumber: "9876543210", pan: "ABCPE1234F", dob: "15-08-1990",
     } as any);
@@ -365,7 +371,7 @@ describe("Personal Loan Screen 2: Employment & Income Suite", () => {
       if (tc.loanType) useLoansStore.getState().setLoanType(tc.loanType);
       useLoansStore.getState().populateFromUserProfile();
       const state = useLoansStore.getState();
-      assert.equal(Boolean(state.kycData.isProfilePrefilled || (state.kycData.fullName && state.kycData.mobile)), true);
+      assert.equal(state.kycData.isProfilePrefilled, true);
     });
 
     const kycComponentPath = path.join(
@@ -373,6 +379,9 @@ describe("Personal Loan Screen 2: Employment & Income Suite", () => {
       "src/modules/loans/components/CustomerIdentitySection/CustomerIdentitySection.tsx"
     );
     const kycComponentCode = fs.readFileSync(kycComponentPath, "utf8");
+    assert.ok(kycComponentCode.includes("const isLocked = propIsLocked === true;"));
+    assert.ok(kycComponentCode.includes("Pre-filled from Profile"));
+    assert.ok(!kycComponentCode.includes("data.fullName?.trim() && data.mobile?.trim()"));
     assert.ok(kycComponentCode.includes("Verified Customer Details"));
     assert.ok(kycComponentCode.includes("lock-closed"));
   });

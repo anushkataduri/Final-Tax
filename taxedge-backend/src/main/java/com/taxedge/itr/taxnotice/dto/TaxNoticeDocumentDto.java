@@ -1,6 +1,5 @@
 package com.taxedge.itr.taxnotice.dto;
 
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -36,6 +35,5 @@ public class TaxNoticeDocumentDto {
 
 	private byte[] otherNoticeSpecificDocuments;
 
-	@Size(max = 1000, message = "Message cannot exceed 1000 characters")
 	private String message;
 }

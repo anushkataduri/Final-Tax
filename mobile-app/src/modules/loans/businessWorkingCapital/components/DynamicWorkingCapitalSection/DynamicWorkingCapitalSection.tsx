@@ -1,6 +1,6 @@
 import React from "react";
 import { BUSINESS_TEXT_LIMITS } from "../../validation/businessLoanValidation";
-import { toWholeRupees } from "@/modules/loans/utils/moneyInput";
+import { normalizeMoneyInput } from "@/modules/loans/utils/moneyInput";
 import { View, Text, TextInput } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Dropdown } from "@/shared/components/Dropdown";
@@ -8,6 +8,7 @@ import {
   groupIndianDigits,
   formatCurrencyINR,
 } from "@/shared/formatters/currencyFormatter";
+import { WORKING_CAPITAL_PURPOSE_OPTIONS } from "../../types/businessLoan.types";
 import type {
   WorkingCapitalDetails,
   BusinessLoanErrors,
@@ -24,31 +25,21 @@ interface DynamicWorkingCapitalSectionProps {
   ) => void;
 }
 
-const WORKING_CAPITAL_PURPOSE_OPTIONS: string[] = [
-  "Inventory Purchase",
-  "Supplier Payments",
-  "Operating Expenses",
-  "Payroll",
-  "Cash-Flow Gap",
-  "Seasonal Business Needs",
-  "Other",
-];
-
 export const DynamicWorkingCapitalSection: React.FC<
   DynamicWorkingCapitalSectionProps
 > = ({ data, errors, onChangeField }) => {
   const handleAmountChange = (text: string) => {
-    const raw = toWholeRupees(text);
+    const raw = normalizeMoneyInput(text);
     onChangeField("loanAmount", raw);
   };
 
   const handleSalesChange = (text: string) => {
-    const raw = toWholeRupees(text);
+    const raw = normalizeMoneyInput(text);
     onChangeField("monthlySales", raw);
   };
 
   const handleExpensesChange = (text: string) => {
-    const raw = toWholeRupees(text);
+    const raw = normalizeMoneyInput(text);
     onChangeField("monthlyExpenses", raw);
   };
 
@@ -78,7 +69,13 @@ export const DynamicWorkingCapitalSection: React.FC<
           <Text style={styles.currencyPrefix}>₹</Text>
           <TextInput
             style={styles.currencyInput}
-            value={data.loanAmount ? groupIndianDigits(data.loanAmount) : ""}
+            value={
+              data.loanAmount
+                ? /^\d+$/.test(data.loanAmount)
+                  ? groupIndianDigits(data.loanAmount)
+                  : data.loanAmount
+                : ""
+            }
             onChangeText={handleAmountChange}
             placeholder="e.g. 5,00,000"
             placeholderTextColor="#94A3B8"
@@ -102,7 +99,7 @@ export const DynamicWorkingCapitalSection: React.FC<
         <Dropdown
           label="Purpose of Funds"
           required
-          options={WORKING_CAPITAL_PURPOSE_OPTIONS}
+          options={[...WORKING_CAPITAL_PURPOSE_OPTIONS]}
           value={data.purpose}
           onSelect={(val) => onChangeField("purpose", val as WorkingCapitalPurpose)}
           placeholder="Select working capital requirement"
@@ -176,7 +173,13 @@ export const DynamicWorkingCapitalSection: React.FC<
             <Text style={styles.currencyPrefix}>₹</Text>
             <TextInput
               style={styles.currencyInput}
-              value={data.monthlySales ? groupIndianDigits(data.monthlySales) : ""}
+              value={
+                data.monthlySales
+                  ? /^\d+$/.test(data.monthlySales)
+                    ? groupIndianDigits(data.monthlySales)
+                    : data.monthlySales
+                  : ""
+              }
               onChangeText={handleSalesChange}
               placeholder="e.g. 8,00,000"
               placeholderTextColor="#94A3B8"
@@ -204,7 +207,13 @@ export const DynamicWorkingCapitalSection: React.FC<
             <Text style={styles.currencyPrefix}>₹</Text>
             <TextInput
               style={styles.currencyInput}
-              value={data.monthlyExpenses ? groupIndianDigits(data.monthlyExpenses) : ""}
+              value={
+                data.monthlyExpenses
+                  ? /^\d+$/.test(data.monthlyExpenses)
+                    ? groupIndianDigits(data.monthlyExpenses)
+                    : data.monthlyExpenses
+                  : ""
+              }
               onChangeText={handleExpensesChange}
               placeholder="e.g. 5,50,000"
               placeholderTextColor="#94A3B8"

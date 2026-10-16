@@ -2,9 +2,14 @@ package com.taxedge.customer.repository;
 
 import com.taxedge.customer.entity.Customer;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface CustomerRepository extends JpaRepository<Customer, String> {
 	
@@ -17,6 +22,17 @@ public interface CustomerRepository extends JpaRepository<Customer, String> {
     boolean existsByEmail(String email);
 
     Optional<Customer> findByMobileNumber(String mobileNumber);
+
+    @Query("""
+        SELECT c.pushToken FROM Customer c
+        WHERE c.pushToken IS NOT NULL AND c.pushToken <> ''
+        """)
+    List<String> findAllPushTokens();
+
+    @Transactional
+    @Modifying
+    @Query("UPDATE Customer c SET c.pushToken = null WHERE c.pushToken = :token")
+    void clearPushToken(@Param("token") String token);
     
     
  

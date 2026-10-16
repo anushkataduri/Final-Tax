@@ -1,9 +1,13 @@
 import React, { useEffect, useCallback, useMemo } from "react";
+import { getContinueLabel } from "../../constants/continueLabels";
 import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
+import { useAuthStore } from "@/modules/authentication/store/authStore";
+import { authStorage } from "@/modules/authentication/services/authStorage";
+import { isProfileComplete } from "@/shared/guards/serviceAccess";
 import { LoanFlowHeader } from "../../components/LoanFlowHeader";
 import { useLoansStore } from "../../store/loansStore";
 import { loanKycService } from "../../services/loanKycService";
@@ -18,19 +22,42 @@ interface LoanKycScreenProps {
   onContinue: () => void;
   /** Opened from Review → Edit: no back button, "Update & Continue". */
   isEditMode?: boolean;
+  /** Reached again with Back after being completed once: "Update & Continue", back stays. */
+  isRevisit?: boolean;
 }
 
 export const LoanKycScreen: React.FC<LoanKycScreenProps> = ({
   onBackToCategories,
   onContinue,
   isEditMode = false,
+  isRevisit = false,
 }) => {
+  const isUpdate = isEditMode || isRevisit;
   const insets = useSafeAreaInsets();
+
+  const isProfileLockedStore = useLoansStore((state) => state.isProfileLocked);
+  const isProfileCompleteAuth = useMemo(() => {
+    const s = useAuthStore.getState();
+    const storageUser = authStorage.getUser();
+    return isProfileComplete({
+      profileCompleted: s.profileCompleted,
+      isExistingUser: s.isExistingUser,
+      customerExists: s.customerExists,
+      customer: s.customer || (storageUser as any),
+      authenticatedUser: s.authenticatedUser || (storageUser as any),
+    });
+  }, []);
 
   const selectedCategory = useLoansStore((state) => state.selectedCategory);
   const kycData = useLoansStore((state) => state.kycData);
   const kycErrors = useLoansStore((state) => state.kycErrors);
   const isSubmitting = useLoansStore((state) => state.isSubmitting);
+
+  const isKycLocked =
+    isProfileLockedStore ||
+    isProfileCompleteAuth ||
+    kycData.isProfileLocked === true ||
+    (isRevisit && !isEditMode);
 
   const setKycField = useLoansStore((state) => state.setKycField);
   const setCurrentAddressField = useLoansStore((state) => state.setCurrentAddressField);
@@ -42,15 +69,10 @@ export const LoanKycScreen: React.FC<LoanKycScreenProps> = ({
 
   const categoryId = selectedCategory?.id;
 
-  const continueLabel = useMemo(() => {
-    if (isEditMode) {
-      return "Update & Continue →";
-    }
-    if (categoryId === "personal-loan") {
-      return "Continue to Employment & Income";
-    }
-    return "Continue to Business Details";
-  }, [isEditMode, categoryId]);
+  const continueLabel = useMemo(
+    () => getContinueLabel(isUpdate, "Continue →"),
+    [isUpdate]
+  );
 
   const requirements = useMemo(
     () => loanKycService.getProviderRequirements(categoryId),
@@ -162,6 +184,7 @@ export const LoanKycScreen: React.FC<LoanKycScreenProps> = ({
           errors={kycErrors}
           requirements={requirements}
           onChangeField={setKycField}
+          isLocked={isKycLocked}
         />
         <AddressSection
           data={kycData}
@@ -169,6 +192,7 @@ export const LoanKycScreen: React.FC<LoanKycScreenProps> = ({
           onChangeCurrentAddress={setCurrentAddressField}
           onChangePermanentAddress={setPermanentAddressField}
           onTogglePermanentSame={setPermanentSameAsCurrent}
+          isLocked={isKycLocked}
         />
         <KycConsentCard
           consentGiven={kycData.consentGiven}
@@ -198,12 +222,12 @@ export const LoanKycScreen: React.FC<LoanKycScreenProps> = ({
               <Text
                 style={[
                   styles.continueButtonText,
-                  isEditMode && { marginRight: 0 },
+                  isUpdate && { marginRight: 0 },
                 ]}
               >
                 {continueLabel}
               </Text>
-              {!isEditMode && (
+              {!isUpdate && (
                 <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
               )}
             </>

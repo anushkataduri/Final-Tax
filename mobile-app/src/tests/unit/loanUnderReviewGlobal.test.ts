@@ -14,7 +14,7 @@ import {
   setLoanSubmissionService,
   type LoanSubmissionPayload,
 } from "../../modules/loans/services/loanSubmissionService";
-import { toWholeRupees } from "../../modules/loans/utils/moneyInput";
+import { normalizeMoneyInput } from "../../modules/loans/utils/moneyInput";
 import { getPersonalLoanDocuments } from "../../modules/loans/constants/loanDocuments";
 import type { LoanDocumentUpload } from "../../modules/loans/types/loanReview.types";
 
@@ -58,7 +58,7 @@ describe("Global Loan Under Review Screen", () => {
     // 2. Step 1: KYC
     store.setKycField("fullName", "Ananya Sharma");
     store.setKycField("mobile", "9876543210");
-    store.setKycField("pan", "ABCDE1234F");
+    store.setKycField("pan", "ABCPE1234F");
     store.setKycField("dob", "15-08-1992");
     store.setCurrentAddressField("houseNumber", "12");
     store.setCurrentAddressField("street", "MG Road");
@@ -168,13 +168,26 @@ describe("Global Loan Under Review Screen", () => {
     assert.equal(formatCurrencyINR(summary.amountRaw), "₹7,50,000");
   });
 
-  test("Future loan categories map cleanly via getSubmittedLoanSummary", () => {
+  test("Vehicle Under Review uses the vehicle amount rather than another loan amount", () => {
     const form = useLoansStore.getState().businessFormData;
-    const homeLoan = getSubmittedLoanSummary("home-loan", form, "5000000");
+    const homeLoan = getSubmittedLoanSummary(
+      "home-loan",
+      form,
+      undefined,
+      undefined,
+      "5000000"
+    );
     assert.equal(homeLoan.label, "Home Loan");
     assert.equal(homeLoan.amountRaw, "5000000");
 
-    const vehicleLoan = getSubmittedLoanSummary("vehicle-loan", form, "800000");
+    const vehicleLoan = getSubmittedLoanSummary(
+      "vehicle-loan",
+      form,
+      undefined,
+      undefined,
+      undefined,
+      "800000"
+    );
     assert.equal(vehicleLoan.label, "Vehicle Loan");
     assert.equal(vehicleLoan.amountRaw, "800000");
 
@@ -302,14 +315,14 @@ describe("Global Loan Under Review Screen", () => {
   });
 
   test("Money input safety: comma, decimal paste, and currency symbols sanitize cleanly", () => {
-    assert.equal(toWholeRupees("₹25,00,000"), "2500000");
-    assert.equal(toWholeRupees("50,000"), "50000");
-    assert.equal(toWholeRupees("50,000.75"), "50000");
-    assert.equal(toWholeRupees("1,00,000"), "100000");
-    assert.equal(toWholeRupees("0"), "0");
-    assert.equal(toWholeRupees("-25000"), "25000");
-    assert.equal(toWholeRupees("9999999999"), "9999999999");
-    assert.equal(toWholeRupees("abc"), "");
+    assert.equal(normalizeMoneyInput("₹25,00,000"), "2500000");
+    assert.equal(normalizeMoneyInput("50,000"), "50000");
+    assert.equal(normalizeMoneyInput("50,000.75"), "50,000.75");
+    assert.equal(normalizeMoneyInput("1,00,000"), "100000");
+    assert.equal(normalizeMoneyInput("0"), "0");
+    assert.equal(normalizeMoneyInput("-25000"), "-25000");
+    assert.equal(normalizeMoneyInput("9999999999"), "9999999999");
+    assert.equal(normalizeMoneyInput("abc"), "abc");
   });
 
   test("Personal Loan Bank Statement restricts uploadSources to Files only, while PAN keeps Camera", () => {
@@ -361,4 +374,3 @@ describe("Global Loan Under Review Screen", () => {
     assert.equal(clean.returnToReview, false);
   });
 });
-

@@ -8,6 +8,13 @@ import type {
   BusinessLoanFormData,
   BusinessLoanErrors,
 } from "../types/businessLoan.types";
+import {
+  BUSINESS_ACTIVITY_OPTIONS,
+  BUSINESS_CONSTITUTION_OPTIONS,
+  BUSINESS_LOAN_PURPOSE_OPTIONS,
+  WORKING_CAPITAL_PURPOSE_OPTIONS,
+} from "../types/businessLoan.types";
+import { parseWholeRupeeAmount } from "../../utils/moneyInput";
 
 /** Maximum lengths of free-text business fields; used by the inputs and the validator. */
 export const BUSINESS_TEXT_LIMITS = {
@@ -28,9 +35,7 @@ export function isProjectCostRequired(purpose: string): boolean {
 }
 
 export function parseRawAmount(val: string): number {
-  if (!val) return 0;
-  const clean = val.replace(/[^0-9.]/g, "");
-  return parseFloat(clean) || 0;
+  return parseWholeRupeeAmount(val) ?? Number.NaN;
 }
 
 export function validateBusinessEstablishmentDate(dateStr: string): boolean {
@@ -58,22 +63,24 @@ export function validateBusinessLoanForm(data: BusinessLoanFormData): {
     errors.businessName = `Business name can be up to ${BUSINESS_TEXT_LIMITS.name} characters`;
   }
 
-  if (!businessProfile.constitution) {
+  if (!(BUSINESS_CONSTITUTION_OPTIONS as readonly string[]).includes(businessProfile.constitution)) {
     errors.constitution = "Please select a business constitution";
-  } else if (
-    businessProfile.constitution === "Other" &&
-    !businessProfile.constitutionOther?.trim()
-  ) {
-    errors.constitutionOther = "Please specify constitution";
+  } else if (businessProfile.constitution === "Other") {
+    if (!businessProfile.constitutionOther?.trim()) {
+      errors.constitutionOther = "Please specify constitution";
+    } else if (Array.from(businessProfile.constitutionOther.trim()).length > BUSINESS_TEXT_LIMITS.other) {
+      errors.constitutionOther = `Please specify constitution using up to ${BUSINESS_TEXT_LIMITS.other} characters`;
+    }
   }
 
-  if (!businessProfile.businessActivity) {
+  if (!(BUSINESS_ACTIVITY_OPTIONS as readonly string[]).includes(businessProfile.businessActivity)) {
     errors.businessActivity = "Please select primary business activity";
-  } else if (
-    businessProfile.businessActivity === "Other" &&
-    !businessProfile.activityOther?.trim()
-  ) {
-    errors.activityOther = "Please specify business activity";
+  } else if (businessProfile.businessActivity === "Other") {
+    if (!businessProfile.activityOther?.trim()) {
+      errors.activityOther = "Please specify business activity";
+    } else if (Array.from(businessProfile.activityOther.trim()).length > BUSINESS_TEXT_LIMITS.other) {
+      errors.activityOther = `Please specify business activity using up to ${BUSINESS_TEXT_LIMITS.other} characters`;
+    }
   }
 
   if (!businessProfile.establishmentDate?.trim()) {
@@ -116,19 +123,20 @@ export function validateBusinessLoanForm(data: BusinessLoanFormData): {
     const amount = parseRawAmount(businessLoan.loanAmount);
     if (!businessLoan.loanAmount?.trim()) {
       errors.businessLoanAmount = "Loan amount is required";
-    } else if (amount <= 0) {
+    } else if (!Number.isFinite(amount) || amount <= 0) {
       errors.businessLoanAmount = "Enter a valid loan amount";
     } else if (amount < 25000) {
       errors.businessLoanAmount = "Minimum loan amount is ₹25,000";
     }
 
-    if (!businessLoan.purpose) {
+    if (!(BUSINESS_LOAN_PURPOSE_OPTIONS as readonly string[]).includes(businessLoan.purpose)) {
       errors.businessLoanPurpose = "Please select purpose of loan";
-    } else if (
-      businessLoan.purpose === "Other" &&
-      !businessLoan.purposeOther?.trim()
-    ) {
-      errors.businessLoanPurposeOther = "Please specify loan purpose";
+    } else if (businessLoan.purpose === "Other") {
+      if (!businessLoan.purposeOther?.trim()) {
+        errors.businessLoanPurposeOther = "Please specify loan purpose";
+      } else if (Array.from(businessLoan.purposeOther.trim()).length > BUSINESS_TEXT_LIMITS.other) {
+        errors.businessLoanPurposeOther = `Please specify loan purpose using up to ${BUSINESS_TEXT_LIMITS.other} characters`;
+      }
     }
 
     if (!businessLoan.purposeDescription?.trim()) {
@@ -143,7 +151,7 @@ export function validateBusinessLoanForm(data: BusinessLoanFormData): {
       const projectCost = parseRawAmount(businessLoan.projectCost);
       if (!businessLoan.projectCost?.trim()) {
         errors.businessLoanProjectCost = "Estimated project / equipment cost is required";
-      } else if (projectCost <= 0) {
+      } else if (!Number.isFinite(projectCost) || projectCost <= 0) {
         errors.businessLoanProjectCost = "Enter a valid project cost";
       }
     }
@@ -151,19 +159,20 @@ export function validateBusinessLoanForm(data: BusinessLoanFormData): {
     const amount = parseRawAmount(workingCapital.loanAmount);
     if (!workingCapital.loanAmount?.trim()) {
       errors.workingCapitalAmount = "Loan amount is required";
-    } else if (amount <= 0) {
+    } else if (!Number.isFinite(amount) || amount <= 0) {
       errors.workingCapitalAmount = "Enter a valid loan amount";
     } else if (amount < 25000) {
       errors.workingCapitalAmount = "Minimum working capital amount is ₹25,000";
     }
 
-    if (!workingCapital.purpose) {
+    if (!(WORKING_CAPITAL_PURPOSE_OPTIONS as readonly string[]).includes(workingCapital.purpose)) {
       errors.workingCapitalPurpose = "Please select purpose of funds";
-    } else if (
-      workingCapital.purpose === "Other" &&
-      !workingCapital.purposeOther?.trim()
-    ) {
-      errors.workingCapitalPurposeOther = "Please specify purpose of funds";
+    } else if (workingCapital.purpose === "Other") {
+      if (!workingCapital.purposeOther?.trim()) {
+        errors.workingCapitalPurposeOther = "Please specify purpose of funds";
+      } else if (Array.from(workingCapital.purposeOther.trim()).length > BUSINESS_TEXT_LIMITS.other) {
+        errors.workingCapitalPurposeOther = `Please specify purpose of funds using up to ${BUSINESS_TEXT_LIMITS.other} characters`;
+      }
     }
 
     if (!workingCapital.purposeDescription?.trim()) {
@@ -177,14 +186,14 @@ export function validateBusinessLoanForm(data: BusinessLoanFormData): {
     const sales = parseRawAmount(workingCapital.monthlySales);
     if (!workingCapital.monthlySales?.trim()) {
       errors.monthlySales = "Average monthly sales is required";
-    } else if (sales <= 0) {
+    } else if (!Number.isFinite(sales) || sales <= 0) {
       errors.monthlySales = "Enter a valid monthly sales figure";
     }
 
     const expenses = parseRawAmount(workingCapital.monthlyExpenses);
     if (!workingCapital.monthlyExpenses?.trim()) {
       errors.monthlyExpenses = "Average monthly expenses is required";
-    } else if (expenses <= 0) {
+    } else if (!Number.isFinite(expenses) || expenses <= 0) {
       errors.monthlyExpenses = "Enter a valid monthly expenses figure";
     }
   }

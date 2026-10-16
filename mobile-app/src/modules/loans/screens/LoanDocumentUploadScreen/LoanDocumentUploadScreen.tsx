@@ -1,4 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
+import { getContinueLabel } from "../../constants/continueLabels";
+import { resolveLoanDocumentRequirements } from "../../constants/loanDocumentResolver";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -15,10 +17,6 @@ import {
 } from "@/shared/components/documents";
 import { useLoansStore } from "../../store/loansStore";
 import { useLoanDocumentUpload } from "../../hooks/useLoanDocumentUpload";
-import {
-  getRequiredDocuments,
-  getPersonalLoanDocuments,
-} from "../../constants/loanDocuments";
 import { getLoanFlowTotalSteps } from "../../constants/loanFlow";
 import { getLoanDocumentProgress } from "../../validation/loanDocumentsValidation";
 import { formatFileSize } from "../../utils/formatFileSize";
@@ -33,24 +31,52 @@ interface LoanDocumentUploadScreenProps {
   onContinue: () => void;
   /** Opened from Review → Edit: no back button, "Update & Continue". */
   isEditMode?: boolean;
+  /** Reached again with Back after being completed once: "Update & Continue", back stays. */
+  isRevisit?: boolean;
 }
 
 export const LoanDocumentUploadScreen: React.FC<LoanDocumentUploadScreenProps> = ({
   onBackToBusinessDetails,
   onContinue,
   isEditMode = false,
+  isRevisit = false,
 }) => {
   const insets = useSafeAreaInsets();
   const selectedCategory = useLoansStore((state) => state.selectedCategory);
   const businessFormData = useLoansStore((state) => state.businessFormData);
   const personalFormData = useLoansStore((state) => state.personalFormData);
+  const homeLoanFormData = useLoansStore((state) => state.homeLoanFormData);
+  const propertyFormData = useLoansStore((state) => state.propertyFormData);
+  const vehicleFormData = useLoansStore((state) => state.vehicleFormData);
+  const machineryFormData = useLoansStore((state) => state.machineryFormData);
+  const msmeFormData = useLoansStore((state) => state.msmeFormData);
+  const isPropertyLoan =
+    selectedCategory?.id === "home-loan" ||
+    selectedCategory?.id === "property-loan";
 
-  const requirements = useMemo(() => {
-    if (selectedCategory?.id === "personal-loan") {
-      return getPersonalLoanDocuments(personalFormData);
-    }
-    return getRequiredDocuments(businessFormData.loanType, businessFormData);
-  }, [selectedCategory?.id, businessFormData, personalFormData]);
+  const requirements = useMemo(
+    () =>
+      resolveLoanDocumentRequirements({
+        categoryId: selectedCategory?.id,
+        businessFormData,
+        personalFormData,
+        homeLoanFormData,
+        propertyFormData,
+        vehicleFormData,
+        machineryFormData,
+        msmeFormData,
+      }),
+    [
+      selectedCategory?.id,
+      businessFormData,
+      personalFormData,
+      homeLoanFormData,
+      propertyFormData,
+      vehicleFormData,
+      machineryFormData,
+      msmeFormData,
+    ]
+  );
   const upload = useLoanDocumentUpload(requirements);
   const progress = useMemo(
     () => getLoanDocumentProgress(requirements, upload.uploadedDocuments),
@@ -105,12 +131,12 @@ export const LoanDocumentUploadScreen: React.FC<LoanDocumentUploadScreenProps> =
   return (
     <View style={styles.container}>
       <LoanFlowHeader
-        title="Upload Documents"
+        title={isPropertyLoan ? "Upload your documents" : "Upload Documents"}
         currentStep={3}
         totalSteps={
           selectedCategory ? getLoanFlowTotalSteps(selectedCategory.id) : 5
         }
-        subtitle="Documents"
+        subtitle={isPropertyLoan ? "Property Documents" : "Documents"}
         isEditMode={isEditMode}
         onBack={onBackToBusinessDetails}
       />
@@ -156,10 +182,16 @@ export const LoanDocumentUploadScreen: React.FC<LoanDocumentUploadScreenProps> =
           activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityState={{ disabled: !progress.isComplete }}
-          accessibilityLabel={isEditMode ? "Update and return to review" : "Continue to review"}
+          accessibilityLabel={
+            isEditMode
+              ? "Update and return to review"
+              : isRevisit
+              ? "Update and continue to review"
+              : "Continue to review"
+          }
         >
           <Text style={styles.continueText}>
-            {isEditMode ? "Update & Continue" : "Continue"}
+            {getContinueLabel(isEditMode || isRevisit, "Continue")}
           </Text>
           <Ionicons name="arrow-forward" size={18} color={BrandColors.WHITE} />
         </TouchableOpacity>

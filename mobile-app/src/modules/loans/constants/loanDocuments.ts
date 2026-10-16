@@ -18,7 +18,7 @@ export const MAX_DOCUMENT_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 export const PDF_ONLY_MIME_TYPES = ["application/pdf"];
 export const PDF_ONLY_UPLOAD_SOURCES: LoanDocumentSource[] = ["files"];
 
-const ALL_UPLOAD_SOURCES: LoanDocumentSource[] = ["files", "camera"];
+export const ALL_UPLOAD_SOURCES: LoanDocumentSource[] = ["files", "camera"];
 
 /** What a rule contributes for a given application: name, copy and whether it blocks Continue. */
 type ResolvedRule = Pick<
@@ -209,3 +209,4 @@ export function getPersonalLoanDocuments(
   return docs;
 }
 
+export { getPropertyLoanDocuments } from "../homeLoan/constants/homeLoanDocuments";

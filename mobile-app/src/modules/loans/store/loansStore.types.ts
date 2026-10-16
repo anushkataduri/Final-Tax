@@ -22,13 +22,43 @@ import type {
   PersonalLoanErrors,
   PersonalEmploymentType,
 } from "../personalLoan/types/personalLoan.types";
+import type {
+  PropertyLoanErrors,
+  PropertyLoanFormData,
+} from "../property/types/property.types";
+import type {
+  HomeLoanRequirementFormData,
+  HomeLoanRequirementErrors,
+} from "../homeLoan/types/homeLoan.types";
+import {
+  type VehicleLoanErrors,
+  type VehicleLoanFormData,
+  type VehicleMoneyField,
+} from "../vehicle/types/vehicleLoan.types";
+import {
+  type MachineryLoanErrors,
+  type MachineryLoanFormData,
+  type MachineryMoneyField,
+} from "../machinery/types/machinery.types";
+import {
+  type MsmeLoanAddress,
+  type MsmeLoanErrors,
+  type MsmeLoanFormData,
+  type MsmeMoneyField,
+} from "../msme/types/msmeLoan.types";
 
 export type LoanStep =
   | "categories"
+  | "unavailable"
   | "kyc"
   | "business-details"
   | "personal-employment"
-  | "personal-employment"
+  | "home-loan-requirement"
+  | "home-employment-income"
+  | "property-details"
+  | "vehicle-details"
+  | "machinery-details"
+  | "msme-details"
   | "documents"
   | "review"
   | "submitted";
@@ -53,6 +83,7 @@ export const createInitialKycData = (): LoanKycData => ({
   permanentAddress: createEmptyAddress(),
   consentGiven: false,
   isProfilePrefilled: false,
+  isProfileLocked: false,
 });
 
 export const createInitialBusinessFormData = (): BusinessLoanFormData => ({
@@ -108,11 +139,22 @@ export const createInitialPersonalFormData = (): PersonalLoanFormData => ({
   purposeOther: "",
 });
 
+export const createInitialHomeLoanFormData = (): HomeLoanRequirementFormData => ({
+  loanAmount: "",
+  requestedAmount: "",
+  purpose: "",
+  propertyStatus: "",
+  approximatePropertyValue: "",
+  propertyValue: "",
+});
+
 export interface LoansStoreState {
   selectedCategory: LoanCategory | null;
   activeStep: LoanStep;
   /** True while the customer is editing a section opened from Review. */
   returnToReview: boolean;
+  /** Steps the customer has already continued past; revisiting one shows "Update & Continue". */
+  completedSteps: LoanStep[];
   kycData: LoanKycData;
   kycStatus: LoanKycVerificationStatus;
   kycErrors: LoanKycErrors;
@@ -120,6 +162,19 @@ export interface LoansStoreState {
   businessErrors: BusinessLoanErrors;
   personalFormData: PersonalLoanFormData;
   personalErrors: PersonalLoanErrors;
+  homeLoanFormData: HomeLoanRequirementFormData;
+  homeLoanErrors: HomeLoanRequirementErrors;
+  propertyFormData: PropertyLoanFormData;
+  propertyErrors: PropertyLoanErrors;
+  vehicleFormData: VehicleLoanFormData;
+  vehicleErrors: VehicleLoanErrors;
+  invalidVehicleMoneyFields: Partial<Record<VehicleMoneyField, boolean>>;
+  machineryFormData: MachineryLoanFormData;
+  machineryErrors: MachineryLoanErrors;
+  invalidMachineryMoneyFields: Partial<Record<MachineryMoneyField, boolean>>;
+  msmeFormData: MsmeLoanFormData;
+  msmeErrors: MsmeLoanErrors;
+  invalidMsmeMoneyFields: Partial<Record<MsmeMoneyField, boolean>>;
   uploadedDocuments: Record<string, LoanDocumentUpload>;
   isReviewConsentGiven: boolean;
   reviewErrors: LoanReviewErrors;
@@ -128,9 +183,12 @@ export interface LoansStoreState {
   /** False while the submission exists only on this device. */
   isSubmissionSynced: boolean;
   isSubmitting: boolean;
+  isProfileLocked: boolean;
+  pendingCategory: LoanCategory | null;
 
   // Step 1 Actions
   selectCategory: (category: LoanCategory) => void;
+  selectLoanProduct: (productId: string) => boolean;
   setActiveStep: (step: LoanStep) => void;
   /** Opens a section for editing and remembers to come back to Review afterwards. */
   editFromReview: (step: LoanStep) => void;
@@ -175,6 +233,55 @@ export interface LoansStoreState {
   validatePersonalForm: () => boolean;
   clearPersonalErrors: () => void;
   resetPersonalFormData: () => void;
+
+  // Step 2 Property / Home Loan Actions
+  setPropertyField: <K extends keyof PropertyLoanFormData>(
+    field: K,
+    value: PropertyLoanFormData[K]
+  ) => void;
+  validatePropertyForm: () => boolean;
+  clearPropertyErrors: () => void;
+  resetPropertyFormData: () => void;
+
+  // Step 2 Vehicle Loan Actions
+  setVehicleLoanField: <K extends keyof VehicleLoanFormData>(
+    field: K,
+    value: VehicleLoanFormData[K]
+  ) => void;
+  setVehicleMoneyInputValidity: (field: VehicleMoneyField, isValid: boolean) => void;
+  validateVehicleLoanForm: () => boolean;
+  clearVehicleLoanErrors: () => void;
+  resetVehicleLoanFormData: () => void;
+
+  // Step 2 Machinery Loan Actions
+  setMachineryLoanField: <K extends keyof MachineryLoanFormData>(
+    field: K,
+    value: MachineryLoanFormData[K]
+  ) => void;
+  setMachineryMoneyInputValidity: (field: MachineryMoneyField, isValid: boolean) => void;
+  validateMachineryLoanForm: () => boolean;
+  clearMachineryLoanErrors: () => void;
+  resetMachineryLoanFormData: () => void;
+
+  // Step 2 MSME Loan Actions
+  setMsmeLoanField: <K extends keyof MsmeLoanFormData>(
+    field: K,
+    value: MsmeLoanFormData[K]
+  ) => void;
+  setMsmeAddressField: (field: keyof MsmeLoanAddress, value: string) => void;
+  setMsmeMoneyInputValidity: (field: MsmeMoneyField, isValid: boolean) => void;
+  validateMsmeLoanForm: () => boolean;
+  clearMsmeLoanErrors: () => void;
+  resetMsmeLoanFormData: () => void;
+
+  // Step 2 Home Loan Actions
+  setHomeLoanField: <K extends keyof HomeLoanRequirementFormData>(
+    field: K,
+    value: HomeLoanRequirementFormData[K]
+  ) => void;
+  validateHomeLoanForm: () => boolean;
+  clearHomeLoanErrors: () => void;
+  resetHomeLoanFormData: () => void;
 
   // Step 3 Review & Submission Actions
   setDocumentAttachment: (

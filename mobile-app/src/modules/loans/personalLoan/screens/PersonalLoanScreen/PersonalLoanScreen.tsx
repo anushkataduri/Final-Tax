@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from "react";
+import { getContinueLabel } from "../../../constants/continueLabels";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
@@ -20,12 +21,15 @@ interface PersonalLoanScreenProps {
   onContinue: () => void;
   /** Opened from Review → Edit: no back button, "Update & Continue". */
   isEditMode?: boolean;
+  /** Reached again with Back after being completed once: "Update & Continue", back stays. */
+  isRevisit?: boolean;
 }
 
 export const PersonalLoanScreen: React.FC<PersonalLoanScreenProps> = ({
   onBackToKyc,
   onContinue,
   isEditMode = false,
+  isRevisit = false,
 }) => {
   const insets = useSafeAreaInsets();
   const personalFormData = useLoansStore((state) => state.personalFormData);
@@ -49,7 +53,7 @@ export const PersonalLoanScreen: React.FC<PersonalLoanScreenProps> = ({
     if (validatePersonalForm()) onContinue();
   }, [validatePersonalForm, onContinue]);
 
-  const continueLabel = isEditMode ? "Update & Continue →" : "Continue →";
+  const continueLabel = getContinueLabel(isEditMode || isRevisit, "Continue →");
   const Section =
     personalFormData.employmentType === "salaried"
       ? PersonalSalariedSection

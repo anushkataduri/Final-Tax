@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const SERVER_IP = "192.168.88.20";
+export const SERVER_IP = "192.168.88.17";
 export const SERVER_PORT = 8086;
 export const STORAGE_KEY_SERVER_URL = "@taxedge_server_url";
 
@@ -55,6 +55,9 @@ export async function getActiveBaseUrl(): Promise<string> {
       let clean = saved.trim().replace(/\/$/, "");
       if (clean.includes(":8081")) {
         clean = clean.replace(":8081", `:${SERVER_PORT}`);
+      }
+      if (/192\.168\.88\.\d+/.test(clean) && !clean.includes(SERVER_IP)) {
+        clean = clean.replace(/192\.168\.88\.\d+/, SERVER_IP);
       }
       return clean;
     }

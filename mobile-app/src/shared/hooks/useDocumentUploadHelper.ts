@@ -85,7 +85,21 @@ export function useDocumentUploadHelper({
     file: { uri: string; name: string; size?: number; mimeType?: string },
     docKey?: string,
   ) => {
-    if (file.size && file.size > maxSizeBytes) {
+    if (file.size === 0) {
+      const msg = "This file appears to be empty. Please choose another file.";
+      if (onError) onError(msg, docKey);
+      else Alert.alert("Invalid File", msg);
+      return false;
+    }
+
+    if (file.size === undefined || !Number.isFinite(file.size) || file.size < 0) {
+      const msg = "The file size could not be verified. Please choose another file.";
+      if (onError) onError(msg, docKey);
+      else Alert.alert("Invalid File", msg);
+      return false;
+    }
+
+    if (file.size > maxSizeBytes) {
       const msg = `File size exceeds maximum limit of ${maxSizeMB}MB.`;
       if (onError) onError(msg, docKey);
       else Alert.alert("File Too Large", msg);

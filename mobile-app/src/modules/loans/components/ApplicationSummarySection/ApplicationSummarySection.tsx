@@ -5,6 +5,12 @@ import { BrandColors } from "@/shared/theme";
 import type { LoanKycData } from "../../types/loanKyc.types";
 import type { BusinessLoanFormData } from "../../businessWorkingCapital/types/businessLoan.types";
 import type { PersonalLoanFormData } from "../../personalLoan/types/personalLoan.types";
+import type { HomeLoanRequirementFormData } from "../../homeLoan/types/homeLoan.types";
+import type { PropertyLoanFormData } from "../../property/types/property.types";
+import type { VehicleLoanFormData } from "../../vehicle/types/vehicleLoan.types";
+import type { MachineryLoanFormData } from "../../machinery/types/machinery.types";
+import type { MsmeLoanFormData } from "../../msme/types/msmeLoan.types";
+import type { LoanCategoryId } from "../../types/loanCategory.types";
 import {
   buildReviewSections,
   type ReviewSectionId,
@@ -15,10 +21,16 @@ interface ApplicationSummarySectionProps {
   kycData: LoanKycData;
   businessFormData: BusinessLoanFormData;
   personalFormData?: PersonalLoanFormData;
-  categoryId?: string;
+  homeLoanFormData?: HomeLoanRequirementFormData;
+  propertyFormData?: PropertyLoanFormData;
+  vehicleFormData?: VehicleLoanFormData;
+  machineryFormData?: MachineryLoanFormData;
+  msmeFormData?: MsmeLoanFormData;
+  categoryId?: LoanCategoryId;
   onEditKyc: () => void;
   onEditBusiness: () => void;
   onEditPersonal?: () => void;
+  onEditHomeRequirement?: () => void;
   /** Section-level problems found when submission was attempted. */
   sectionErrors?: Partial<Record<ReviewSectionId, string>>;
 }
@@ -30,17 +42,28 @@ export const ApplicationSummarySection: React.FC<
   kycData,
   businessFormData,
   personalFormData,
+  homeLoanFormData,
+  propertyFormData,
+  vehicleFormData,
+  machineryFormData,
+  msmeFormData,
   categoryId,
   onEditKyc,
   onEditBusiness,
   onEditPersonal,
+  onEditHomeRequirement,
   sectionErrors = {},
 }) => {
   const sections = buildReviewSections(
     kycData,
     businessFormData,
     personalFormData,
-    categoryId
+    categoryId,
+    homeLoanFormData,
+    propertyFormData,
+    vehicleFormData,
+    machineryFormData,
+    msmeFormData
   );
 
   return (

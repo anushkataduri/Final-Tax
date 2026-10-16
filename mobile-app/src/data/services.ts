@@ -308,6 +308,122 @@ export const SERVICES: Service[] = [
       },
     ],
   },
+  {
+    id: "home-loan",
+    name: "Home Loan",
+    category: "LOANS",
+    description:
+      "Competitive home loans for purchase, construction, or renovation.",
+    icon: "home-outline",
+    requiredDocs: [
+      "PAN Card",
+      "Aadhaar Card",
+      "Property Documents",
+      "Income Proof",
+      "6 Months Bank Statement",
+    ],
+    formFields: [
+      {
+        name: "propertyValue",
+        label: "Estimated Property Value (₹)",
+        type: "number",
+        required: true,
+      },
+      {
+        name: "loanAmount",
+        label: "Required Loan Amount (₹)",
+        type: "number",
+        required: true,
+      },
+    ],
+  },
+  {
+    id: "property-loan",
+    name: "Property Loan",
+    category: "LOANS",
+    description:
+      "Mortgage and loan against property with attractive interest rates.",
+    icon: "business-outline",
+    requiredDocs: [
+      "PAN Card",
+      "Aadhaar Card",
+      "Title Deed",
+      "Tax Receipts",
+      "Income Proof",
+    ],
+    formFields: [
+      {
+        name: "propertyType",
+        label: "Property Type",
+        type: "text",
+        required: true,
+      },
+      {
+        name: "loanAmount",
+        label: "Required Loan Amount (₹)",
+        type: "number",
+        required: true,
+      },
+    ],
+  },
+  {
+    id: "vehicle-loan",
+    name: "Vehicle Loan",
+    category: "LOANS",
+    description:
+      "Finance your new or pre-owned vehicle with fast approvals.",
+    icon: "car-outline",
+    requiredDocs: [
+      "PAN Card",
+      "Aadhaar Card",
+      "Proforma Invoice / Quotation",
+      "3 Months Payslips",
+      "6 Months Bank Statement",
+    ],
+    formFields: [
+      {
+        name: "vehicleType",
+        label: "Vehicle Type",
+        type: "text",
+        required: true,
+      },
+      {
+        name: "loanAmount",
+        label: "Loan Amount (₹)",
+        type: "number",
+        required: true,
+      },
+    ],
+  },
+  {
+    id: "machinery-loan",
+    name: "Machinery Loan",
+    category: "LOANS",
+    description:
+      "Acquire equipment and industrial machinery with flexible repayment.",
+    icon: "construct-outline",
+    requiredDocs: [
+      "PAN Card",
+      "Aadhaar Card",
+      "Machinery Quotation / Invoice",
+      "Business ITR (2 Years)",
+      "6 Months Bank Statement",
+    ],
+    formFields: [
+      {
+        name: "machineryName",
+        label: "Machinery / Equipment Name",
+        type: "text",
+        required: true,
+      },
+      {
+        name: "loanAmount",
+        label: "Loan Amount (₹)",
+        type: "number",
+        required: true,
+      },
+    ],
+  },
 
   // Insurance
   {

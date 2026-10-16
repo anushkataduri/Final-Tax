@@ -8,6 +8,7 @@ import {
   isApplicantAdult,
 } from "../../modules/loans/validation/loanKycValidation";
 import { useLoansStore } from "../../modules/loans/store/loansStore";
+import { getLoanEntryStep } from "../../modules/loans/constants/loanFlow";
 import type { LoanCategory } from "../../modules/loans/types/loanCategory.types";
 import type { LoanKycData } from "../../modules/loans/types/loanKyc.types";
 
@@ -90,7 +91,7 @@ describe("Loan KYC Common Verification Suite", () => {
   };
 
 
-  test("All 8 loan categories can enter the common KYC flow and preserve selection", () => {
+  test("implemented loan categories enter KYC and unimplemented products are unavailable", () => {
     assert.equal(TEST_CATEGORIES.length, 8);
 
     TEST_CATEGORIES.forEach((category) => {
@@ -98,7 +99,10 @@ describe("Loan KYC Common Verification Suite", () => {
       useLoansStore.getState().selectCategory(category);
 
       assert.equal(useLoansStore.getState().selectedCategory?.id, category.id);
-      assert.equal(useLoansStore.getState().activeStep, "kyc");
+      assert.equal(
+        useLoansStore.getState().activeStep,
+        getLoanEntryStep(category.id)
+      );
     });
   });
 
@@ -106,6 +110,15 @@ describe("Loan KYC Common Verification Suite", () => {
     const result = validateLoanKyc(validKycData);
     assert.equal(result.isValid, true);
     assert.equal(Object.keys(result.errors).length, 0);
+  });
+
+  test("Rejects a state value that is not one of the offered Indian states or UTs", () => {
+    const result = validateLoanKyc({
+      ...validKycData,
+      currentAddress: { ...validKycData.currentAddress, state: "Atlantis" },
+    });
+    assert.equal(result.isValid, false);
+    assert.match(result.errors["currentAddress.state"] ?? "", /valid state/);
   });
 
   test("Requires 18+ age validation for applicants", () => {
@@ -325,14 +338,37 @@ describe("Loan KYC Common Verification Suite", () => {
     assert.equal(isApplicantAdult("01-01-2015"), false);
   });
 
-  test("KYC screen source contains exact button labels for Normal and Edit modes", () => {
+  test("KYC screen uses the common first-visit label and Update & Continue on revisit", () => {
     const screenPath = path.join(
       process.cwd(),
       "src/modules/loans/screens/LoanKycScreen/LoanKycScreen.tsx"
     );
     const screenSource = fs.readFileSync(screenPath, "utf8");
-    assert.ok(screenSource.includes('"Continue to Business Details"'));
-    assert.ok(screenSource.includes('"Update & Continue →"'));
+    assert.ok(screenSource.includes('getContinueLabel(isUpdate, "Continue →")'));
+    assert.ok(!screenSource.includes("Continue to Business Details"));
+    assert.ok(screenSource.includes("isEditMode || isRevisit"));
+  });
+
+  test("mobile, PAN, Aadhaar, and PIN inputs do not truncate invalid pasted values", () => {
+    const identitySource = fs.readFileSync(
+      path.join(
+        process.cwd(),
+        "src/modules/loans/components/CustomerIdentitySection/CustomerIdentitySection.tsx"
+      ),
+      "utf8"
+    );
+    const addressSource = fs.readFileSync(
+      path.join(
+        process.cwd(),
+        "src/modules/loans/components/AddressSection/AddressSection.tsx"
+      ),
+      "utf8"
+    );
+    assert.ok(!identitySource.includes("maxLength={10}"));
+    assert.ok(!identitySource.includes("maxLength={12}"));
+    assert.ok(!identitySource.includes(".slice(0, 10)"));
+    assert.ok(!identitySource.includes(".slice(0, 12)"));
+    assert.ok(!addressSource.includes("maxLength={6}"));
+    assert.ok(!addressSource.includes(".slice(0, 6)"));
   });
 });
-

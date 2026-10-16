@@ -125,14 +125,15 @@ describe("common KYC for personal loans", () => {
     assert.notEqual(result.status, "verified");
   });
 
-  test("KYC screen source contains exact continue microcopy for Personal Loan and Edit Mode", () => {
+  test("KYC screen uses the common first-visit label and Update & Continue on revisit", () => {
     const screenPath = path.join(
       process.cwd(),
       "src/modules/loans/screens/LoanKycScreen/LoanKycScreen.tsx"
     );
     const screenSource = fs.readFileSync(screenPath, "utf8");
-    assert.ok(screenSource.includes('"Update & Continue →"'));
-    assert.ok(screenSource.includes('"Continue to Employment & Income"'));
-    assert.ok(screenSource.includes('"Continue to Business Details"'));
+    assert.ok(screenSource.includes('getContinueLabel(isUpdate, "Continue →")'));
+    assert.ok(!screenSource.includes("Continue to Employment & Income"));
+    assert.ok(!screenSource.includes("Continue to Business Details"));
+    assert.ok(screenSource.includes("isEditMode || isRevisit"));
   });
 });

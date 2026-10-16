@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { resolveLoanDocumentRequirements } from "../../constants/loanDocumentResolver";
 import {
   ActivityIndicator,
   Animated,
@@ -16,10 +17,6 @@ import { LoanFlowHeader } from "../../components/LoanFlowHeader";
 import { ApplicationSummarySection } from "../../components/ApplicationSummarySection";
 import { ReviewDocumentsSummary } from "../../components/ReviewDocumentsSummary";
 import { ReviewConsentCard } from "../../components/ReviewConsentCard";
-import {
-  getRequiredDocuments,
-  getPersonalLoanDocuments,
-} from "../../constants/loanDocuments";
 import { getLoanFlowTotalSteps } from "../../constants/loanFlow";
 import { getLoanDocumentChecklist } from "../../validation/loanDocumentsValidation";
 import { styles } from "./LoanReviewScreen.styles";
@@ -50,6 +47,7 @@ export const LoanReviewScreen: React.FC<LoanReviewScreenProps> = ({
   const kycData = useLoansStore((state) => state.kycData);
   const businessFormData = useLoansStore((state) => state.businessFormData);
   const personalFormData = useLoansStore((state) => state.personalFormData);
+  const homeLoanFormData = useLoansStore((state) => state.homeLoanFormData);
   const uploadedDocuments = useLoansStore((state) => state.uploadedDocuments);
   const isReviewConsentGiven = useLoansStore((state) => state.isReviewConsentGiven);
   const reviewErrors = useLoansStore((state) => state.reviewErrors);
@@ -57,12 +55,33 @@ export const LoanReviewScreen: React.FC<LoanReviewScreenProps> = ({
   const setReviewConsent = useLoansStore((state) => state.setReviewConsent);
   const submitLoanApplication = useLoansStore((state) => state.submitLoanApplication);
 
-  const requirements = useMemo(() => {
-    if (selectedCategory?.id === "personal-loan") {
-      return getPersonalLoanDocuments(personalFormData);
-    }
-    return getRequiredDocuments(businessFormData.loanType, businessFormData);
-  }, [selectedCategory?.id, businessFormData, personalFormData]);
+  const propertyFormData = useLoansStore((state) => state.propertyFormData);
+  const vehicleFormData = useLoansStore((state) => state.vehicleFormData);
+  const machineryFormData = useLoansStore((state) => state.machineryFormData);
+  const msmeFormData = useLoansStore((state) => state.msmeFormData);
+  const requirements = useMemo(
+    () =>
+      resolveLoanDocumentRequirements({
+        categoryId: selectedCategory?.id,
+        businessFormData,
+        personalFormData,
+        homeLoanFormData,
+        propertyFormData,
+        vehicleFormData,
+        machineryFormData,
+        msmeFormData,
+      }),
+    [
+      selectedCategory?.id,
+      businessFormData,
+      personalFormData,
+      homeLoanFormData,
+      propertyFormData,
+      vehicleFormData,
+      machineryFormData,
+      msmeFormData,
+    ]
+  );
   const checklist = useMemo(
     () => getLoanDocumentChecklist(requirements, uploadedDocuments),
     [requirements, uploadedDocuments]
@@ -111,6 +130,9 @@ export const LoanReviewScreen: React.FC<LoanReviewScreenProps> = ({
           {reviewErrors.general &&
           !reviewErrors.applicant &&
           !reviewErrors.business &&
+          !reviewErrors.vehicle &&
+          !reviewErrors.machinery &&
+          !reviewErrors.msme &&
           !reviewErrors.loan ? (
             <View style={styles.generalErrorBox}>
               <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
@@ -122,6 +144,11 @@ export const LoanReviewScreen: React.FC<LoanReviewScreenProps> = ({
             kycData={kycData}
             businessFormData={businessFormData}
             personalFormData={personalFormData}
+            homeLoanFormData={homeLoanFormData}
+            propertyFormData={propertyFormData}
+            vehicleFormData={vehicleFormData}
+            machineryFormData={machineryFormData}
+            msmeFormData={msmeFormData}
             categoryId={selectedCategory?.id}
             onEditKyc={onEditKyc}
             onEditBusiness={onEditBusiness}
@@ -130,6 +157,10 @@ export const LoanReviewScreen: React.FC<LoanReviewScreenProps> = ({
               business: reviewErrors.business,
               employment: reviewErrors.employment || reviewErrors.business,
               loan: reviewErrors.loan,
+              property: reviewErrors.property,
+              vehicle: reviewErrors.vehicle,
+              machinery: reviewErrors.machinery,
+              msme: reviewErrors.msme || reviewErrors.business,
             }}
           />
 

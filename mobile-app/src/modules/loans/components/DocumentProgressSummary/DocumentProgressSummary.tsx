@@ -11,8 +11,13 @@ export const DocumentProgressSummary: React.FC<DocumentProgressSummaryProps> = (
   progress,
 }) => {
   const { requiredTotal, requiredUploaded, isComplete } = progress;
-  const percent =
-    requiredTotal > 0 ? (requiredUploaded / requiredTotal) * 100 : 100;
+  const hasNoRequirements =
+    requiredTotal === 0 && progress.optionalTotal === 0;
+  const percent = hasNoRequirements
+    ? 0
+    : requiredTotal > 0
+      ? (requiredUploaded / requiredTotal) * 100
+      : 100;
   const pending = requiredTotal - requiredUploaded;
 
   return (
@@ -21,7 +26,9 @@ export const DocumentProgressSummary: React.FC<DocumentProgressSummaryProps> = (
         {requiredUploaded} of {requiredTotal} required documents uploaded
       </Text>
       <Text style={styles.subtitle}>
-        {isComplete
+        {hasNoRequirements
+          ? "Document requirements for this loan have not yet been confirmed."
+          : isComplete
           ? "All required documents are ready. Optional documents can be added any time."
           : `${pending} required ${pending === 1 ? "document is" : "documents are"} still pending.`}
       </Text>

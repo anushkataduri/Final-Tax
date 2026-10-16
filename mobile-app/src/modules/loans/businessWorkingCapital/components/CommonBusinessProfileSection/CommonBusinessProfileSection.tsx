@@ -4,6 +4,10 @@ import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Dropdown } from "@/shared/components/Dropdown";
 import { UniversalDatePicker } from "@/shared/components/UniversalDatePicker";
+import {
+  BUSINESS_ACTIVITY_OPTIONS,
+  BUSINESS_CONSTITUTION_OPTIONS,
+} from "../../types/businessLoan.types";
 import type {
   CommonBusinessProfile,
   BusinessLoanErrors,
@@ -20,22 +24,6 @@ interface CommonBusinessProfileSectionProps {
     value: CommonBusinessProfile[K]
   ) => void;
 }
-
-const CONSTITUTION_OPTIONS: string[] = [
-  "Proprietorship",
-  "Partnership",
-  "LLP",
-  "Private Limited Company",
-  "Other",
-];
-
-const ACTIVITY_OPTIONS: string[] = [
-  "Trading",
-  "Manufacturing",
-  "Retail",
-  "Services",
-  "Other",
-];
 
 export const CommonBusinessProfileSection: React.FC<
   CommonBusinessProfileSectionProps
@@ -97,7 +85,7 @@ export const CommonBusinessProfileSection: React.FC<
         <Dropdown
           label="Business Constitution"
           required
-          options={CONSTITUTION_OPTIONS}
+          options={[...BUSINESS_CONSTITUTION_OPTIONS]}
           value={data.constitution}
           onSelect={(val) => onChangeField("constitution", val as BusinessConstitution)}
           placeholder="Select legal entity constitution"
@@ -129,7 +117,7 @@ export const CommonBusinessProfileSection: React.FC<
         <Dropdown
           label="Primary Business Activity"
           required
-          options={ACTIVITY_OPTIONS}
+          options={[...BUSINESS_ACTIVITY_OPTIONS]}
           value={data.businessActivity}
           onSelect={(val) => onChangeField("businessActivity", val as BusinessActivity)}
           placeholder="Select core operational sector"

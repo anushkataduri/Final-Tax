@@ -9,12 +9,16 @@ import {
   validatePincode,
 } from "@/shared/validators/indianTaxValidators";
 import { parseDDMMYYYY } from "@/shared/formatters/dateFormatter";
+import { INDIAN_STATES_AND_UTS } from "@/components/screens/create-profile/types";
 import type {
   LoanKycData,
   LoanKycAddress,
   LoanKycErrors,
   KycRequirementConfig,
 } from "../types/loanKyc.types";
+
+/** Longest address line the KYC form accepts. */
+export const ADDRESS_LINE_MAX_LENGTH = 100;
 
 /**
  * Validates that an applicant is at least 18 years old on current date.
@@ -50,21 +54,30 @@ function validateAddressBlock(
   if (!address.houseNumber?.trim()) {
     errors[`${prefix}.houseNumber` as keyof LoanKycErrors] =
       "House / Flat number is required";
+  } else if (address.houseNumber.trim().length > ADDRESS_LINE_MAX_LENGTH) {
+    errors[`${prefix}.houseNumber` as keyof LoanKycErrors] =
+      `House / Flat number can be up to ${ADDRESS_LINE_MAX_LENGTH} characters`;
   }
 
   if (!address.street?.trim() || address.street.trim().length < 2) {
     errors[`${prefix}.street` as keyof LoanKycErrors] =
       "Street / Locality must be at least 2 characters";
+  } else if (address.street.trim().length > ADDRESS_LINE_MAX_LENGTH) {
+    errors[`${prefix}.street` as keyof LoanKycErrors] =
+      `Street / Locality can be up to ${ADDRESS_LINE_MAX_LENGTH} characters`;
   }
 
   if (!address.city?.trim() || address.city.trim().length < 2) {
     errors[`${prefix}.city` as keyof LoanKycErrors] =
       "City / District must be at least 2 characters";
+  } else if (address.city.trim().length > ADDRESS_LINE_MAX_LENGTH) {
+    errors[`${prefix}.city` as keyof LoanKycErrors] =
+      `City / District can be up to ${ADDRESS_LINE_MAX_LENGTH} characters`;
   }
 
-  if (!address.state?.trim()) {
+  if (!(INDIAN_STATES_AND_UTS as readonly string[]).includes(address.state)) {
     errors[`${prefix}.state` as keyof LoanKycErrors] =
-      "Please select a state";
+      "Please select a valid state";
   }
 
   if (!address.pincode?.trim()) {
@@ -103,7 +116,7 @@ export function validateLoanKyc(
   // 2. Mobile Number (Always mandatory)
   if (!data.mobile?.trim()) {
     errors.mobile = "Mobile number is required";
-  } else if (!validatePhone(data.mobile.trim())) {
+  } else if (/\D/.test(data.mobile.trim()) || !validatePhone(data.mobile.trim())) {
     errors.mobile = "Enter a valid 10-digit Indian mobile number";
   }
 
@@ -137,8 +150,10 @@ export function validateLoanKyc(
     }
   }
 
-  // 5. Aadhaar (Mandatory only if required by approved provider flow)
-  if (reqs.requireAadhaar) {
+  // 5. Aadhaar (skipped entirely when the field is not shown to the customer)
+  if (reqs.showAadhaar === false) {
+    // The provider supplies it; a stale value must not block an application.
+  } else if (reqs.requireAadhaar) {
     if (!data.aadhaar?.trim()) {
       errors.aadhaar = "Aadhaar number is required";
     } else {

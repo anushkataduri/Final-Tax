@@ -6,4 +6,9 @@ public interface FcmNotificationService {
 
 	void sendSuccessNotification(String targetDeviceToken, String userName);
 
+	String sendCustomNotification(String targetDeviceToken, String title, String body);
+
+    void sendBroadcast(String title, String body);
+
+    int countRegisteredDevices();
 }

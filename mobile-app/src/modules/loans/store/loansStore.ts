@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { normalizeMoneyInput } from "../utils/moneyInput";
 import { authStorage } from "@/modules/authentication/services/authStorage";
 import type {
   LoanKycErrors,
@@ -6,12 +7,26 @@ import type {
 import { validateLoanKyc } from "../validation/loanKycValidation";
 import { loanKycService } from "../services/loanKycService";
 import { validateBusinessLoanForm } from "../businessWorkingCapital/validation/businessLoanValidation";
-import { validatePersonalLoanForm } from "../personalLoan/validation/personalLoanValidation";
+import { createPersonalActions } from "../personalLoan/store/personalLoanActions";
+import { createPropertyActions } from "../property/store/propertyLoanActions";
+import { createInitialPropertyFormData } from "../property/types/property.types";
+import { createVehicleLoanActions } from "../vehicle/store/vehicleLoanActions";
+import { createInitialVehicleLoanFormData } from "../vehicle/types/vehicleLoan.types";
+import { createMachineryLoanActions } from "../machinery/store/machineryLoanActions";
+import { createInitialMachineryLoanFormData } from "../machinery/types/machinery.types";
+import { createMsmeLoanActions } from "../msme/store/msmeLoanActions";
+import { createInitialMsmeLoanFormData } from "../msme/types/msmeLoan.types";
+import { validateHomeLoanRequirementForm } from "../homeLoan/validation/homeLoanValidation";
 import { createReviewActions } from "./loansReviewActions";
+import { getLoanEntryStep } from "../constants/loanFlow";
+import { useAuthStore } from "@/modules/authentication/store/authStore";
+import { isProfileComplete } from "@/shared/guards/serviceAccess";
+import { resolveLoanCategory } from "../constants/loanCategories";
 import {
   createInitialKycData,
   createInitialBusinessFormData,
   createInitialPersonalFormData,
+  createInitialHomeLoanFormData,
   type LoansStoreState,
   type LoanStep,
 } from "./loansStore.types";
@@ -22,6 +37,7 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
   selectedCategory: null,
   activeStep: "categories",
   returnToReview: false,
+  completedSteps: [],
   kycData: createInitialKycData(),
   kycStatus: "not_connected",
   kycErrors: {},
@@ -29,6 +45,19 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
   businessErrors: {},
   personalFormData: createInitialPersonalFormData(),
   personalErrors: {},
+  homeLoanFormData: createInitialHomeLoanFormData(),
+  homeLoanErrors: {},
+  propertyFormData: createInitialPropertyFormData(),
+  propertyErrors: {},
+  vehicleFormData: createInitialVehicleLoanFormData(),
+  vehicleErrors: {},
+  invalidVehicleMoneyFields: {},
+  machineryFormData: createInitialMachineryLoanFormData(),
+  machineryErrors: {},
+  invalidMachineryMoneyFields: {},
+  msmeFormData: createInitialMsmeLoanFormData(),
+  msmeErrors: {},
+  invalidMsmeMoneyFields: {},
   uploadedDocuments: {},
   isReviewConsentGiven: false,
   reviewErrors: {},
@@ -36,24 +65,131 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
   submittedAt: null,
   isSubmissionSynced: false,
   isSubmitting: false,
+  isProfileLocked: false,
+  pendingCategory: null,
 
   selectCategory: (category) =>
-    set({
-      selectedCategory: category,
-      activeStep: "kyc",
-      returnToReview: false,
+    set((state) => {
+      const isDifferentLoan = state.selectedCategory?.id !== category.id;
+      const authState = useAuthStore.getState();
+      const storageUser = authStorage.getUser();
+      const profileComplete = isProfileComplete({
+        profileCompleted: authState.profileCompleted,
+        isExistingUser: authState.isExistingUser,
+        customerExists: authState.customerExists,
+        customer: authState.customer || (storageUser as any),
+        authenticatedUser: authState.authenticatedUser || (storageUser as any),
+      });
+      const isLocked = state.isProfileLocked || state.kycData.isProfileLocked || profileComplete;
+      const preservedProfile = isLocked
+        ? {
+            fullName: state.kycData.fullName,
+            mobile: state.kycData.mobile,
+            email: state.kycData.email,
+            pan: state.kycData.pan,
+            aadhaar: state.kycData.aadhaar,
+            dob: state.kycData.dob,
+            currentAddress: { ...state.kycData.currentAddress },
+            permanentAddress: { ...state.kycData.permanentAddress },
+            isPermanentSameAsCurrent: state.kycData.isPermanentSameAsCurrent,
+            isProfilePrefilled: state.kycData.isProfilePrefilled,
+            isProfileLocked: true,
+          }
+        : null;
+
+      return {
+        selectedCategory: category,
+        pendingCategory: null,
+        activeStep: getLoanEntryStep(category.id),
+        returnToReview: false,
+        isProfileLocked: isLocked,
+        ...(isDifferentLoan
+          ? {
+              completedSteps: [],
+              kycData: preservedProfile
+                ? {
+                    ...createInitialKycData(),
+                    ...preservedProfile,
+                  }
+                : createInitialKycData(),
+              kycStatus: "not_connected" as const,
+              kycErrors: {},
+              businessFormData: createInitialBusinessFormData(),
+              businessErrors: {},
+              personalFormData: createInitialPersonalFormData(),
+              personalErrors: {},
+              homeLoanFormData: createInitialHomeLoanFormData(),
+              homeLoanErrors: {},
+              propertyFormData: createInitialPropertyFormData(),
+              propertyErrors: {},
+              vehicleFormData: createInitialVehicleLoanFormData(),
+              vehicleErrors: {},
+              invalidVehicleMoneyFields: {},
+              machineryFormData: createInitialMachineryLoanFormData(),
+              machineryErrors: {},
+              invalidMachineryMoneyFields: {},
+              msmeFormData: createInitialMsmeLoanFormData(),
+              msmeErrors: {},
+              invalidMsmeMoneyFields: {},
+              uploadedDocuments: {},
+              isReviewConsentGiven: false,
+              reviewErrors: {},
+              submittedApplicationId: null,
+              submittedAt: null,
+              isSubmissionSynced: false,
+              isSubmitting: false,
+            }
+          : null),
+      };
     }),
+
+  selectLoanProduct: (productId: string) => {
+    const resolved = resolveLoanCategory(productId);
+    if (!resolved) return false;
+
+    const authState = useAuthStore.getState();
+    const storageUser = authStorage.getUser();
+    const profileComplete = isProfileComplete({
+      profileCompleted: authState.profileCompleted,
+      isExistingUser: authState.isExistingUser,
+      customerExists: authState.customerExists,
+      customer: authState.customer || (storageUser as any),
+      authenticatedUser: authState.authenticatedUser || (storageUser as any),
+    });
+
+    if (!profileComplete) {
+      set({
+        pendingCategory: resolved.category,
+        selectedCategory: resolved.category,
+      });
+      if (resolved.loanType) {
+        get().setLoanType(resolved.loanType);
+      }
+      authState.openCompleteProfileModal(`/service/loans?category=${productId}`);
+      return false;
+    }
+
+    get().populateFromUserProfile();
+    get().selectCategory(resolved.category);
+    if (resolved.loanType) {
+      get().setLoanType(resolved.loanType);
+    }
+    return true;
+  },
 
   setActiveStep: (step) => set({ activeStep: step }),
 
   editFromReview: (step) => set({ activeStep: step, returnToReview: true }),
 
   advanceTo: (nextStep) =>
-    set((state) =>
-      state.returnToReview
-        ? { activeStep: "review", returnToReview: false }
-        : { activeStep: nextStep }
-    ),
+    set((state) => {
+      const completedSteps = Array.from(
+        new Set([...state.completedSteps, state.activeStep])
+      );
+      return state.returnToReview || nextStep === "review"
+        ? { activeStep: "review", returnToReview: false, reviewErrors: {}, completedSteps }
+        : { activeStep: nextStep, completedSteps };
+    }),
 
   retreatTo: (previousStep) =>
     set((state) =>
@@ -64,6 +200,11 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
 
   setKycField: (field, value) =>
     set((state) => {
+      const isLocked = state.isProfileLocked || state.kycData.isProfileLocked;
+      const profileFields = ["fullName", "mobile", "email", "pan", "aadhaar", "dob"];
+      if (isLocked && profileFields.includes(field as string)) {
+        return state;
+      }
       const nextErrors = { ...state.kycErrors };
       delete nextErrors[field as keyof LoanKycErrors];
       return {
@@ -74,6 +215,10 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
 
   setCurrentAddressField: (field, value) =>
     set((state) => {
+      const isLocked = state.isProfileLocked || state.kycData.isProfileLocked;
+      if (isLocked) {
+        return state;
+      }
       const updatedCurrent = {
         ...state.kycData.currentAddress,
         [field]: value,
@@ -94,6 +239,10 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
 
   setPermanentAddressField: (field, value) =>
     set((state) => {
+      const isLocked = state.isProfileLocked || state.kycData.isProfileLocked;
+      if (isLocked) {
+        return state;
+      }
       const nextErrors = { ...state.kycErrors };
       delete nextErrors[`permanentAddress.${field}` as keyof LoanKycErrors];
       return {
@@ -106,15 +255,21 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
     }),
 
   setPermanentSameAsCurrent: (isSame) =>
-    set((state) => ({
-      kycData: {
-        ...state.kycData,
-        isPermanentSameAsCurrent: isSame,
-        permanentAddress: isSame
-          ? { ...state.kycData.currentAddress }
-          : state.kycData.permanentAddress,
-      },
-    })),
+    set((state) => {
+      const isLocked = state.isProfileLocked || state.kycData.isProfileLocked;
+      if (isLocked) {
+        return state;
+      }
+      return {
+        kycData: {
+          ...state.kycData,
+          isPermanentSameAsCurrent: isSame,
+          permanentAddress: isSame
+            ? { ...state.kycData.currentAddress }
+            : state.kycData.permanentAddress,
+        },
+      };
+    }),
 
   setConsent: (consent) =>
     set((state) => {
@@ -128,8 +283,18 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
 
   populateFromUserProfile: () => {
     try {
-      const profile = authStorage.getUser() as Record<string, string> | null;
+      const authState = useAuthStore.getState();
+      const storageUser = authStorage.getUser();
+      const profile = (authState.customer || authState.authenticatedUser || storageUser) as Record<string, string> | null;
       if (!profile) return;
+
+      const isComplete = isProfileComplete({
+        profileCompleted: authState.profileCompleted,
+        isExistingUser: authState.isExistingUser,
+        customerExists: authState.customerExists,
+        customer: authState.customer || (storageUser as any),
+        authenticatedUser: authState.authenticatedUser || (storageUser as any),
+      });
 
       const pan = (profile.pan || profile.panNumber || "").toUpperCase();
       const aadhaar = profile.aadhaar || profile.aadhaarNumber || "";
@@ -160,27 +325,42 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
         if (parts.length > 1) {
           houseNumber = parts[0];
           street = parts.slice(1).join(", ");
+        } else {
+          street = addressLine1;
         }
       }
 
+      const hasProfileData = Boolean(name || mobile || pan || aadhaar);
+
       set((prev) => ({
+        isProfileLocked: isComplete ? true : prev.isProfileLocked,
         kycStatus: "not_connected",
         kycData: {
           ...prev.kycData,
-          fullName: prev.kycData.fullName || name,
-          mobile: prev.kycData.mobile || mobile,
-          email: prev.kycData.email || email,
-          pan: prev.kycData.pan || pan,
-          aadhaar: prev.kycData.aadhaar || aadhaar,
-          dob: prev.kycData.dob || normalizedDob,
+          fullName: name || prev.kycData.fullName,
+          mobile: mobile || prev.kycData.mobile,
+          email: email || prev.kycData.email,
+          pan: pan || prev.kycData.pan,
+          aadhaar: aadhaar || prev.kycData.aadhaar,
+          dob: normalizedDob || prev.kycData.dob,
           currentAddress: {
-            houseNumber: prev.kycData.currentAddress.houseNumber || houseNumber,
-            street: prev.kycData.currentAddress.street || street,
-            city: prev.kycData.currentAddress.city || city,
-            state: prev.kycData.currentAddress.state || state,
-            pincode: prev.kycData.currentAddress.pincode || pincode,
+            houseNumber: houseNumber || prev.kycData.currentAddress.houseNumber,
+            street: street || prev.kycData.currentAddress.street,
+            city: city || prev.kycData.currentAddress.city,
+            state: state || prev.kycData.currentAddress.state,
+            pincode: pincode || prev.kycData.currentAddress.pincode,
           },
-          isProfilePrefilled: Boolean(name || mobile || pan || aadhaar),
+          permanentAddress: prev.kycData.isPermanentSameAsCurrent
+            ? {
+                houseNumber: houseNumber || prev.kycData.currentAddress.houseNumber,
+                street: street || prev.kycData.currentAddress.street,
+                city: city || prev.kycData.currentAddress.city,
+                state: state || prev.kycData.currentAddress.state,
+                pincode: pincode || prev.kycData.currentAddress.pincode,
+              }
+            : prev.kycData.permanentAddress,
+          isProfilePrefilled: hasProfileData || prev.kycData.isProfilePrefilled,
+          isProfileLocked: isComplete ? true : prev.kycData.isProfileLocked,
         },
       }));
     } catch {
@@ -202,15 +382,29 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
 
   // Step 2 Actions
   setLoanType: (type) =>
-    set((state) => ({
-      businessFormData: { ...state.businessFormData, loanType: type },
-      businessErrors: {},
-    })),
+    set((state) => {
+      const uploadedDocuments = { ...state.uploadedDocuments };
+      if (state.businessFormData.loanType !== type) {
+        delete uploadedDocuments.bank_statement;
+      }
+      return {
+        businessFormData: { ...state.businessFormData, loanType: type },
+        uploadedDocuments,
+        businessErrors: {},
+      };
+    }),
 
   setBusinessProfileField: (field, value) =>
     set((state) => {
       const nextErrors = { ...state.businessErrors };
       delete nextErrors[field as string];
+      const uploadedDocuments = { ...state.uploadedDocuments };
+      if (
+        field === "isGstRegistered" &&
+        state.businessFormData.businessProfile.isGstRegistered !== value
+      ) {
+        delete uploadedDocuments.gst_certificate;
+      }
       return {
         businessFormData: {
           ...state.businessFormData,
@@ -219,6 +413,7 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
             [field]: value,
           },
         },
+        uploadedDocuments,
         businessErrors: nextErrors,
       };
     }),
@@ -284,78 +479,72 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
     }),
 
   // Step 2 Personal Loan Actions
-  setPersonalEmploymentType: (type) =>
-    set((state) => ({
-      personalFormData: { ...state.personalFormData, employmentType: type },
-      personalErrors: {},
-    })),
+  ...createPersonalActions(set, get),
 
-  setPersonalLoanField: (field, value) =>
+  // Step 2 Property / Home Loan Actions
+  ...createPropertyActions(set, get),
+
+  // Step 2 Vehicle Loan Actions
+  ...createVehicleLoanActions(set, get),
+
+  // Step 2 Machinery Loan Actions
+  ...createMachineryLoanActions(set, get),
+
+  // Step 2 MSME Loan Actions
+  ...createMsmeLoanActions(set, get),
+
+  // Step 2 Home Loan Actions
+  setHomeLoanField: (field, value) =>
     set((state) => {
-      const nextErrors = { ...state.personalErrors };
+      const nextErrors = { ...state.homeLoanErrors };
       delete nextErrors[field];
+      const isMoneyField =
+        field === "loanAmount" ||
+        field === "requestedAmount" ||
+        field === "approximatePropertyValue" ||
+        field === "propertyValue";
+      const cleanValue = (
+        isMoneyField && typeof value === "string" ? normalizeMoneyInput(value) : value
+      ) as typeof value;
       const updated = {
-        ...state.personalFormData,
-        [field]: value,
+        ...state.homeLoanFormData,
+        [field]: cleanValue,
       };
       if (field === "loanAmount") {
-        updated.requestedAmount = value as string;
+        updated.requestedAmount = cleanValue as string;
         delete nextErrors.requestedAmount;
       }
       if (field === "requestedAmount") {
-        updated.loanAmount = value as string;
+        updated.loanAmount = cleanValue as string;
         delete nextErrors.loanAmount;
       }
-      if (field === "employerName") {
-        updated.companyName = value as string;
-        delete nextErrors.companyName;
+      if (field === "approximatePropertyValue") {
+        updated.propertyValue = cleanValue as string;
+        delete nextErrors.propertyValue;
       }
-      if (field === "companyName") {
-        updated.employerName = value as string;
-        delete nextErrors.employerName;
+      if (field === "propertyValue") {
+        updated.approximatePropertyValue = cleanValue as string;
+        delete nextErrors.approximatePropertyValue;
       }
-      if (field === "monthlyNetSalary") {
-        updated.monthlySalary = value as string;
-        delete nextErrors.monthlySalary;
-      }
-      if (field === "monthlySalary") {
-        updated.monthlyNetSalary = value as string;
-        delete nextErrors.monthlyNetSalary;
-      }
-      if (field === "businessOrProfessionName") {
-        updated.professionName = value as string;
-        delete nextErrors.professionName;
-      }
-      if (field === "professionName") {
-        updated.businessOrProfessionName = value as string;
-        delete nextErrors.businessOrProfessionName;
-      }
-      if (field === "averageMonthlyIncome") {
-        updated.monthlyIncome = value as string;
-        delete nextErrors.monthlyIncome;
-      }
-      if (field === "monthlyIncome") {
-        updated.averageMonthlyIncome = value as string;
-        delete nextErrors.averageMonthlyIncome;
-      }
-
       return {
-        personalFormData: updated,
-        personalErrors: nextErrors,
+        homeLoanFormData: updated,
+        homeLoanErrors: nextErrors,
       };
     }),
 
-  validatePersonalForm: () => {
-    const { isValid, errors } = validatePersonalLoanForm(get().personalFormData);
-    set({ personalErrors: errors });
+  validateHomeLoanForm: () => {
+    const { isValid, errors } = validateHomeLoanRequirementForm(
+      get().homeLoanFormData
+    );
+    set({ homeLoanErrors: errors });
     return isValid;
   },
 
-  clearPersonalErrors: () => set({ personalErrors: {} }),
-  resetPersonalFormData: () =>
+  clearHomeLoanErrors: () => set({ homeLoanErrors: {} }),
+  resetHomeLoanFormData: () =>
     set({
-      personalFormData: createInitialPersonalFormData(),
-      personalErrors: {},
+      homeLoanFormData: createInitialHomeLoanFormData(),
+      homeLoanErrors: {},
     }),
 
   // Documents, consent and submission
@@ -366,6 +555,9 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
       selectedCategory: null,
       activeStep: "categories",
       returnToReview: false,
+      completedSteps: [],
+      isProfileLocked: false,
+      pendingCategory: null,
       kycData: createInitialKycData(),
       kycErrors: {},
       kycStatus: "not_connected",
@@ -373,6 +565,19 @@ export const useLoansStore = create<LoansStoreState>((set, get) => ({
       businessErrors: {},
       personalFormData: createInitialPersonalFormData(),
       personalErrors: {},
+      homeLoanFormData: createInitialHomeLoanFormData(),
+      homeLoanErrors: {},
+      propertyFormData: createInitialPropertyFormData(),
+      propertyErrors: {},
+      vehicleFormData: createInitialVehicleLoanFormData(),
+      vehicleErrors: {},
+      invalidVehicleMoneyFields: {},
+      machineryFormData: createInitialMachineryLoanFormData(),
+      machineryErrors: {},
+      invalidMachineryMoneyFields: {},
+      msmeFormData: createInitialMsmeLoanFormData(),
+      msmeErrors: {},
+      invalidMsmeMoneyFields: {},
       uploadedDocuments: {},
       isReviewConsentGiven: false,
       reviewErrors: {},

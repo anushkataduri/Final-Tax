@@ -3,11 +3,36 @@ import type Ionicons from "@expo/vector-icons/Ionicons";
 import { formatCurrencyINR } from "@/shared/formatters/currencyFormatter";
 import type { BusinessLoanFormData } from "../businessWorkingCapital/types/businessLoan.types";
 import type { PersonalLoanFormData } from "../personalLoan/types/personalLoan.types";
+import type { HomeLoanRequirementFormData } from "../homeLoan/types/homeLoan.types";
+import type { VehicleLoanFormData } from "../vehicle/types/vehicleLoan.types";
+import type { PropertyLoanFormData } from "../property/types/property.types";
+import type { MachineryLoanFormData } from "../machinery/types/machinery.types";
+import type { MsmeLoanFormData } from "../msme/types/msmeLoan.types";
+import type { LoanCategoryId } from "../types/loanCategory.types";
+import { getLoanFlowDefinition } from "../constants/loanFlow";
+import { buildPropertyReviewSections } from "./propertyReviewSummary";
 import type { LoanKycAddress, LoanKycData } from "../types/loanKyc.types";
 import { isProjectCostRequired } from "../businessWorkingCapital/validation/businessLoanValidation";
 
-export type ReviewSectionId = "applicant" | "business" | "loan" | "employment";
-export type ReviewEditTarget = "kyc" | "business-details" | "personal-employment";
+export type ReviewSectionId =
+  | "applicant"
+  | "business"
+  | "loan"
+  | "employment"
+  | "home-requirement"
+  | "property"
+  | "vehicle"
+  | "machinery"
+  | "msme";
+export type ReviewEditTarget =
+  | "kyc"
+  | "business-details"
+  | "personal-employment"
+  | "home-loan-requirement"
+  | "property-details"
+  | "vehicle-details"
+  | "machinery-details"
+  | "msme-details";
 
 export interface ReviewRow {
   label: string;
@@ -238,25 +263,242 @@ function personalLoanSection(form: PersonalLoanFormData): ReviewSection {
   };
 }
 
+function homeLoanRequirementSection(
+  form: HomeLoanRequirementFormData
+): ReviewSection {
+  const loanAmt = form.loanAmount || form.requestedAmount || "";
+  const propVal = form.approximatePropertyValue || form.propertyValue || "";
+  const rows: ReviewRow[] = [
+    { label: "Loan Type", value: "Home Loan" },
+    {
+      label: "Requested Loan Amount",
+      value: amount(loanAmt),
+      highlight: true,
+    },
+    {
+      label: "Purpose of Loan",
+      value: form.purpose || EMPTY,
+    },
+    {
+      label: "Property Status",
+      value: form.propertyStatus || EMPTY,
+    },
+    {
+      label: "Approximate Property Value",
+      value: amount(propVal),
+      highlight: true,
+    },
+  ];
+
+  return {
+    id: "home-requirement",
+    title: "Home Loan Requirement",
+    subtitle: "Financing purpose, property status and valuation",
+    icon: "home-outline",
+    editTarget: "home-loan-requirement",
+    editLabel: "Edit home loan requirement",
+    rows,
+  };
+}
+
+function vehicleLoanSection(form: VehicleLoanFormData): ReviewSection {
+  const rows: ReviewRow[] = [
+    {
+      label: "Requested Loan Amount",
+      value: amount(form.requestedLoanAmount),
+      highlight: true,
+    },
+    { label: "Vehicle Condition", value: form.vehicleCondition || EMPTY },
+    {
+      label: "Vehicle Category",
+      value: orOther(form.vehicleCategory, form.vehicleCategoryOther),
+    },
+    { label: "Vehicle Make / Brand", value: form.make || EMPTY },
+    { label: "Vehicle Model", value: form.model || EMPTY },
+    {
+      label: "Approximate Vehicle Price",
+      value: amount(form.approximateVehiclePrice),
+      highlight: true,
+    },
+    { label: "Dealer Selected?", value: form.dealerSelected || EMPTY },
+  ];
+  if (form.dealerSelected === "Yes") {
+    rows.push({ label: "Dealer Name", value: form.dealerName || EMPTY });
+  }
+  rows.push(
+    { label: "Purchase Timeline", value: form.purchaseTimeline || EMPTY },
+    { label: "Registration State", value: form.registrationState || EMPTY }
+  );
+
+  return {
+    id: "vehicle",
+    title: "Vehicle & Loan Details",
+    subtitle: "Vehicle selection and financing requirement",
+    icon: "car-outline",
+    editTarget: "vehicle-details",
+    editLabel: "Edit vehicle and loan details",
+    rows,
+  };
+}
+
+function machineryLoanSection(form: MachineryLoanFormData): ReviewSection {
+  const rows: ReviewRow[] = [
+    {
+      label: "Requested Loan Amount",
+      value: amount(form.requestedLoanAmount),
+      highlight: true,
+    },
+    { label: "Machinery Type", value: orOther(form.machineryType, form.machineryTypeOther) },
+    { label: "Machinery Name / Description", value: form.machineryName || EMPTY },
+    { label: "Machinery Condition", value: form.machineryCondition || EMPTY },
+    { label: "Purchase Type", value: form.purchaseType || EMPTY },
+    {
+      label: "Approximate Machinery Cost",
+      value: amount(form.approximateMachineryCost),
+      highlight: true,
+    },
+    { label: "Dealer / Supplier Name", value: form.dealerName || EMPTY },
+  ];
+
+  return {
+    id: "machinery",
+    title: "Machinery & Loan Details",
+    subtitle: "Machinery selection and financing requirement",
+    icon: "construct-outline",
+    editTarget: "machinery-details",
+    editLabel: "Edit machinery and loan details",
+    rows,
+  };
+}
+
+function msmeReviewSection(form: MsmeLoanFormData): ReviewSection {
+  const addressParts = [
+    form.operatingAddress.houseNumber,
+    form.operatingAddress.street,
+    form.operatingAddress.city,
+    form.operatingAddress.state,
+    form.operatingAddress.pincode,
+  ].filter((p) => p && p.trim());
+
+  const rows: ReviewRow[] = [
+    { label: "Business / Trade Name", value: form.businessName || EMPTY },
+    {
+      label: "Constitution",
+      value:
+        form.constitution === "Other"
+          ? form.constitutionOther || "Other"
+          : form.constitution || EMPTY,
+    },
+    {
+      label: "Primary Activity",
+      value:
+        form.businessActivity === "Other"
+          ? form.businessActivityOther || "Other"
+          : form.businessActivity || EMPTY,
+    },
+    { label: "Establishment Date", value: form.establishmentDate || EMPTY },
+    { label: "Operating Address", value: addressParts.join(", ") || EMPTY },
+    { label: "Udyam Status", value: form.udyamStatus || EMPTY },
+  ];
+
+  if (form.udyamStatus === "Registered" && form.udyamRegistrationNumber) {
+    rows.push({ label: "Udyam Reg. Number", value: form.udyamRegistrationNumber });
+  }
+
+  rows.push({ label: "GST Status", value: form.gstStatus || EMPTY });
+  if (form.gstStatus === "Registered" && form.gstin) {
+    rows.push({ label: "GSTIN", value: form.gstin });
+  }
+
+  rows.push(
+    { label: "Operating Duration", value: form.operatingDuration || EMPTY },
+    { label: "Employees", value: form.numberOfEmployees || EMPTY },
+    {
+      label: "Annual Turnover",
+      value: amount(form.annualTurnover),
+      highlight: true,
+    },
+    {
+      label: "Ownership",
+      value:
+        form.ownershipType === "Other"
+          ? form.ownershipTypeOther || "Other"
+          : form.ownershipType || EMPTY,
+    }
+  );
+
+  return {
+    id: "msme",
+    title: "MSME & Business Details",
+    subtitle: "Enterprise profile and operational details",
+    icon: "briefcase-outline",
+    editTarget: "msme-details",
+    editLabel: "Edit MSME and business details",
+    rows,
+  };
+}
+
 /** Read-only summary of everything the customer entered, grouped for the Review screen. */
 export function buildReviewSections(
   kyc: LoanKycData,
   businessForm: BusinessLoanFormData,
   personalForm?: PersonalLoanFormData,
-  categoryId?: string
+  categoryId?: LoanCategoryId,
+  homeLoanForm?: HomeLoanRequirementFormData,
+  propertyForm?: PropertyLoanFormData,
+  vehicleForm?: VehicleLoanFormData,
+  machineryForm?: MachineryLoanFormData,
+  msmeForm?: MsmeLoanFormData
 ): ReviewSection[] {
-  if (categoryId === "personal-loan" && personalForm) {
+  if (
+    categoryId &&
+    getLoanFlowDefinition(categoryId).availability === "coming-soon"
+  ) {
+    return [applicantSection(kyc)];
+  }
+  if (categoryId === "msme-loan") {
+    return msmeForm
+      ? [applicantSection(kyc), msmeReviewSection(msmeForm)]
+      : [applicantSection(kyc)];
+  }
+  if (categoryId === "property-loan") {
     return [
       applicantSection(kyc),
-      personalLoanSection(personalForm),
-      personalEmploymentSection(personalForm),
+      ...(propertyForm ? buildPropertyReviewSections(propertyForm) : []),
     ];
   }
-  return [
-    applicantSection(kyc),
-    businessSection(businessForm),
-    loanSection(businessForm),
-  ];
+  if (categoryId === "vehicle-loan") {
+    return vehicleForm
+      ? [applicantSection(kyc), vehicleLoanSection(vehicleForm)]
+      : [applicantSection(kyc)];
+  }
+  if (categoryId === "machinery-loan") {
+    return machineryForm
+      ? [applicantSection(kyc), machineryLoanSection(machineryForm)]
+      : [applicantSection(kyc)];
+  }
+  if (categoryId === "personal-loan") {
+    return personalForm
+      ? [
+          applicantSection(kyc),
+          personalLoanSection(personalForm),
+          personalEmploymentSection(personalForm),
+        ]
+      : [applicantSection(kyc)];
+  }
+  if (categoryId === "home-loan") {
+    return homeLoanForm
+      ? [applicantSection(kyc), homeLoanRequirementSection(homeLoanForm)]
+      : [applicantSection(kyc)];
+  }
+  if (categoryId === "business-loan" || !categoryId) {
+    return [
+      applicantSection(kyc),
+      businessSection(businessForm),
+      loanSection(businessForm),
+    ];
+  }
+  return [applicantSection(kyc)];
 }
 
 
@@ -267,7 +509,7 @@ export const LOAN_CATEGORY_LABELS: Record<string, string> = {
   "property-loan": "Property Loan",
   "vehicle-loan": "Vehicle Loan",
   "machinery-loan": "Machinery Loans",
-  "msme-loan": "MSME Loans",
+  "msme-loan": "MSME Loan",
   "project-finance": "Project Finance",
 };
 
@@ -275,10 +517,30 @@ export const LOAN_CATEGORY_LABELS: Record<string, string> = {
 export function getSubmittedLoanSummary(
   categoryId: string | undefined,
   form: BusinessLoanFormData,
-  personalLoanAmount?: string
+  personalLoanAmount?: string,
+  propertyLoanAmount?: string,
+  homeLoanAmount?: string,
+  vehicleLoanAmount?: string,
+  machineryLoanAmount?: string,
+  msmeTurnover?: string
 ): { label: string; amountRaw: string } {
+  if (categoryId === "msme-loan") {
+    return { label: "MSME Loan", amountRaw: msmeTurnover ?? "" };
+  }
+  if (categoryId === "home-loan") {
+    return { label: "Home Loan", amountRaw: homeLoanAmount ?? "" };
+  }
+  if (categoryId === "property-loan") {
+    return { label: "Property Loan", amountRaw: propertyLoanAmount ?? "" };
+  }
   if (categoryId === "personal-loan") {
     return { label: "Personal Loan", amountRaw: personalLoanAmount ?? "" };
+  }
+  if (categoryId === "vehicle-loan") {
+    return { label: "Vehicle Loan", amountRaw: vehicleLoanAmount ?? "" };
+  }
+  if (categoryId === "machinery-loan") {
+    return { label: "Machinery Loan", amountRaw: machineryLoanAmount ?? "" };
   }
   if (!categoryId || categoryId === "business-loan") {
     const amountRaw =
@@ -289,6 +551,6 @@ export function getSubmittedLoanSummary(
   }
   return {
     label: LOAN_CATEGORY_LABELS[categoryId] ?? "Loan Application",
-    amountRaw: personalLoanAmount ?? "",
+    amountRaw: "",
   };
 }
