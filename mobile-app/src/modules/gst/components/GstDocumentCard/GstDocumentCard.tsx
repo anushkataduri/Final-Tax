@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
+import { pickDocumentFromDrive } from "@/shared/utils/driveDocumentUploader";
 import { styles } from "./GstDocumentCard.styles";
 import { GstViewDocumentModal } from "./GstViewDocumentModal";
 import { GstRemoveConfirmModal } from "./GstRemoveConfirmModal";
@@ -45,6 +45,7 @@ export interface GstDocumentCardProps {
   onDropdownPress?: () => void;
   triggerUploadKey?: number;
   maxSizeBytes?: number;
+  onChooseFilesOverride?: () => Promise<void> | void;
 }
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -59,6 +60,7 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
   onDropdownPress,
   triggerUploadKey,
   maxSizeBytes = MAX_FILE_SIZE_BYTES,
+  onChooseFilesOverride,
 }) => {
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
@@ -92,9 +94,8 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
 
     const effectiveMaxSize = maxSizeBytes ?? MAX_FILE_SIZE_BYTES;
     if (asset.size && asset.size > effectiveMaxSize) {
-      const maxMb = Math.round(effectiveMaxSize / (1024 * 1024));
-      const err = `File exceeds ${maxMb} MB limit. Please select a smaller file.`;
-      onUploadError?.(item.id, err);
+      Alert.alert("File Too Large", "File size exceeds the 10 MB limit");
+      onUploadError?.(item.id, "File size exceeds the 10 MB limit");
       return;
     }
 
@@ -109,14 +110,41 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
 
   const handleChooseFiles = async () => {
     setShowSourceModal(false);
+    if (onChooseFilesOverride) {
+      await onChooseFilesOverride();
+      return;
+    }
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["*/*"],
-        copyToCacheDirectory: true,
+      const picked = await pickDocumentFromDrive({
+        maxSizeBytes,
+        allowedExtensions: [
+          "pdf",
+          "jpg",
+          "jpeg",
+          "png",
+          "xls",
+          "xlsx",
+          "csv",
+          "doc",
+          "docx",
+          "json",
+        ],
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        processFileAsset(result.assets[0]);
+      if (picked) {
+        if (picked.sizeBytes > (maxSizeBytes ?? MAX_FILE_SIZE_BYTES)) {
+          Alert.alert("File Too Large", "File size exceeds the 10 MB limit");
+          onUploadError?.(item.id, "File size exceeds the 10 MB limit");
+          return;
+        }
+
+        onUploadSuccess(item.id, {
+          uri: picked.uri,
+          name: picked.name,
+          size: picked.size,
+          mimeType: picked.mimeType,
+          fileTypeLabel: picked.fileTypeLabel,
+        });
       }
     } catch {
       onUploadError?.(item.id, "Could not open document picker. Please try again.");
@@ -191,8 +219,10 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
         {/* Text Column */}
         <View style={styles.textColumn}>
           <View style={styles.titleRow}>
-            <Text style={styles.titleText}>{item.name}</Text>
-            {item.required && <Text style={styles.requiredStar}>*</Text>}
+            <Text style={styles.titleText}>
+              {item.name}
+              {item.required ? <Text style={styles.requiredStar}> *</Text> : null}
+            </Text>
           </View>
 
           {isDropdownSelector ? (
@@ -224,7 +254,7 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
               <View style={styles.uploadedFileDetails}>
                 <Text
                   style={styles.uploadedFileName}
-                  numberOfLines={2}
+                  numberOfLines={1}
                   ellipsizeMode="middle"
                 >
                   {item.fileName || "Uploaded document"}

@@ -1,15 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ScrollView, Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useApplicationStore } from "@/store/applicationStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useAuthStore } from "@/store/authStore";
-import { pickImageFromGallery, pickImageFromCamera } from "@/modules/gst/utils/imageUploadHelper";
+import { pickImageFromCamera } from "@/modules/gst/utils/imageUploadHelper";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
+import { pickDocumentFromDrive } from "@/shared/utils/driveDocumentUploader";
 import { logger } from "@/core/logging/logger";
 
 import {
@@ -19,12 +19,19 @@ import {
 import { AMENDMENT_SECTIONS } from "../config/gstNonCoreAmendmentConfig";
 import {
   validateGstinInput, validateSectionForm, validateFieldRealtime, isFormDataDirty,
+  VALID_GSTIN_STATE_CODES, ALLOWED_PAN_CATEGORIES,
 } from "../utils/gstAmendmentValidation";
 import { resolveTargetGstId } from "../utils/gstAmendmentHelpers";
 import { useGstAmendmentDetails } from "./useGstAmendmentDetails";
 import { submitAmendmentService } from "../services/submitAmendmentService";
 import { persistAmendmentForReview } from "../services/persistAmendmentForReview";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
+
+const stripImageData = (data: any): any => {
+  if (!data || typeof data !== "object") return data;
+  const { imageData, ...rest } = data;
+  return rest;
+};
 
 export function useGstAmendmentWorkflow() {
   const router = useRouter();
@@ -154,7 +161,7 @@ export function useGstAmendmentWorkflow() {
       savedDraftStepRef.current = currentStep;
       savedDraftSectionIdRef.current = selectedSectionId;
       saveGstAmendmentDraft({
-        formData: { gstin, selectedSectionId, ...formData, _sectionDocs: sectionDocs, amendmentId, dbReviewData },
+        formData: { gstin, selectedSectionId, ...formData, _sectionDocs: sectionDocs, amendmentId, dbReviewData: stripImageData(dbReviewData) },
         step: currentStep,
         updatedAt: new Date().toISOString().split("T")[0],
       });
@@ -211,14 +218,16 @@ export function useGstAmendmentWorkflow() {
     savedDraftSectionIdRef.current = null;
 
     // Live validation feedback
-    if (!cleaned || cleaned.length < 2) {
+    if (!cleaned) {
       clearError("gstin");
-    } else if (!/^(0[1-9]|[1-2][0-9]|3[0-8]|97|99)/.test(cleaned)) {
-      setErrors((prev) => ({ ...prev, gstin: "Enter a valid Indian State or UT code" }));
+    } else if (cleaned.length >= 2 && !VALID_GSTIN_STATE_CODES.has(cleaned.slice(0, 2))) {
+      setErrors((prev) => ({ ...prev, gstin: "Enter a valid GSTIN state code" }));
+    } else if (cleaned.length >= 6 && !ALLOWED_PAN_CATEGORIES.has(cleaned[5])) {
+      setErrors((prev) => ({ ...prev, gstin: "Enter a valid PAN segment in GSTIN" }));
     } else if (cleaned.length === 15) {
       const res = validateGstinInput(cleaned);
       if (!res.isValid) {
-        setErrors((prev) => ({ ...prev, gstin: res.error }));
+        setErrors((prev) => ({ ...prev, gstin: res.error || "Enter a valid 15-character GSTIN" }));
       } else {
         clearError("gstin");
       }
@@ -239,7 +248,7 @@ export function useGstAmendmentWorkflow() {
     savedDraftStepRef.current = currentStep;
     savedDraftSectionIdRef.current = selectedSectionId;
     saveGstAmendmentDraft({
-      formData: { gstin, selectedSectionId, ...formData, _sectionDocs: sectionDocs, amendmentId, dbReviewData },
+      formData: { gstin, selectedSectionId, ...formData, _sectionDocs: sectionDocs, amendmentId, dbReviewData: stripImageData(dbReviewData) },
       step: currentStep,
       updatedAt: new Date().toISOString().split("T")[0],
     });
@@ -247,33 +256,19 @@ export function useGstAmendmentWorkflow() {
   }, [amendmentId, currentStep, dbReviewData, formData, gstin, router, saveGstAmendmentDraft, sectionDocs, selectedSectionId]);
 
   const handleBrowseFiles = useCallback(async () => {
-    try {
-      const res = await DocumentPicker.getDocumentAsync({
-        type: ["application/pdf", "image/jpeg", "image/png", "image/jpg"],
-        copyToCacheDirectory: true,
-      });
-      if (!res.canceled && res.assets && res.assets.length > 0) {
-        const file = res.assets[0];
-        const sizeMb = file.size ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : "0.1 MB";
-        setSectionDocs((prev) => ({
-          ...prev,
-          [selectedSectionId]: { uri: file.uri, name: file.name, size: sizeMb },
-        }));
-        clearError("supportingDoc");
-      }
-    } catch {
-      const uri = await pickImageFromGallery(false);
-      if (uri) {
-        setSectionDocs((prev) => ({
-          ...prev,
-          [selectedSectionId]: {
-            uri,
-            name: `Document_${Date.now().toString().slice(-4)}.pdf`,
-            size: "0.2 MB",
-          },
-        }));
-        clearError("supportingDoc");
-      }
+    const doc = await pickDocumentFromDrive({
+      maxSizeBytes: 10 * 1024 * 1024,
+    });
+    if (doc) {
+      setSectionDocs((prev) => ({
+        ...prev,
+        [selectedSectionId]: {
+          uri: doc.uri,
+          name: doc.name,
+          size: doc.size,
+        },
+      }));
+      clearError("supportingDoc");
     }
   }, [clearError, selectedSectionId]);
 
@@ -372,7 +367,7 @@ export function useGstAmendmentWorkflow() {
       savedDraftStepRef.current = "REVIEW";
       savedDraftSectionIdRef.current = selectedSectionId;
       saveGstAmendmentDraft({
-        formData: { gstin, selectedSectionId, ...formData, _sectionDocs: sectionDocs, amendmentId, dbReviewData },
+        formData: { gstin, selectedSectionId, ...formData, _sectionDocs: sectionDocs, amendmentId, dbReviewData: stripImageData(dbReviewData) },
         step: "REVIEW",
         updatedAt: new Date().toISOString().split("T")[0],
       });
