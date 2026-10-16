@@ -186,7 +186,7 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
                 label="New Principal Business Address"
                 value={formData.newPrincipalAddress}
                 onChangeText={(val) => onUpdateField("newPrincipalAddress", val)}
-                placeholder="Enter business address"
+                placeholder="Enter principal business address"
                 error={errors.newPrincipalAddress}
               />
               <InputField
@@ -206,10 +206,10 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
               <DropdownField
                 label="State / Union Territory"
                 value={formData.newPrincipalState}
-                placeholder="Select State"
+                placeholder="Select state or union territory"
                 error={errors.newPrincipalState}
                 onPress={() =>
-                  onOpenPicker("Select State", INDIAN_STATES_AND_UTS, formData.newPrincipalState, (val) => {
+                  onOpenPicker("Select state or union territory", INDIAN_STATES_AND_UTS, formData.newPrincipalState, (val) => {
                     onUpdateField("newPrincipalState", val);
                     onClearError("newPrincipalState");
                   })
@@ -227,11 +227,11 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
               <DropdownField
                 label="Nature of Possession of Premises"
                 value={formData.newPrincipalNatureOfPremises}
-                placeholder="Select Nature of Premises"
+                placeholder="Select nature of possession"
                 error={errors.newPrincipalNatureOfPremises}
                 onPress={() =>
                   onOpenPicker(
-                    "Select Nature of Premises",
+                    "Select nature of possession",
                     NATURE_OF_PREMISES_OPTIONS,
                     formData.newPrincipalNatureOfPremises,
                     (val) => {
@@ -250,7 +250,7 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
                 label="New Additional Place Address"
                 value={formData.newAdditionalAddress}
                 onChangeText={(val) => onUpdateField("newAdditionalAddress", val)}
-                placeholder="Enter business address"
+                placeholder="Enter additional business address"
                 error={errors.newAdditionalAddress}
               />
               <InputField
@@ -272,11 +272,11 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
               <DropdownField
                 label="Nature of Possession"
                 value={formData.newAdditionalNatureOfPremises}
-                placeholder="Select Nature of Premises"
+                placeholder="Select nature of possession"
                 error={errors.newAdditionalNatureOfPremises}
                 onPress={() =>
                   onOpenPicker(
-                    "Select Nature of Premises",
+                    "Select nature of possession",
                     NATURE_OF_PREMISES_OPTIONS,
                     formData.newAdditionalNatureOfPremises,
                     (val) => {

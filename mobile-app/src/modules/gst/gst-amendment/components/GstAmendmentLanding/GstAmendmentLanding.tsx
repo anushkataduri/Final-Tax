@@ -85,7 +85,7 @@ export const GstAmendmentLanding: React.FC<GstAmendmentLandingProps> = ({
           </View>
           <TextInput
             style={[styles.gstinInput, Boolean(errorGstin) && styles.inputError]}
-            placeholder="Enter 15-character GSTIN"
+            placeholder="Enter GSTIN"
             placeholderTextColor="#94A3B8"
             value={gstin}
             onChangeText={onGstinChange}

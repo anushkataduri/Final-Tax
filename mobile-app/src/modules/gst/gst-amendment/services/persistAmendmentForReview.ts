@@ -19,6 +19,12 @@ interface PersistAmendmentCallbacks {
   onReviewData: (data: unknown) => void;
 }
 
+const stripBinaryPayload = (data: unknown): unknown => {
+  if (!data || typeof data !== "object") return data;
+  const { imageData, ...rest } = data as Record<string, unknown>;
+  return rest;
+};
+
 /**
  * Saves (POST) or updates (PUT) the amendment record, then re-fetches it by id
  * so the Review step shows what the database holds.
@@ -33,7 +39,7 @@ export const persistAmendmentForReview = async (
         // Review Updated Changes: PUT fetch to update record by id
         const updated = await gstAmendmentApi.updateAmendmentRecord(sectionId, amendmentId, formData, supportingDoc);
         logger.debug("[Review] Updated record in DB by ID:", { amendmentId });
-        onReviewData(updated || { id: amendmentId, ...formData });
+        onReviewData(stripBinaryPayload(updated) || { id: amendmentId, ...formData });
         return;
       }
 
@@ -41,7 +47,7 @@ export const persistAmendmentForReview = async (
       const newId: number | null = saved?.id ?? null;
       onSaved(newId);
       logger.debug("[Review] Saved new record in DB, ID:", { newId });
-      onReviewData(saved);
+      onReviewData(stripBinaryPayload(saved));
       return;
     }
 
@@ -50,7 +56,7 @@ export const persistAmendmentForReview = async (
     const newId: number | null = saved?.id ?? null;
     onSaved(newId);
     logger.debug("[Review] Saved amendment in DB, ID:", { newId });
-    onReviewData(saved);
+    onReviewData(stripBinaryPayload(saved));
   } catch (err) {
     logger.warn("[persistAmendmentForReview] Network preview call failed, proceeding with local review data:", { error: err });
     onReviewData({ id: amendmentId, ...formData });

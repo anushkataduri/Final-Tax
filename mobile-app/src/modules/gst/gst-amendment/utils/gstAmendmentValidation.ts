@@ -1,34 +1,141 @@
-import { GSTIN_REGEX } from "@/shared/validators/indianTaxValidators";
 import { AmendmentFormData, AmendmentStep, SupportingDoc } from "../types/gstAmendmentTypes";
 
-/** Valid statutory 2-digit Indian State / UT / Special Territory codes */
-const VALID_STATE_CODES = new Set([
-  "01", "02", "03", "04", "05", "06", "07", "08", "09", "10",
-  "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
-  "21", "22", "23", "24", "25", "26", "27", "28", "29", "30",
-  "31", "32", "33", "34", "35", "36", "37", "38", "97", "99",
+/**
+ * Valid statutory 2-digit Indian State / UT codes: strictly 01 through 38.
+ * Rejects 00, values below 01, values above 38, alphabetic characters, and incomplete codes.
+ */
+export const VALID_GSTIN_STATE_CODES = new Set(
+  Array.from({ length: 38 }, (_, i) => String(i + 1).padStart(2, "0"))
+);
+
+/**
+ * Allowed 4th character of PAN (taxpayer category):
+ * P (Individual), C (Company), H (HUF), F (Firm/LLP), A (AOP),
+ * B (BOI), T (Trust), L (Local Authority), J (Artificial Juridical Person), G (Government).
+ */
+export const ALLOWED_PAN_CATEGORIES = new Set([
+  "P", "C", "H", "F", "A", "B", "T", "L", "J", "G"
 ]);
 
+/**
+ * Validates a 10-character PAN number according to statutory structure:
+ * - Positions 1–3: Alphabetic characters A–Z
+ * - Position 4: One of P, C, H, F, A, B, T, L, J, G
+ * - Position 5: Alphabetic character A–Z
+ * - Positions 6–9: Numeric digits 0–9
+ * - Position 10: Alphabetic character A–Z
+ */
+export function validatePanNumber(pan: string, isTouched = true): string | null {
+  const clean = (pan || "").trim().toUpperCase();
+  if (!clean) {
+    return isTouched ? "Enter PAN number" : null;
+  }
+
+  if (clean.length !== 10) {
+    return "Enter a valid PAN number";
+  }
+
+  const chars1to3 = clean.slice(0, 3);
+  const fourth = clean[3];
+  const fifth = clean[4];
+  const digits6to9 = clean.slice(5, 9);
+  const tenth = clean[9];
+
+  // Must have 3 letters, 1 category char, 1 letter, 4 digits, 1 letter
+  if (
+    !/^[A-Z]{3}$/.test(chars1to3) ||
+    !/^[A-Z]$/.test(fifth) ||
+    !/^\d{4}$/.test(digits6to9) ||
+    !/^[A-Z]$/.test(tenth)
+  ) {
+    return "Enter a valid PAN number";
+  }
+
+  // Validate 4th character against exact allowed categories
+  if (!ALLOWED_PAN_CATEGORIES.has(fourth)) {
+    return "Enter a valid PAN holder category";
+  }
+
+  return null;
+}
+
+/**
+ * Validates a 15-character GSTIN structure:
+ * - Positions 1–2: State code (01 to 38)
+ * - Positions 3–12: 10-char PAN structure (Pos 6 is 4th char of PAN, must be in allowlist)
+ * - Position 13: Entity registration code [1-9A-Z]
+ * - Position 14: Mandatory letter 'Z'
+ * - Position 15: Alphanumeric check character [0-9A-Z]
+ */
 export function validateGstinInput(
   gstin: string
 ): { isValid: true; error?: undefined } | { isValid: false; error: string } {
-  const clean = gstin.trim().toUpperCase();
+  const clean = (gstin || "").trim().toUpperCase();
   if (!clean) {
-    return { isValid: false, error: "Enter 15-character GSTIN" };
+    return { isValid: false, error: "Enter GSTIN" };
   }
 
-  if (!GSTIN_REGEX.test(clean)) {
+  if (clean.length !== 15) {
     return {
       isValid: false,
       error: "Enter a valid 15-character GSTIN",
     };
   }
 
+  // 1. State code check (Positions 1-2)
   const stateCode = clean.slice(0, 2);
-  if (!VALID_STATE_CODES.has(stateCode)) {
+  if (!VALID_GSTIN_STATE_CODES.has(stateCode)) {
     return {
       isValid: false,
-      error: "Enter a valid Indian State or UT code",
+      error: "Enter a valid GSTIN state code",
+    };
+  }
+
+  // 2. Embedded PAN check (Positions 3-12)
+  const panSegment = clean.slice(2, 12);
+  const chars1to3 = panSegment.slice(0, 3);
+  const panCategory = panSegment[3]; // Pos 6 of GSTIN
+  const fifth = panSegment[4];
+  const digits6to9 = panSegment.slice(5, 9);
+  const tenth = panSegment[9];
+
+  if (
+    !/^[A-Z]{3}$/.test(chars1to3) ||
+    !/^[A-Z]$/.test(fifth) ||
+    !/^\d{4}$/.test(digits6to9) ||
+    !/^[A-Z]$/.test(tenth) ||
+    !ALLOWED_PAN_CATEGORIES.has(panCategory)
+  ) {
+    return {
+      isValid: false,
+      error: "Enter a valid PAN segment in GSTIN",
+    };
+  }
+
+  // 3. Entity code check (Position 13)
+  const entityCode = clean[12];
+  if (!/^[1-9A-Z]$/.test(entityCode)) {
+    return {
+      isValid: false,
+      error: "Enter a valid GSTIN entity code",
+    };
+  }
+
+  // 4. Default 14th character must be 'Z'
+  const defaultZ = clean[13];
+  if (defaultZ !== "Z") {
+    return {
+      isValid: false,
+      error: "Enter a valid 15-character GSTIN",
+    };
+  }
+
+  // 5. Check character check (Position 15)
+  const checkChar = clean[14];
+  if (!/^[0-9A-Z]$/.test(checkChar)) {
+    return {
+      isValid: false,
+      error: "Enter a valid GSTIN check character",
     };
   }
 
@@ -87,6 +194,80 @@ export const hasEmoji = (val: string): boolean => {
   if (!nonAscii) return false;
   return /(\p{Extended_Pictographic}|\p{Emoji_Presentation})/u.test(nonAscii);
 };
+
+/**
+ * Strict validator for email addresses in the GST Amendment module.
+ * Rejects invalid domain endings, typos appended to .com (e.g. .comjdjdidi, .comm),
+ * invalid TLDs, consecutive dots, spaces, and numbers in the top-level domain.
+ */
+export function validateAmendmentEmail(raw: string): boolean {
+  const email = (raw || "").trim();
+  if (!email || email.length > 100) return false;
+  if (/\s/.test(email)) return false;
+
+  const atIndex = email.indexOf("@");
+  if (atIndex === -1 || atIndex !== email.lastIndexOf("@")) return false;
+
+  const localPart = email.slice(0, atIndex);
+  const domainPart = email.slice(atIndex + 1);
+
+  if (!localPart || !domainPart) return false;
+  if (localPart.length > 64) return false;
+
+  // Local part cannot start/end with dot or contain consecutive dots
+  if (localPart.startsWith(".") || localPart.endsWith(".") || localPart.includes("..")) {
+    return false;
+  }
+  if (!/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(localPart)) {
+    return false;
+  }
+
+  // Domain cannot start/end with dot or hyphen or contain consecutive dots
+  if (domainPart.startsWith(".") || domainPart.endsWith(".") || domainPart.includes("..")) {
+    return false;
+  }
+  if (domainPart.startsWith("-") || domainPart.endsWith("-")) {
+    return false;
+  }
+
+  const domainLabels = domainPart.split(".");
+  if (domainLabels.length < 2) return false;
+
+  for (const label of domainLabels) {
+    if (!label || label.length > 63) return false;
+    if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/.test(label)) {
+      return false;
+    }
+  }
+
+  // Top-Level Domain (TLD) is the final segment
+  const tld = domainLabels[domainLabels.length - 1].toLowerCase();
+
+  // TLD must consist strictly of letters (no digits or symbols) between 2 and 10 characters
+  if (!/^[a-zA-Z]{2,10}$/.test(tld)) {
+    return false;
+  }
+
+  // Reject accidental typo extensions starting with "com" followed by extra characters (e.g. "comjdjdidi", "comm", "comxyz")
+  if (/^com[a-z]+/i.test(tld)) {
+    return false;
+  }
+
+  // Reject typo extensions on other common TLDs (e.g. "orgxyz", "netxyz", "inxyz", "eduxyz")
+  if (/^(?:org|net|gov|edu|biz|info|mil)[a-z]+/i.test(tld)) {
+    return false;
+  }
+
+  // If domain is a well-known email provider, validate that provider's domain structure
+  const provider = domainLabels[domainLabels.length - 2].toLowerCase();
+  if (["gmail", "hotmail", "outlook", "icloud"].includes(provider)) {
+    if (tld !== "com" || domainLabels.length !== 2) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 /**
  * Universal single-source validator for every GST Amendment text field.
@@ -158,7 +339,7 @@ export function validateAmendmentFieldValue(
     case "newLegalBusinessName": {
       if (trimmed.length > 100) return "Legal business name exceeds the maximum length";
       if (!/[a-zA-Z\p{L}]/u.test(trimmed)) return "Enter a valid legal business name";
-      if (/^\d+$/.test(trimmed)) return "Enter a valid legal business name";
+      if (/^\d+$/.test(trimmed.replace(/[\s.&',\-/]/g, ""))) return "Enter a valid legal business name";
       if (!/^[a-zA-Z0-9\p{L}\s.&',\-\/]+$/u.test(trimmed)) {
         return "Enter a valid legal business name";
       }
@@ -170,7 +351,8 @@ export function validateAmendmentFieldValue(
       if (trimmed.length < 5) return "Business address is too short";
       if (trimmed.length > 200) return "Business address exceeds the maximum length";
       // Address cannot be digits only regardless of length
-      if (/^\d+$/.test(trimmed.replace(/[\s,.\-/#()&':;]/g, ""))) {
+      const strippedOfPunctuationAndSpace = trimmed.replace(/[\s,.\-/#()&':;]/g, "");
+      if (/^\d+$/.test(strippedOfPunctuationAndSpace)) {
         return "Enter a valid business address";
       }
       if (!/[a-zA-Z\p{L}]/u.test(trimmed)) return "Enter a valid business address";
@@ -244,9 +426,7 @@ export function validateAmendmentFieldValue(
     }
 
     case "newSignatoryPan": {
-      const upper = trimmed.toUpperCase();
-      if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(upper)) return "Enter a valid PAN number";
-      return null;
+      return validatePanNumber(trimmed, isTouched);
     }
 
     case "newSignatoryDob": {
@@ -273,6 +453,7 @@ export function validateAmendmentFieldValue(
       if (trimmed.length > 50) return "Designation exceeds the maximum length";
       if (trimmed.length < 2) return "Enter a valid designation";
       if (!/[a-zA-Z\p{L}]/u.test(trimmed)) return "Enter a valid designation";
+      if (/^\d+$/.test(trimmed)) return "Enter a valid designation";
       if (!/^[a-zA-Z0-9\p{L}\s.'\/-]{2,50}$/u.test(trimmed)) return "Enter a valid designation";
       return null;
     }
@@ -288,8 +469,7 @@ export function validateAmendmentFieldValue(
 
     case "newSignatoryEmail":
     case "newContactEmail": {
-      const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
-      if (!emailRegex.test(trimmed)) {
+      if (!validateAmendmentEmail(trimmed)) {
         return "Enter a valid email address";
       }
       return null;
@@ -317,14 +497,14 @@ const SECTION_RULES: Record<string, (formData: AmendmentFormData, errs: Record<s
     if (distErr) errs.newPrincipalDistrict = distErr;
 
     if (!formData.newPrincipalState) {
-      errs.newPrincipalState = "Select State / UT";
+      errs.newPrincipalState = "Select state or union territory";
     }
 
     const pinErr = validateAmendmentFieldValue("newPrincipalPincode", formData.newPrincipalPincode, formData, true);
     if (pinErr) errs.newPrincipalPincode = pinErr;
 
     if (!formData.newPrincipalNatureOfPremises) {
-      errs.newPrincipalNatureOfPremises = "Select Nature of Premises";
+      errs.newPrincipalNatureOfPremises = "Select nature of possession";
     }
   },
   "additional-place": (formData, errs) => {
@@ -338,7 +518,7 @@ const SECTION_RULES: Record<string, (formData: AmendmentFormData, errs: Record<s
     if (pinErr) errs.newAdditionalPincode = pinErr;
 
     if (!formData.newAdditionalNatureOfPremises) {
-      errs.newAdditionalNatureOfPremises = "Select Nature of Premises";
+      errs.newAdditionalNatureOfPremises = "Select nature of possession";
     }
   },
   "bank-accounts": (formData, errs) => {
@@ -355,7 +535,7 @@ const SECTION_RULES: Record<string, (formData: AmendmentFormData, errs: Record<s
     if (ifscErr) errs.newIfscCode = ifscErr;
 
     if (!formData.newAccountType) {
-      errs.newAccountType = "Select Account Type";
+      errs.newAccountType = "Select account type";
     }
   },
   "authorised-signatories": (formData, errs) => {
@@ -398,7 +578,7 @@ export function validateSectionForm(
   }
 
   if (!supportingDoc || !supportingDoc.uri) {
-    errs.supportingDoc = "Upload supporting proof";
+    errs.supportingDoc = "Upload supporting document";
   }
 
   return {
