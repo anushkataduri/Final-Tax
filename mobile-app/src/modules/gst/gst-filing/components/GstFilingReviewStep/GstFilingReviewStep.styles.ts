@@ -423,4 +423,25 @@ export const styles = StyleSheet.create({
     color: "#1E40AF",
     fontWeight: "500",
   },
+  modalInputError: {
+    borderColor: "#EF4444",
+    backgroundColor: "#FEF2F2",
+  },
+  modalErrorText: {
+    fontSize: 11.5,
+    color: "#DC2626",
+    marginTop: 4,
+    fontWeight: "500",
+  },
+  statusPendingBadge: {
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  statusPendingText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#D97706",
+  },
 });

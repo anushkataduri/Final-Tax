@@ -58,6 +58,7 @@ export function useComplianceForm(options?: UseComplianceFormOptions) {
   const router = useRouter();
 
   const [currentStep, setCurrentStep] = useState<number>(0); // 0 = Form, 1 = Review
+  const [hasEnteredReview, setHasEnteredReview] = useState<boolean>(false);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [editSection, setEditSection] = useState<string | null>(null);
   const [formData, setFormData] = useState<ComplianceFormData>(initialFormData);
@@ -93,7 +94,7 @@ export function useComplianceForm(options?: UseComplianceFormOptions) {
             const saved: ComplianceFormData = draft.formData || {};
             if (
               saved.gstin || saved.financialYear || saved.requestType ||
-              saved.purchaseDoc || saved.noticeDoc || saved.noticeNumber
+              saved.purchaseDoc || saved.salesDoc || saved.noticeDoc || saved.noticeNumber
             ) {
               setFormData((prev) => ({ ...prev, ...saved }));
             }
@@ -211,6 +212,7 @@ export function useComplianceForm(options?: UseComplianceFormOptions) {
   // Edit action triggered from Review Step
   const handleEditStep = useCallback((section?: string) => {
     setIsEditMode(true);
+    setHasEnteredReview(true);
     setEditSection(section || null);
     modifiedDocsRef.current.clear();
     setCurrentStep(0);
@@ -220,6 +222,7 @@ export function useComplianceForm(options?: UseComplianceFormOptions) {
   const handleReturnToReview = useCallback(() => {
     if (isSaving || isSubmitting) return;
     setIsEditMode(false);
+    setHasEnteredReview(true);
     setEditSection(null);
     setCurrentStep(1);
   }, [isSaving, isSubmitting]);
@@ -289,6 +292,7 @@ export function useComplianceForm(options?: UseComplianceFormOptions) {
             message: formData.requestType === "Reconciliation Support" ? formData.reconciliationRemarks : formData.noticeRemarks,
           }));
         }
+        setHasEnteredReview(true);
         setCurrentStep(1);
 
         // 2. Non-blocking background sync for review DTO if activeId exists.
@@ -341,6 +345,7 @@ export function useComplianceForm(options?: UseComplianceFormOptions) {
 
       if (result.success) {
         setIsSubmittedSuccess(true);
+        setHasEnteredReview(false);
         draftGuard.markSubmitted();
 
         const mobile = getCleanMobile();
@@ -410,30 +415,19 @@ export function useComplianceForm(options?: UseComplianceFormOptions) {
     return "Submit Compliance Request";
   }, [currentStep, isEditMode]);
 
+  const resetNavigationState = useCallback(() => {
+    setHasEnteredReview(false);
+    setIsEditMode(false);
+    setEditSection(null);
+    setCurrentStep(0);
+  }, []);
+
   return {
-    currentStep,
-    setCurrentStep,
-    isEditMode,
-    editSection,
-    setEditSection,
-    formData,
-    errors,
-    isSubmitting,
-    isSaving,
-    complianceId,
-    dbReviewData,
-    showConfirmModal,
-    setShowConfirmModal,
-    draftGuard,
-    updateField,
-    clearError,
-    setFieldError,
-    handleGstinChange,
-    handleEditStep,
-    handleContinue,
-    handleBack,
-    handleReturnToReview,
-    handleConfirmSubmit,
-    getButtonText,
+    currentStep, setCurrentStep, isEditMode, editSection, setEditSection,
+    hasEnteredReview, setHasEnteredReview, resetNavigationState,
+    formData, errors, isSubmitting, isSaving, complianceId, dbReviewData,
+    showConfirmModal, setShowConfirmModal, draftGuard, updateField, clearError,
+    setFieldError, handleGstinChange, handleEditStep, handleContinue,
+    handleBack, handleReturnToReview, handleConfirmSubmit, getButtonText,
   };
 }

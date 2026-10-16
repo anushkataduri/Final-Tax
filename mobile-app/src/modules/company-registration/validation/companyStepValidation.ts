@@ -1,5 +1,5 @@
 import type { CompanyRegistrationDraft } from "../types/registration.types";
-import { companySchema } from "./companySchema";
+import { companySchema, isOpcCompanyType, getMinRequiredPromoters } from "./companySchema";
 import { directorSchema, validateOpcNominee } from "./directorSchema";
 
 export interface StepValidationResult {
@@ -38,9 +38,17 @@ export const validateRegistrationStep = (
 
   // Step 3: Promoter / Director Details
   if (step === 3) {
-    const isOpc = draft.company.companyType === 'One Person Company (OPC)';
-    const isPublic = draft.company.companyType === 'Public Limited';
-    const minRequired = isPublic ? 3 : isOpc ? 1 : 2;
+    const isOpc = isOpcCompanyType(draft.company.companyType);
+
+    if (isOpc) {
+      const { valid: nomineeValid, fieldErrors: nomineeErrors } = validateOpcNominee(draft.opcNominee);
+      if (!nomineeValid) {
+        return { valid: false, fieldErrors: nomineeErrors };
+      }
+      return { valid: true, fieldErrors: {} };
+    }
+
+    const minRequired = getMinRequiredPromoters(draft.company.companyType);
     if (draft.directors.length < minRequired) {
       return {
         valid: false,
@@ -60,14 +68,6 @@ export const validateRegistrationStep = (
       }
     });
 
-    if (isOpc) {
-      const { valid: nomineeValid, fieldErrors: nomineeErrors } = validateOpcNominee(draft.opcNominee);
-      if (!nomineeValid) {
-        hasError = true;
-        Object.assign(combinedErrors, nomineeErrors);
-      }
-    }
-
     if (hasError) {
       return { valid: false, fieldErrors: combinedErrors };
     }
@@ -81,7 +81,7 @@ export const validateRegistrationStep = (
     const faceValue = Number(draft.company.faceValuePerShare) || 0;
     const authCapital = Number(draft.company.authorizedCapital) || 0;
     const totalAuthShares = faceValue > 0 ? Math.floor(authCapital / faceValue) : 0;
-    const isOpc = draft.company.companyType === 'One Person Company (OPC)';
+    const isOpc = isOpcCompanyType(draft.company.companyType);
 
     if (!isOpc) {
       if (totalSubscribed <= 0) {

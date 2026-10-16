@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
+import { isOpcCompanyType } from '../../validation/companySchema';
 import { CompanySectionCard } from '../CompanySectionCard/CompanySectionCard';
 import { styles } from './StepReviewApplication.styles';
 
@@ -9,7 +10,7 @@ export const StepReviewApplication: React.FC = () => {
   const startEditingStep = useCompanyRegistrationStore((state) => state.startEditingStep);
   const { company, directors, opcNominee, documents } = draft;
 
-  const isOpc = company.companyType === 'One Person Company (OPC)';
+  const isOpc = isOpcCompanyType(company.companyType);
 
   const getDocFileName = (docId: string): string => {
     return documents?.find((d) => d.id === docId && d.status === 'Uploaded')?.fileName || '';
@@ -87,45 +88,47 @@ export const StepReviewApplication: React.FC = () => {
         <View style={styles.dataRow}><Text style={styles.dataLabel}>Company Mobile</Text><Text style={styles.dataValue}>{company.companyMobile || ''}</Text></View>
       </CompanySectionCard>
 
-      {/* 5. Promoter / Director Details � all directors */}
-      <CompanySectionCard
-        iconName="people-outline"
-        title="Promoter / Director Details"
-        headerRight={
-          <TouchableOpacity onPress={() => startEditingStep(3)} activeOpacity={0.7}>
-            <Text style={styles.editBtn}>Edit</Text>
-          </TouchableOpacity>
-        }
-      >
-        {directors.length === 0 ? (
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Promoter / Director</Text>
-            <Text style={styles.dataValue}>Not added</Text>
-          </View>
-        ) : (
-          directors.map((director, idx) => (
-            <View key={director.id}>
-              {directors.length > 1 && (
-                <Text style={[styles.dataLabel, { fontWeight: '700', marginTop: idx > 0 ? 10 : 0, marginBottom: 4, color: '#083B75' }]}>
-                  Director #{idx + 1}
-                </Text>
-              )}
-              <View style={styles.dataRow}><Text style={styles.dataLabel}>Full Name (as in PAN)</Text><Text style={styles.dataValue}>{director.name || ''}</Text></View>
-              <View style={styles.dataRow}><Text style={styles.dataLabel}>PAN Number</Text><Text style={styles.dataValue}>{director.pan || ''}</Text></View>
-              <View style={styles.dataRow}><Text style={styles.dataLabel}>Date of Birth</Text><Text style={styles.dataValue}>{director.dob || ''}</Text></View>
-              <View style={styles.dataRow}><Text style={styles.dataLabel}>Designation</Text><Text style={styles.dataValue}>{director.designation || ''}</Text></View>
-              <View style={styles.dataRow}><Text style={styles.dataLabel}>Email Address</Text><Text style={styles.dataValue}>{director.email || ''}</Text></View>
-              <View style={styles.dataRow}><Text style={styles.dataLabel}>Mobile Number</Text><Text style={styles.dataValue}>{director.phone || ''}</Text></View>
-              {!!director.din && (
-                <View style={styles.dataRow}><Text style={styles.dataLabel}>DIN (if allotted)</Text><Text style={styles.dataValue}>{director.din}</Text></View>
-              )}
+      {/* 5. Promoter / Director Details – hidden for OPC */}
+      {!isOpc && (
+        <CompanySectionCard
+          iconName="people-outline"
+          title="Promoter / Director Details"
+          headerRight={
+            <TouchableOpacity onPress={() => startEditingStep(3)} activeOpacity={0.7}>
+              <Text style={styles.editBtn}>Edit</Text>
+            </TouchableOpacity>
+          }
+        >
+          {directors.length === 0 ? (
+            <View style={styles.dataRow}>
+              <Text style={styles.dataLabel}>Promoter / Director</Text>
+              <Text style={styles.dataValue}>Not added</Text>
             </View>
-          ))
-        )}
-      </CompanySectionCard>
+          ) : (
+            directors.map((director, idx) => (
+              <View key={director.id}>
+                {directors.length > 1 && (
+                  <Text style={[styles.dataLabel, { fontWeight: '700', marginTop: idx > 0 ? 10 : 0, marginBottom: 4, color: '#083B75' }]}>
+                    Director #{idx + 1}
+                  </Text>
+                )}
+                <View style={styles.dataRow}><Text style={styles.dataLabel}>Full Name (as in PAN)</Text><Text style={styles.dataValue}>{director.name || ''}</Text></View>
+                <View style={styles.dataRow}><Text style={styles.dataLabel}>PAN Number</Text><Text style={styles.dataValue}>{director.pan || ''}</Text></View>
+                <View style={styles.dataRow}><Text style={styles.dataLabel}>Date of Birth</Text><Text style={styles.dataValue}>{director.dob || ''}</Text></View>
+                <View style={styles.dataRow}><Text style={styles.dataLabel}>Designation</Text><Text style={styles.dataValue}>{director.designation || ''}</Text></View>
+                <View style={styles.dataRow}><Text style={styles.dataLabel}>Email Address</Text><Text style={styles.dataValue}>{director.email || ''}</Text></View>
+                <View style={styles.dataRow}><Text style={styles.dataLabel}>Mobile Number</Text><Text style={styles.dataValue}>{director.phone || ''}</Text></View>
+                {!!director.din && (
+                  <View style={styles.dataRow}><Text style={styles.dataLabel}>DIN (if allotted)</Text><Text style={styles.dataValue}>{director.din}</Text></View>
+                )}
+              </View>
+            ))
+          )}
+        </CompanySectionCard>
+      )}
 
-      {/* OPC Nominee � only for One Person Company */}
-      {isOpc && !!opcNominee?.name && (
+      {/* OPC Nominee – only for One Person Company */}
+      {isOpc && (
         <CompanySectionCard
           iconName="shield-checkmark-outline"
           title="OPC Nominee Details"
@@ -135,13 +138,22 @@ export const StepReviewApplication: React.FC = () => {
             </TouchableOpacity>
           }
         >
-          <View style={styles.dataRow}><Text style={styles.dataLabel}>Nominee Full Name</Text><Text style={styles.dataValue}>{opcNominee.name || ''}</Text></View>
-          <View style={styles.dataRow}><Text style={styles.dataLabel}>Nominee PAN</Text><Text style={styles.dataValue}>{opcNominee.pan || ''}</Text></View>
-          {!!opcNominee.relationship && (
-            <View style={styles.dataRow}><Text style={styles.dataLabel}>Relationship</Text><Text style={styles.dataValue}>{opcNominee.relationship}</Text></View>
+          {opcNominee?.name ? (
+            <>
+              <View style={styles.dataRow}><Text style={styles.dataLabel}>Nominee Full Name</Text><Text style={styles.dataValue}>{opcNominee.name || ''}</Text></View>
+              <View style={styles.dataRow}><Text style={styles.dataLabel}>Nominee PAN</Text><Text style={styles.dataValue}>{opcNominee.pan || ''}</Text></View>
+              {!!opcNominee.relationship && (
+                <View style={styles.dataRow}><Text style={styles.dataLabel}>Relationship</Text><Text style={styles.dataValue}>{opcNominee.relationship}</Text></View>
+              )}
+              <View style={styles.dataRow}><Text style={styles.dataLabel}>Nominee Email</Text><Text style={styles.dataValue}>{opcNominee.email || ''}</Text></View>
+              <View style={styles.dataRow}><Text style={styles.dataLabel}>Nominee Mobile</Text><Text style={styles.dataValue}>{opcNominee.phone || ''}</Text></View>
+            </>
+          ) : (
+            <View style={styles.dataRow}>
+              <Text style={styles.dataLabel}>OPC Nominee</Text>
+              <Text style={styles.dataValue}>Not added</Text>
+            </View>
           )}
-          <View style={styles.dataRow}><Text style={styles.dataLabel}>Nominee Email</Text><Text style={styles.dataValue}>{opcNominee.email || ''}</Text></View>
-          <View style={styles.dataRow}><Text style={styles.dataLabel}>Nominee Mobile</Text><Text style={styles.dataValue}>{opcNominee.phone || ''}</Text></View>
         </CompanySectionCard>
       )}
 

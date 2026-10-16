@@ -7,6 +7,7 @@ import {
   TouchableWithoutFeedback,
   Modal,
   FlatList,
+  type KeyboardTypeOptions,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
@@ -22,11 +23,12 @@ interface InputProps {
   onBlurField?: (field: string) => void;
   error?: string;
   placeholder?: string;
-  keyboardType?: any;
+  keyboardType?: KeyboardTypeOptions;
   maxLength?: number;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   accessibilityLabel?: string;
   accessibilityHint?: string;
+  inputRef?: (node: TextInput | null) => void;
 }
  
 export const FormInput: React.FC<InputProps> = React.memo(({
@@ -44,6 +46,7 @@ export const FormInput: React.FC<InputProps> = React.memo(({
   autoCapitalize,
   accessibilityLabel,
   accessibilityHint,
+  inputRef,
 }) => {
   const handleChangeText = (text: string) => {
     if (onChangeField && field) onChangeField(field, text);
@@ -58,6 +61,7 @@ export const FormInput: React.FC<InputProps> = React.memo(({
     <View style={styles.fieldGroup}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
+        ref={inputRef}
         style={[styles.input, error && styles.inputError]}
         placeholder={placeholder}
         placeholderTextColor="#94A3B8"

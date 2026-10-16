@@ -6,9 +6,6 @@ import { BrandColors } from "@/shared/theme";
 import { GstFilingPeriodStep } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstFilingPeriodStep";
 import { GstFilingDocumentsStep } from "@/modules/gst/gst-filing/components/GstFilingDocumentsStep/GstFilingDocumentsStep";
 import { GstFilingReviewStep } from "@/modules/gst/gst-filing/components/GstFilingReviewStep/GstFilingReviewStep";
-import { GstPaymentMethodStep } from "@/modules/gst/gst-filing/components/payment/GstPaymentMethodStep/GstPaymentMethodStep";
-import { GstPaymentSuccessStep } from "@/modules/gst/gst-filing/components/payment/GstPaymentSuccessStep/GstPaymentSuccessStep";
-import { GstPaymentReceiptStep } from "@/modules/gst/gst-filing/components/payment/GstPaymentReceiptStep/GstPaymentReceiptStep";
 import { GstApplicationStatusStep } from "@/modules/gst/gst-status/components/GstApplicationStatusStep/GstApplicationStatusStep";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
@@ -18,7 +15,7 @@ import { gstApi } from "@/modules/gst/services/gstApi";
 import { logger } from "@/core/logging/logger";
 import { useGstFiling } from "@/modules/gst/gst-filing/hooks/useGstFiling";
 import { buildFilingPayload } from "@/modules/gst/gst-filing/hooks/gstFilingHelpers";
-import { GstStepHeader } from "@/modules/gst/components/GstStepHeader";
+import { GstStepHeader } from "@/modules/gst/components/GstStepHeader/GstStepHeader";
 import {
   styles,
   getHeaderBarStyle,
@@ -30,7 +27,6 @@ const FILING_STEP_LABELS = [
   "Filing Period",
   "Upload Documents",
   "Review & Summary",
-  "Service Payment",
 ];
 
 export const GstFilingScreen: React.FC = () => {
@@ -46,12 +42,6 @@ export const GstFilingScreen: React.FC = () => {
     periodErrors,
     setPeriodErrors,
     documents,
-    selectedMethod,
-    setSelectedMethod,
-    upiId,
-    setUpiId,
-    upiError,
-    setUpiError,
     createdAppId,
     filingId,
     showDraftModal,
@@ -127,27 +117,18 @@ export const GstFilingScreen: React.FC = () => {
   return (
     <View style={styles.root}>
       {/* Top Header Bar with ITR-style step indicator */}
-      {currentStep < 4 ? (
+      {currentStep < 3 ? (
         <GstStepHeader
           title="GST Filing"
           currentStep={currentStep + 1}
-          totalSteps={4}
+          totalSteps={3}
           stepLabel={FILING_STEP_LABELS[currentStep] || "Filing"}
           onBack={handleBack}
+          hideBack={currentStep === 2}
         />
       ) : (
         <View style={[styles.headerBar, getHeaderBarStyle(insets.top)]}>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={handleBack}
-            style={styles.backButton}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={20}
-              color={BrandColors.TEXT_PRIMARY}
-            />
-          </TouchableOpacity>
+          <View style={styles.placeholderBox} />
           <Text style={styles.headerTitle}>{getScreenTitle()}</Text>
           <View style={styles.placeholderBox} />
         </View>
@@ -159,7 +140,7 @@ export const GstFilingScreen: React.FC = () => {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
-          getScrollContentStyle(currentStep >= 4),
+          getScrollContentStyle(currentStep >= 3),
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -171,23 +152,25 @@ export const GstFilingScreen: React.FC = () => {
           <GstFilingPeriodStep
             data={periodData}
             errors={periodErrors}
+            onError={(field, error) => {
+              setPeriodErrors((prev) => {
+                if (error) {
+                  return { ...prev, [field]: error };
+                }
+                const { [field]: _removed, ...rest } = prev;
+                return rest;
+              });
+            }}
             onChange={(fields) => {
               setPeriodData((prev) => ({ ...prev, ...fields }));
               setPeriodErrors((prev) => {
-                const keys = Object.keys(fields);
-                const omitKeys = (
-                  curr: Record<string, string>,
-                  idx = 0,
-                ): Record<string, string> => {
-                  if (idx >= keys.length) return curr;
-                  const key = keys[idx];
-                  if (curr[key]) {
-                    const { [key]: _removed, ...rest } = curr;
-                    return omitKeys(rest, idx + 1);
-                  }
-                  return omitKeys(curr, idx + 1);
-                };
-                return omitKeys(prev);
+                const keys = Object.keys(fields).filter((k) => k !== "gstin");
+                if (keys.length === 0) return prev;
+                const next = { ...prev };
+                for (const k of keys) {
+                  delete next[k];
+                }
+                return next;
               });
             }}
           />
@@ -204,7 +187,7 @@ export const GstFilingScreen: React.FC = () => {
 
         {currentStep === 2 && (
           <GstFilingReviewStep
-            key={`${periodData.taxableSales || periodData.turnover || "0"}-${periodData.taxablePurchases || "0"}-${periodData.eligibleItc || "0"}`}
+            key={`${periodData.taxableSales || periodData.turnover || "0"}-${periodData.taxablePurchases || "0"}-${periodData.eligibleItc || "0"}-${periodData.calculationMethod || "ca"}-${periodData.filingNature || "reg"}`}
             gstin={periodData.gstin}
             businessName={businessDisplayName}
             taxpayerScheme={periodData.taxpayerScheme || "Regular Scheme"}
@@ -221,10 +204,10 @@ export const GstFilingScreen: React.FC = () => {
             }
             taxablePurchases={periodData.taxablePurchases || 0}
             eligibleItc={periodData.eligibleItc || 0}
+            calculationMethod={periodData.calculationMethod}
             isFetching={isFetchingReview}
             onEditFilingDetails={() => handleEditStep(0)}
             onEditTaxComputation={() => handleEditStep(0)}
-            onEditFilingFee={() => setCurrentStep(3)}
             onEditDocuments={() => handleEditStep(1)}
             onReuploadDocuments={() => handleEditStep(1)}
             onUpdateComputation={handleComputationChange}
@@ -239,49 +222,6 @@ export const GstFilingScreen: React.FC = () => {
         )}
 
         {currentStep === 3 && (
-          <GstPaymentMethodStep
-            amount="₹2,344"
-            selectedMethod={selectedMethod}
-            onSelectMethod={setSelectedMethod}
-            upiId={upiId}
-            onChangeUpiId={(id) => {
-              setUpiId(id);
-              setUpiError("");
-            }}
-            upiError={upiError}
-          />
-        )}
-
-        {currentStep === 4 && (
-          <GstPaymentSuccessStep
-            amount="₹2,344"
-            serviceName={`GST Filing (${returnFormLabel})`}
-            txnId="Not available"
-            paymentMethod={selectedMethod.toUpperCase()}
-            filingPeriod={periodLabel}
-            gstin={periodData.gstin || "Not provided"}
-            onViewReceipt={() => setCurrentStep(5)}
-            onViewApplication={() => setCurrentStep(6)}
-          />
-        )}
-
-        {currentStep === 5 && (
-          <GstPaymentReceiptStep
-            amount="₹2,344"
-            serviceName={`GST Filing Service (${returnFormLabel})`}
-            invoiceNo={
-              createdAppId
-                ? `INV-2026-${createdAppId.slice(-5)}`
-                : "Not available"
-            }
-            gstin={periodData.gstin || "Not provided"}
-            period={periodLabel}
-            txnId="Not available"
-            paymentMethod={selectedMethod.toUpperCase()}
-          />
-        )}
-
-        {currentStep === 6 && (
           <GstApplicationStatusStep
             appId={createdAppId || "Not available"}
             businessName={
@@ -300,7 +240,7 @@ export const GstFilingScreen: React.FC = () => {
         )}
 
         {/* Action Button */}
-        {currentStep <= 3 && (
+        {currentStep <= 2 && (
           <View style={styles.buttonWrapper}>
             <TouchableOpacity
               activeOpacity={0.85}
@@ -318,7 +258,7 @@ export const GstFilingScreen: React.FC = () => {
 
       {/* Universal Save As Draft Confirmation Modal */}
       <UniversalDraftModal
-        visible={showDraftModal}
+        visible={showDraftModal && currentStep < 3}
         title="Save Filing Progress?"
         message="You have unsaved changes in your GST return filing. Save your progress so you can resume anytime without re-entering details."
         saveButtonText="Save as Draft & Exit"

@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { pinCodeService } from "@/shared/services/lookup/pinCodeService";
 import { ifscService } from "@/shared/services/lookup/ifscService";
 import { logger } from "@/core/logging/logger";
+import { GstValidators } from "@/modules/gst/utils/gstValidators";
 import { GstBusinessFormData } from "../components/GstBusinessStep/GstBusinessStep";
 
 export interface UseGstLookupsProps {
@@ -38,10 +39,24 @@ export const useGstFieldLookups = ({ data, onChange }: UseGstLookupsProps) => {
       const res = await pinCodeService.lookup(cleanPin);
       if (latestPinRef.current !== cleanPin) return;
       const current = dataRef.current;
+      const resolvedCity = current.city || res.city;
+      const resolvedDistrict = current.district || res.district;
+      if (resolvedCity && !GstValidators.isValidCity(resolvedCity)) {
+        logger.warn("[useGstFieldLookups] PIN lookup city conflicts with alphabetic-only rule:", {
+          city: resolvedCity,
+          pin: cleanPin,
+        });
+      }
+      if (resolvedDistrict && !GstValidators.isValidDistrict(resolvedDistrict)) {
+        logger.warn("[useGstFieldLookups] PIN lookup district conflicts with alphabetic-only rule:", {
+          district: resolvedDistrict,
+          pin: cleanPin,
+        });
+      }
       onChange({
         pinCode: cleanPin,
-        city: current.city || res.city,
-        district: current.district || res.district,
+        city: resolvedCity,
+        district: resolvedDistrict,
         state: current.state || res.state,
       });
     } catch (e) {

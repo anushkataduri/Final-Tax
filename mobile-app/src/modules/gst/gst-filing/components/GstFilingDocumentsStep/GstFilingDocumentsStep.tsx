@@ -80,7 +80,7 @@ export const GstFilingDocumentsStep: React.FC<GstFilingDocumentsStepProps> = ({
         <Text style={styles.bannerText}>
           Upload documents for{" "}
           <Text style={styles.boldText}>{filingPeriodText}</Text>. Clear invoices
-          ensure 100% accurate Input Tax Credit (ITC) claim.
+          help facilitate accurate Input Tax Credit (ITC) reconciliation.
         </Text>
       </View>
 

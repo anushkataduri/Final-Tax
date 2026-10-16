@@ -52,6 +52,9 @@ test("initialDraft has no preselected company structure and all initial fields s
     assert.equal(doc.fileUri, undefined);
     assert.equal(doc.fileName, undefined);
   }
+  const nocDoc = draft.documents.find((d) => d.id === "doc-noc");
+  assert.ok(nocDoc);
+  assert.equal(nocDoc.required, true);
 
   // Linked registrations must be unchecked initially
   assert.equal(draft.linkedRegistrations.pan, false);
@@ -106,7 +109,7 @@ test("Step 3 validation requires minimum promoters based on entity structure", (
   assert.equal(pvtResult.valid, false);
   assert.match(pvtResult.fieldErrors.directorsCount, /At least 2 promoter/);
 
-  // For OPC (requires at least 1)
+  // For OPC (validates nominee fields, does not require promoters/directors)
   const opcDraft = {
     ...freshDraft,
     company: { ...freshDraft.company, companyType: "One Person Company (OPC)" as const },
@@ -114,5 +117,6 @@ test("Step 3 validation requires minimum promoters based on entity structure", (
   };
   const opcResult = validateRegistrationStep(3, opcDraft);
   assert.equal(opcResult.valid, false);
-  assert.match(opcResult.fieldErrors.directorsCount, /At least 1 promoter/);
+  assert.equal(opcResult.fieldErrors.nominee_name, "Nominee full name is required.");
+  assert.equal(opcResult.fieldErrors.directorsCount, undefined);
 });

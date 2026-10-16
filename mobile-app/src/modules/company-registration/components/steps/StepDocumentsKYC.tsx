@@ -84,10 +84,10 @@ const CHECKLIST_ITEMS: KycChecklistItem[] = [
   },
   {
     id: 'doc-noc',
-    title: 'Owner NOC',
+    title: 'Owner NOC *',
     subtitle: 'Required for Rented or Leased premises',
     section: 'REGISTERED OFFICE',
-    required: false,
+    required: true,
     iconName: 'document-attach-outline',
   },
 
@@ -226,7 +226,7 @@ export const StepDocumentsKYC: React.FC = () => {
 
               const tdsItem: TdsChecklistItem = {
                 id: item.id,
-                title: item.title.replace('*', '').trim(),
+                title: item.title,
                 subtitle: item.subtitle,
                 status: isUploaded ? 'uploaded' : 'not_uploaded',
                 isMandatory: item.required,

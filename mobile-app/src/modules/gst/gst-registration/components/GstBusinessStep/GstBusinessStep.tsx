@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { View, Text, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from "react-native";
+import { View, Text, TouchableOpacity, TouchableWithoutFeedback, Keyboard, TextInput } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import { styles } from "./GstBusinessStep.styles";
@@ -15,10 +15,10 @@ import {
   FormSelect,
   SectionCard,
   AccordionSection,
-  sanitizeDigits,
   sanitizeAlphanumericUpper,
 } from "./GstFormElements";
-import { BANK_FIELD_NAMES, SIGNATORY_FIELD_NAMES } from "../../utils/gstDraftLifecycle";
+import { BANK_FIELD_NAMES, SIGNATORY_FIELD_NAMES, isTextFormField } from "../../utils/gstDraftLifecycle";
+import { GstValidators } from "@/modules/gst/utils/gstValidators";
 import { logger } from "@/core/logging/logger";
 import { hsnSacPolicy } from "@/modules/gst/utils/hsnSacPolicy";
 import { useGstFieldLookups } from "@/modules/gst/gst-registration/hooks/useGstFieldLookups";
@@ -57,7 +57,9 @@ interface Props {
   errors?: FormErrors;
   onRequestScrollToSection?: (sectionKey: "bank" | "signatory", y?: number) => void;
   initialExpandedSection?: string | null;
-  onSectionLayout?: (section: "bank" | "signatory", y: number) => void;
+  onSectionLayout?: (section: "bank" | "signatory" | "consent", y: number) => void;
+  onFieldLayout?: (field: string, y: number) => void;
+  focusedField?: string | null;
 }
 
 export const GstBusinessStep: React.FC<Props> = ({
@@ -68,11 +70,16 @@ export const GstBusinessStep: React.FC<Props> = ({
   onRequestScrollToSection,
   initialExpandedSection,
   onSectionLayout,
+  onFieldLayout,
+  focusedField,
 }) => {
   const [userToggledBank, setUserToggledBank] = useState<boolean | null>(null);
   const [userToggledSignatory, setUserToggledSignatory] = useState<boolean | null>(null);
   const bankYRef = useRef(0);
   const signatoryYRef = useRef(0);
+  const consentYRef = useRef(0);
+  const inputRefs = useRef<Record<string, TextInput | null>>({});
+  const fieldOffsetsRef = useRef<Record<string, number>>({});
 
   const bankErrorCount = useMemo(() => BANK_FIELD_KEYS.filter((f) => Boolean(errors[f])).length, [errors]);
   const signatoryErrorCount = useMemo(() => SIGNATORY_FIELD_KEYS.filter((f) => Boolean(errors[f])).length, [errors]);
@@ -81,6 +88,14 @@ export const GstBusinessStep: React.FC<Props> = ({
 
   const isBankExpanded = hasBankErrors || (userToggledBank !== null ? userToggledBank : initialExpandedSection === "bank");
   const isSignatoryExpanded = hasSignatoryErrors || (userToggledSignatory !== null ? userToggledSignatory : initialExpandedSection === "signatory");
+
+  useEffect(() => {
+    if (!focusedField) return;
+    if (isTextFormField(focusedField) && inputRefs.current[focusedField]) {
+      const timer = setTimeout(() => { inputRefs.current[focusedField]?.focus(); }, 180);
+      return () => clearTimeout(timer);
+    }
+  }, [focusedField]);
 
   useEffect(() => {
     const shouldExpandBank = initialExpandedSection === "bank" || hasBankErrors;
@@ -98,24 +113,18 @@ export const GstBusinessStep: React.FC<Props> = ({
 
   const updateField = useCallback(
     <K extends keyof GstBusinessFormData>(field: K, value: GstBusinessFormData[K]) => {
-      try {
-        onChange({ [field]: value });
-      } catch (err) {
+      try { onChange({ [field]: value }); } catch (err) {
         logger.warn("[GstBusinessStep] Error updating field:", { field: String(field), error: err });
       }
-    },
-    [onChange],
+    }, [onChange],
   );
 
   const blurField = useCallback(
     (field: keyof GstBusinessFormData) => {
-      try {
-        onBlurField?.(field);
-      } catch (err) {
+      try { onBlurField?.(field); } catch (err) {
         logger.warn("[GstBusinessStep] Error blurring field:", { field: String(field), error: err });
       }
-    },
-    [onBlurField],
+    }, [onBlurField],
   );
 
   const handleInputChange = useCallback(
@@ -155,24 +164,15 @@ export const GstBusinessStep: React.FC<Props> = ({
           field={field}
           label={label}
           value={val}
+          inputRef={(node) => { inputRefs.current[field] = node; }}
           onChangeField={
             options?.onChangeOverride
-              ? (_f, t) => {
-                  const transformed = options?.transform ? options.transform(t) : t;
-                  options.onChangeOverride?.(transformed);
-                }
+              ? (_f, t) => options.onChangeOverride?.(options?.transform ? options.transform(t) : t)
               : options?.transform
               ? (_f, t) => handleInputChange(field, options.transform!(t))
               : handleInputChange
           }
-          onBlurField={
-            options?.onBlurOverride
-              ? (_f) => {
-                  options.onBlurOverride?.(val);
-                  handleInputBlur(field);
-                }
-              : handleInputBlur
-          }
+          onBlurField={options?.onBlurOverride ? (_f) => { options.onBlurOverride?.(val); handleInputBlur(field); } : handleInputBlur}
           error={options?.errorOverride ?? errors?.[field]}
           placeholder={placeholder}
           keyboardType={options?.keyboardType}
@@ -185,51 +185,45 @@ export const GstBusinessStep: React.FC<Props> = ({
   );
 
   const renderSelect = useCallback(
-    (field: keyof GstBusinessFormData, label: string, placeholder: string, options: readonly string[], cfg?: { searchable?: boolean; allowCustom?: boolean; searchPlaceholder?: string }) => {
-      const val = (data?.[field] as string) ?? "";
-      return (
-        <FormSelect
-          key={field}
-          field={field}
-          label={label}
-          value={val}
-          options={options as string[]}
-          onSelectField={handleSelectField}
-          error={errors?.[field]}
-          placeholder={placeholder}
-          searchable={cfg?.searchable}
-          allowCustom={cfg?.allowCustom}
-          searchPlaceholder={cfg?.searchPlaceholder}
-        />
-      );
-    },
+    (field: keyof GstBusinessFormData, label: string, placeholder: string, options: readonly string[], cfg?: { searchable?: boolean; allowCustom?: boolean; searchPlaceholder?: string }) => (
+      <FormSelect
+        key={field}
+        field={field}
+        label={label}
+        value={(data?.[field] as string) ?? ""}
+        options={options as string[]}
+        onSelectField={handleSelectField}
+        error={errors?.[field]}
+        placeholder={placeholder}
+        searchable={cfg?.searchable}
+        allowCustom={cfg?.allowCustom}
+        searchPlaceholder={cfg?.searchPlaceholder}
+      />
+    ),
     [data, errors, handleSelectField],
   );
 
   const renderDatePicker = useCallback(
-    (field: keyof GstBusinessFormData, label: string, opts?: { maximumDate?: Date }) => {
-      const val = (data?.[field] as string) ?? "";
-      return (
-        <UniversalDatePicker
-          key={field}
-          label={label}
-          value={val}
-          onChange={(d: string) => updateField(field, d)}
-          error={errors?.[field]}
-          valueFormat="DD-MM-YYYY"
-          placeholder="DD-MM-YYYY"
-          maximumDate={opts?.maximumDate}
-        />
-      );
-    },
+    (field: keyof GstBusinessFormData, label: string, opts?: { maximumDate?: Date }) => (
+      <UniversalDatePicker
+        key={field}
+        label={label}
+        value={(data?.[field] as string) ?? ""}
+        onChange={(d: string) => updateField(field, d)}
+        error={errors?.[field]}
+        valueFormat="DD-MM-YYYY"
+        placeholder="DD-MM-YYYY"
+        maximumDate={opts?.maximumDate}
+      />
+    ),
     [data, errors, updateField],
   );
 
-  const yesterday = useMemo(() => {
+  const getYesterdayDate = () => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
     return d;
-  }, []);
+  };
 
   const renderBusinessIdentity = () => (
     <SectionCard
@@ -241,7 +235,7 @@ export const GstBusinessStep: React.FC<Props> = ({
       {renderInput("businessName", "Trade Name *", "Enter your business / trade name", { maxLength: 100, onBlurOverride: (v) => updateField("businessName", v.trim()) })}
       {renderSelect("businessType", "Constitution of Business *", "Select business type", BUSINESS_TYPES)}
       {renderSelect("natureOfBusiness", "Nature of Business *", "Select nature of business", NATURE_OF_BUSINESS)}
-      {renderDatePicker("businessStartDate", "Date of Commencement of Business *", { maximumDate: yesterday })}
+      {renderDatePicker("businessStartDate", "Date of Commencement of Business *", { maximumDate: getYesterdayDate() })}
     </SectionCard>
   );
 
@@ -270,7 +264,7 @@ export const GstBusinessStep: React.FC<Props> = ({
         subtitle="Registered business address & HSN details"
       >
         {renderSelect("placeOfBusiness", "Place of Business *", "Select place type", PLACE_OPTIONS)}
-        {renderInput("businessAddress", "Business Address *", "Building, street, locality", { maxLength: 255, onBlurOverride: (v) => updateField("businessAddress", v.trim()) })}
+        {renderInput("businessAddress", "Business Address *", "Building, street, locality", { maxLength: 250, onBlurOverride: (v) => updateField("businessAddress", v.trim()) })}
         <View style={styles.row}>
           <View style={styles.halfField}>{renderInput("city", "City *", "City", { maxLength: 50, onBlurOverride: (v) => updateField("city", v.trim()) })}</View>
           <View style={styles.halfField}>{renderInput("district", "District *", "District", { maxLength: 50, onBlurOverride: (v) => updateField("district", v.trim()) })}</View>
@@ -278,24 +272,22 @@ export const GstBusinessStep: React.FC<Props> = ({
         <View style={styles.row}>
           <View style={styles.halfField}>
             {renderSelect("state", "State / UT *", "Select", STATE_OPTIONS, {
-              searchable: true,
-              searchPlaceholder: "Search state or UT...",
+              searchable: true, searchPlaceholder: "Search state or UT...",
             })}
           </View>
           <View style={styles.halfField}>
             {renderInput("pinCode", "PIN Code *", "560001", {
               keyboardType: "numeric",
               maxLength: 6,
-              transform: sanitizeDigits,
               onChangeOverride: (pin) => {
                 updateField("pinCode", pin);
-                if (pin.length === 6) handlePinLookup(pin);
+                if (GstValidators.isValidPinCode(pin)) handlePinLookup(pin);
               },
             })}
             {pinLoading && <Text style={styles.lookupInfoText}>Looking up PIN code...</Text>}
           </View>
         </View>
-        {renderInput("hsnCode", "Primary HSN / SAC Code *", "e.g. 998311", { keyboardType: "numeric", maxLength: 8, transform: sanitizeDigits })}
+        {renderInput("hsnCode", "Primary HSN / SAC Code *", "e.g. 998311", { keyboardType: "numeric", maxLength: 8 })}
         {hsnClassification?.isValid && (
           <View style={{ marginTop: -8, marginBottom: 12, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: hsnClassification.type === "SAC" ? "#EFF6FF" : "#F0FDF4", alignSelf: "flex-start", borderWidth: 1, borderColor: hsnClassification.type === "SAC" ? "#BFDBFE" : "#BBF7D0" }}>
             <Text style={{ fontSize: 12, fontWeight: "600", color: hsnClassification.type === "SAC" ? "#1D4ED8" : "#15803D" }}>
@@ -331,24 +323,16 @@ export const GstBusinessStep: React.FC<Props> = ({
         }}
       >
         {renderInput("accountHolderName", "Account Holder Name *", "As per bank records", { maxLength: 100, onBlurOverride: (v) => updateField("accountHolderName", v.trim()) })}
-        {renderInput("bankAccountNumber", "Bank Account Number *", "Enter account number", { keyboardType: "numeric", maxLength: 18, transform: sanitizeDigits })}
-        {renderInput("confirmBankAccountNumber", "Confirm Account Number *", "Re-enter account number", { keyboardType: "numeric", maxLength: 18, transform: sanitizeDigits })}
-        {renderInput("ifscCode", "IFSC Code *", "e.g. HDFC0001234", {
-          autoCapitalize: "characters",
-          maxLength: 11,
-          transform: sanitizeAlphanumericUpper,
-          onChangeOverride: handleIfscChange,
-          errorOverride: ifscError || undefined,
+        {renderInput("bankAccountNumber", "Bank Account Number *", "Enter account number", {
+          keyboardType: "numeric", maxLength: 18,
+          onChangeOverride: (acc) => data?.confirmBankAccountNumber ? onChange({ bankAccountNumber: acc, confirmBankAccountNumber: data.confirmBankAccountNumber }) : updateField("bankAccountNumber", acc),
+          onBlurOverride: (acc) => { updateField("bankAccountNumber", acc.trim()); if (data?.confirmBankAccountNumber) blurField("confirmBankAccountNumber"); },
         })}
+        {renderInput("confirmBankAccountNumber", "Confirm Account Number *", "Re-enter account number", { keyboardType: "numeric", maxLength: 18, onBlurOverride: (acc) => updateField("confirmBankAccountNumber", acc.trim()) })}
+        {renderInput("ifscCode", "IFSC Code *", "e.g. HDFC0001234", { autoCapitalize: "characters", maxLength: 11, transform: sanitizeAlphanumericUpper, onChangeOverride: handleIfscChange, errorOverride: ifscError || undefined })}
         {ifscLoading && <Text style={styles.lookupInfoText}>Looking up IFSC code...</Text>}
         <View style={styles.row}>
-          <View style={styles.halfField}>
-            {renderSelect("bankName", "Bank Name *", "Select", BANK_OPTIONS, {
-              searchable: true,
-              allowCustom: true,
-              searchPlaceholder: "Search or enter bank...",
-            })}
-          </View>
+          <View style={styles.halfField}>{renderSelect("bankName", "Bank Name *", "Select", BANK_OPTIONS, { searchable: true, allowCustom: true, searchPlaceholder: "Search or enter bank..." })}</View>
           <View style={styles.halfField}>{renderInput("branchName", "Branch *", "Branch Name", { maxLength: 100, onBlurOverride: (v) => updateField("branchName", v.trim()) })}</View>
         </View>
         {renderSelect("accountType", "Account Type *", "Select account type", ACCOUNT_TYPES)}
@@ -379,26 +363,19 @@ export const GstBusinessStep: React.FC<Props> = ({
           }
         }}
       >
-        {renderInput("signatoryName", "Signatory Name *", "Full name", { maxLength: 100, onBlurOverride: (v) => updateField("signatoryName", v.trim()) })}
-        <View style={styles.row}>
-          <View style={styles.halfField}>
-            {renderInput("signatoryPan", "Signatory PAN *", "ABCDE1234F", { autoCapitalize: "characters", maxLength: 10, transform: sanitizeAlphanumericUpper })}
-          </View>
-          <View style={styles.halfField}>{renderDatePicker("signatoryDob", "Date of Birth *")}</View>
+        <View onLayout={(e) => { const y = signatoryYRef.current + e.nativeEvent.layout.y; fieldOffsetsRef.current.signatoryName = y; onFieldLayout?.("signatoryName", y); }}>
+          {renderInput("signatoryName", "Signatory Name *", "Full name", { maxLength: 100 })}
         </View>
-        {renderInput("signatoryDesignation", "Designation *", "Proprietor / Director / Partner", { maxLength: 50, onBlurOverride: (v) => updateField("signatoryDesignation", v.trim()) })}
-        <View style={styles.row}>
-          <View style={styles.halfField}>
-            {renderInput("signatoryMobile", "Signatory Mobile *", "10-digit", { keyboardType: "numeric", maxLength: 10, transform: sanitizeDigits })}
-          </View>
-          <View style={styles.halfField}>
-            {renderInput("signatoryEmail", "Signatory Email *", "email@business.com", {
-              keyboardType: "email-address",
-              maxLength: 150,
-              autoCapitalize: "none",
-              onBlurOverride: (email) => updateField("signatoryEmail", email.trim()),
-            })}
-          </View>
+        <View style={styles.row} onLayout={(e) => { const y = signatoryYRef.current + e.nativeEvent.layout.y; fieldOffsetsRef.current.signatoryPan = y; fieldOffsetsRef.current.signatoryDob = y; onFieldLayout?.("signatoryPan", y); onFieldLayout?.("signatoryDob", y); }}>
+          <View style={styles.halfField}>{renderInput("signatoryPan", "Signatory PAN *", "ABCPE1234F", { autoCapitalize: "characters", maxLength: 10, transform: sanitizeAlphanumericUpper })}</View>
+          <View style={styles.halfField}>{renderDatePicker("signatoryDob", "Date of Birth *", { maximumDate: getYesterdayDate() })}</View>
+        </View>
+        <View onLayout={(e) => { const y = signatoryYRef.current + e.nativeEvent.layout.y; fieldOffsetsRef.current.signatoryDesignation = y; onFieldLayout?.("signatoryDesignation", y); }}>
+          {renderInput("signatoryDesignation", "Designation *", "Proprietor / Director / Partner", { maxLength: 50 })}
+        </View>
+        <View style={styles.row} onLayout={(e) => { const y = signatoryYRef.current + e.nativeEvent.layout.y; fieldOffsetsRef.current.signatoryMobile = y; fieldOffsetsRef.current.signatoryEmail = y; onFieldLayout?.("signatoryMobile", y); onFieldLayout?.("signatoryEmail", y); }}>
+          <View style={styles.halfField}>{renderInput("signatoryMobile", "Signatory Mobile *", "10-digit", { keyboardType: "numeric", maxLength: 10 })}</View>
+          <View style={styles.halfField}>{renderInput("signatoryEmail", "Signatory Email *", "email@business.com", { keyboardType: "email-address", maxLength: 150, autoCapitalize: "none", onBlurOverride: (email) => updateField("signatoryEmail", email.trim()) })}</View>
         </View>
       </AccordionSection>
     </View>
@@ -407,22 +384,14 @@ export const GstBusinessStep: React.FC<Props> = ({
   const renderConsentSection = () => {
     const isChecked = Boolean(data?.aadhaarConsent);
     return (
-      <View style={styles.sectionCard}>
+      <View style={styles.sectionCard} onLayout={(e) => { const y = e.nativeEvent.layout.y; consentYRef.current = y; fieldOffsetsRef.current.aadhaarConsent = y; onSectionLayout?.("consent", y); onFieldLayout?.("aadhaarConsent", y); }}>
         <View style={styles.consentRow}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => updateField("aadhaarConsent", !isChecked)}
-            style={styles.checkboxTouch}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: isChecked }}
-          >
+          <TouchableOpacity activeOpacity={0.8} onPress={() => updateField("aadhaarConsent", !isChecked)} style={styles.checkboxTouch} accessibilityRole="checkbox" accessibilityState={{ checked: isChecked }} accessibilityLabel="Aadhaar authentication consent">
             <Ionicons name={isChecked ? "checkbox" : "square-outline"} size={24} color={isChecked ? BrandColors.PRIMARY_ORANGE : "#94A3B8"} />
           </TouchableOpacity>
           <Text style={styles.consentText}>I consent to Aadhaar authentication (e-KYC) for this GST registration.</Text>
         </View>
-        {errors?.aadhaarConsent ? (
-          <Text style={[styles.errorText, styles.errorTextMarginBottom]}>{errors.aadhaarConsent}</Text>
-        ) : null}
+        {errors?.aadhaarConsent ? <Text style={[styles.errorText, styles.errorTextMarginBottom]}>{errors.aadhaarConsent}</Text> : null}
       </View>
     );
   };

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   TextInput,
   StatusBar,
+  Image,
 } from "react-native";
 import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -76,12 +77,15 @@ export const GstAmendmentLanding: React.FC<GstAmendmentLandingProps> = ({
 
         {/* GSTIN Input */}
         <View style={styles.gstinBlock}>
-          <Text style={styles.gstinLabel}>
-            GSTIN to Amend <Text style={styles.star}>*</Text>
-          </Text>
+          <View style={styles.gstinLabelRow}>
+            <Text style={styles.gstinLabel}>
+              GSTIN to Amend <Text style={styles.star}>*</Text>
+            </Text>
+            <Text style={styles.gstinCounter}>{`${gstin.length}/15`}</Text>
+          </View>
           <TextInput
             style={[styles.gstinInput, Boolean(errorGstin) && styles.inputError]}
-            placeholder="Enter your GSTIN number"
+            placeholder="Enter GSTIN"
             placeholderTextColor="#94A3B8"
             value={gstin}
             onChangeText={onGstinChange}
@@ -105,8 +109,12 @@ export const GstAmendmentLanding: React.FC<GstAmendmentLandingProps> = ({
               onPress={() => onSelectSection(sec.id)}
             >
               <View style={styles.cardLeft}>
-                <View style={[styles.cardIconBox, getCardIconBoxStyle(sec.iconColor)]}>
-                  <Ionicons name={sec.icon} size={22} color={sec.iconColor} />
+                <View style={[styles.cardIconBox, !sec.image && getCardIconBoxStyle(sec.iconColor)]}>
+                  {sec.image ? (
+                    <Image source={sec.image} style={styles.cardIconImage} resizeMode="cover" />
+                  ) : (
+                    sec.icon && <Ionicons name={sec.icon} size={22} color={sec.iconColor} />
+                  )}
                 </View>
                 <View style={styles.cardTextWrap}>
                   <Text style={styles.cardTitle}>{sec.title}</Text>
@@ -137,8 +145,12 @@ export const GstAmendmentLanding: React.FC<GstAmendmentLandingProps> = ({
               onPress={() => onSelectSection(sec.id)}
             >
               <View style={styles.cardLeft}>
-                <View style={[styles.cardIconBox, getCardIconBoxStyle(sec.iconColor)]}>
-                  <Ionicons name={sec.icon} size={22} color={sec.iconColor} />
+                <View style={[styles.cardIconBox, !sec.image && getCardIconBoxStyle(sec.iconColor)]}>
+                  {sec.image ? (
+                    <Image source={sec.image} style={styles.cardIconImage} resizeMode="cover" />
+                  ) : (
+                    sec.icon && <Ionicons name={sec.icon} size={22} color={sec.iconColor} />
+                  )}
                 </View>
                 <View style={styles.cardTextWrap}>
                   <Text style={styles.cardTitle}>{sec.title}</Text>

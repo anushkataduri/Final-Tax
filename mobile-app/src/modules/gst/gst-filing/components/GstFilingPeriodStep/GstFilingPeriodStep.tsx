@@ -15,6 +15,11 @@ import { dismissKeyboardThen } from "@/shared/components/KeyboardAwareFormLayout
 import { styles } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstFilingPeriodStep.styles";
 import { GstFilingSelectModal } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstFilingSelectModal";
 import { GstCalculationMethodSection } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstCalculationMethodSection";
+import { RecursivePills } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/RecursivePills";
+import {
+  validateGstin,
+  validateEstimatedAmount,
+} from "@/modules/gst/gst-filing/utils/gstFilingValidation";
 import {
   FILING_PERIODS,
   FILING_NATURE_OPTIONS,
@@ -59,60 +64,15 @@ interface GstFilingPeriodStepProps {
   data: GstFilingPeriodData;
   onChange: (fields: Partial<GstFilingPeriodData>) => void;
   onBlurField?: (field: keyof GstFilingPeriodData) => void;
+  onError?: (field: string, error: string) => void;
   errors?: Record<string, string>;
 }
-
-interface RecursivePillsProps {
-  items: readonly string[];
-  selectedValue: string;
-  onSelect: (item: string) => void;
-  index?: number;
-}
-
-const RecursivePills: React.FC<RecursivePillsProps> = ({
-  items,
-  selectedValue,
-  onSelect,
-  index = 0,
-}) => {
-  if (index >= items.length) {
-    return null;
-  }
-
-  const item = items[index];
-  const isSelected = selectedValue === item;
-
-  return (
-    <>
-      <TouchableOpacity
-        key={item}
-        activeOpacity={0.8}
-        onPress={() => onSelect(item)}
-        style={[styles.periodPill, isSelected && styles.periodPillActive]}
-      >
-        <Text
-          style={[
-            styles.periodPillText,
-            isSelected && styles.periodPillTextActive,
-          ]}
-        >
-          {item}
-        </Text>
-      </TouchableOpacity>
-      <RecursivePills
-        items={items}
-        selectedValue={selectedValue}
-        onSelect={onSelect}
-        index={index + 1}
-      />
-    </>
-  );
-};
 
 export const GstFilingPeriodStep: React.FC<GstFilingPeriodStepProps> = ({
   data,
   onChange,
   onBlurField,
+  onError,
   errors = {},
 }) => {
   const [showYearModal, setShowYearModal] = useState(false);
@@ -139,7 +99,7 @@ export const GstFilingPeriodStep: React.FC<GstFilingPeriodStepProps> = ({
       clearTimeout(debounceTimerRef.current);
     }
 
-    if (!rawGstin || !GstValidators.isValidGstin(rawGstin)) {
+    if (!rawGstin || validateGstin(rawGstin, false) !== null) {
       return;
     }
 
@@ -206,6 +166,22 @@ export const GstFilingPeriodStep: React.FC<GstFilingPeriodStepProps> = ({
       taxpayerScheme: undefined,
       state: undefined,
     });
+
+    // Field-level real-time validation:
+    // 1. If empty, clear error
+    // 2. If >= 2 and < 15 characters, validate state code in real time
+    // 3. Immediately upon reaching 15 characters, run full structural validation
+    if (cleaned.length === 0) {
+      onError?.("gstin", "");
+    } else if (cleaned.length >= 2 && cleaned.length < 15) {
+      const stateErr = validateGstin(cleaned, false);
+      onError?.("gstin", stateErr || "");
+    } else if (cleaned.length === 15) {
+      const fullErr = validateGstin(cleaned, true);
+      onError?.("gstin", fullErr || "");
+    } else {
+      onError?.("gstin", "");
+    }
   };
 
   const currentPeriods = useMemo(
@@ -259,6 +235,8 @@ export const GstFilingPeriodStep: React.FC<GstFilingPeriodStepProps> = ({
                   filingMonth: "",
                   filingType: "",
                 });
+                onError?.("periodType", "");
+                onError?.("filingPeriod", "");
                 onBlurField?.("periodType");
               }}
             />
@@ -299,16 +277,23 @@ export const GstFilingPeriodStep: React.FC<GstFilingPeriodStepProps> = ({
           <Text style={styles.label}>Filing Period / Return Period *</Text>
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => dismissKeyboardThen(() => setShowPeriodModal(true))}
+            onPress={() => {
+              if (!data.periodType) {
+                onError?.("filingPeriod", "Select filing frequency first");
+                return;
+              }
+              dismissKeyboardThen(() => setShowPeriodModal(true));
+            }}
             style={[
               styles.selectInput,
               (errors.filingPeriod || errors.filingMonth) && styles.inputError,
+              !data.periodType && { opacity: 0.75 },
             ]}
           >
             <Text
               style={[styles.selectText, !selectedPeriodValue && styles.placeholderText]}
             >
-              {selectedPeriodValue || "Select return period"}
+              {selectedPeriodValue || (!data.periodType ? "Select filing frequency first" : "Select return period")}
             </Text>
             <Ionicons name="chevron-down" size={18} color="#64748B" />
           </TouchableOpacity>
@@ -337,12 +322,26 @@ export const GstFilingPeriodStep: React.FC<GstFilingPeriodStepProps> = ({
           <Text style={styles.label}>GSTIN (15-Character) *</Text>
           <TextInput
             style={[styles.input, errors.gstin && styles.inputError]}
-            placeholder="Enter your GSTIN number"
+            placeholder="Enter GSTIN"
             placeholderTextColor="#94A3B8"
             value={data.gstin}
             onChangeText={handleGstinChange}
-            onBlur={() => onBlurField?.("gstin")}
+            onBlur={() => {
+              if (data.gstin) {
+                const err = validateGstin(data.gstin, true);
+                onError?.("gstin", err || "");
+              }
+              onBlurField?.("gstin");
+            }}
+            onSubmitEditing={() => {
+              if (data.gstin) {
+                const err = validateGstin(data.gstin, true);
+                onError?.("gstin", err || "");
+              }
+            }}
+            returnKeyType="done"
             autoCapitalize="characters"
+            autoCorrect={false}
             maxLength={15}
           />
           {isLookingUp ? (
@@ -426,7 +425,22 @@ export const GstFilingPeriodStep: React.FC<GstFilingPeriodStepProps> = ({
           taxableSales={data.taxableSales}
           taxablePurchases={data.taxablePurchases}
           eligibleItc={data.eligibleItc}
-          onChange={onChange}
+          errors={errors}
+          onChange={(fields) => {
+            if (fields.taxableSales !== undefined) {
+              const err = validateEstimatedAmount(fields.taxableSales, "sales", false);
+              onError?.("taxableSales", err || "");
+            }
+            if (fields.taxablePurchases !== undefined) {
+              const err = validateEstimatedAmount(fields.taxablePurchases, "purchases", false);
+              onError?.("taxablePurchases", err || "");
+            }
+            if (fields.eligibleItc !== undefined) {
+              const err = validateEstimatedAmount(fields.eligibleItc, "eligible ITC", false);
+              onError?.("eligibleItc", err || "");
+            }
+            onChange(fields);
+          }}
         />
       ) : null}
 

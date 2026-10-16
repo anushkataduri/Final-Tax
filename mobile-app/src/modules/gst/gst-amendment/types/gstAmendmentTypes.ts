@@ -1,3 +1,4 @@
+import { ImageSourcePropType } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 export type AmendmentStep = "LANDING" | "EDIT" | "REVIEW" | "SUCCESS";
@@ -7,7 +8,8 @@ export interface AmendmentSectionConfig {
   title: string;
   type: "core" | "non-core";
   typeLabel: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: keyof typeof Ionicons.glyphMap;
+  image?: ImageSourcePropType;
   iconBg: string;
   iconColor: string;
 }

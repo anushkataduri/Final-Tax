@@ -46,6 +46,14 @@ export const companyRegistrationService = {
       timeline: "12 - 15 Days",
       fee: 7999,
     },
+    {
+      type: "Public Limited",
+      title: "Public Limited Company",
+      description: "Large scale corporate • Public shareholding & listing",
+      minMembers: 3,
+      timeline: "14 - 20 Days",
+      fee: 14999,
+    },
   ],
 };
 

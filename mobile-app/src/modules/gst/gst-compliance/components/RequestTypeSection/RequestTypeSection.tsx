@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text } from "react-native";
 import Animated, { FadeInDown, FadeOutUp } from "react-native-reanimated";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -43,6 +43,24 @@ export const RequestTypeSection: React.FC<RequestTypeSectionProps> = ({
   onSectionLayout,
 }) => {
   const { isDark } = useTheme();
+
+  const getTodayMaxDate = (): Date => {
+    const d = new Date();
+    d.setHours(23, 59, 59, 999);
+    return d;
+  };
+
+  useEffect(() => {
+    if (formData.requestType === "Notice Response" && formData.noticeIssueDate) {
+      const { issueDateError } = validateNoticeDates(
+        formData.noticeIssueDate,
+        formData.replyDueDate
+      );
+      if (issueDateError) {
+        onSetError?.("noticeIssueDate", issueDateError);
+      }
+    }
+  }, [formData.requestType, formData.noticeIssueDate, formData.replyDueDate, onSetError]);
 
   if (!formData.requestType) return null;
 
@@ -89,8 +107,8 @@ export const RequestTypeSection: React.FC<RequestTypeSectionProps> = ({
 
           <FileUploadCard
             title="Sales Register"
-            description="Upload sales register or outward supplies statement (Optional)"
-            required={false}
+            description="Upload sales register or outward supplies statement"
+            required
             allowedExtensions={RECONCILIATION_ALLOWED_EXTENSIONS}
             uploadedDoc={formData.salesDoc}
             onDocChange={(doc: UploadedDocInfo | null) => {
@@ -200,19 +218,23 @@ export const RequestTypeSection: React.FC<RequestTypeSectionProps> = ({
             value={formData.noticeIssueDate}
             onChange={(date) => {
               onUpdateField("noticeIssueDate", date);
-              if (date.trim()) {
+              const { issueDateError, dueDateError } = validateNoticeDates(
+                date,
+                formData.replyDueDate
+              );
+              if (issueDateError) {
+                onSetError?.("noticeIssueDate", issueDateError);
+              } else {
                 onClearError("noticeIssueDate");
               }
-              if (formData.replyDueDate && formData.replyDueDate.trim()) {
-                const { dueDateError } = validateNoticeDates(date, formData.replyDueDate);
-                if (dueDateError) {
-                  onSetError?.("replyDueDate", dueDateError);
-                } else {
-                  onClearError("replyDueDate");
-                }
+              if (dueDateError) {
+                onSetError?.("replyDueDate", dueDateError);
+              } else if (formData.replyDueDate && formData.replyDueDate.trim()) {
+                onClearError("replyDueDate");
               }
             }}
             required
+            maximumDate={getTodayMaxDate()}
             error={errors.noticeIssueDate}
             placeholder="Select Notice Issue Date"
           />

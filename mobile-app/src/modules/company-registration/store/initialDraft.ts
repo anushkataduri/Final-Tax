@@ -51,7 +51,7 @@ export const initialDraft: CompanyRegistrationDraft = {
     { id: 'doc-photo', name: 'Promoter Passport Photo', category: 'Promoter KYC', required: false, status: 'Pending' },
     { id: 'doc-address', name: 'Registered Office Ownership / Lease Proof', category: 'Office Proof', required: true, status: 'Pending' },
     { id: 'doc-utility', name: 'Registered Office Utility Bill (Electricity/Water)', category: 'Office Proof', required: true, status: 'Pending' },
-    { id: 'doc-noc', name: 'Property Owner No Objection Certificate (NOC)', category: 'Office Proof', required: false, status: 'Pending' },
+    { id: 'doc-noc', name: 'Property Owner No Objection Certificate (NOC)', category: 'Office Proof', required: true, status: 'Pending' },
     { id: 'doc-moa', name: 'Draft e-MoA (Memorandum of Association)', category: 'Statutory Docs', required: false, status: 'Pending' },
     { id: 'doc-aoa', name: 'Draft e-AoA (Articles of Association)', category: 'Statutory Docs', required: false, status: 'Pending' },
   ],

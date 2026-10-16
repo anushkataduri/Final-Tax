@@ -37,6 +37,7 @@ export async function submitPeriodStep({
   try {
     const custId = await getResolvedCustomerId();
     const payload = buildFilingPayload(periodData, custId);
+    const isNilReturn = periodData.filingNature === "Nil Return";
 
     if (targetFilingId) {
       try {
@@ -48,7 +49,7 @@ export async function submitPeriodStep({
           setCurrentStep(2);
           return;
         }
-        setCurrentStep(1);
+        setCurrentStep(isNilReturn ? 2 : 1);
         return;
       } catch (updateErr) {
         const errMsg = String(getErrorMessage(updateErr) || updateErr || "");
@@ -97,7 +98,7 @@ export async function submitPeriodStep({
       setCurrentStep(2);
       return;
     }
-    setCurrentStep(1);
+    setCurrentStep(isNilReturn ? 2 : 1);
   } catch (err) {
     Alert.alert(
       "Filing Notice",
@@ -158,23 +159,17 @@ export async function submitDocumentsStep({
   }
 
   const isNilReturn = periodData.filingNature === "Nil Return";
-  switch (isNilReturn ? "NIL" : "REGULAR") {
-    case "REGULAR": {
-      const missingMandatory = documents.filter((d) => d.required && !d.fileUri);
-      if (missingMandatory.length > 0) {
-        const missingNames = missingMandatory.map((d) => d.name).join("\n• ");
-        Alert.alert(
-          "Required Documents Missing",
-          `Please upload all required documents before proceeding:\n\n• ${missingNames}`,
-          [{ text: "OK" }],
-        );
-        return;
-      }
-      break;
+  if (!isNilReturn) {
+    const missingMandatory = documents.filter((d) => d.required && !d.fileUri);
+    if (missingMandatory.length > 0) {
+      const missingNames = missingMandatory.map((d) => d.name).join("\n• ");
+      Alert.alert(
+        "Required Documents Missing",
+        `Please upload all required documents before proceeding:\n\n• ${missingNames}`,
+        [{ text: "OK" }],
+      );
+      return;
     }
-    case "NIL":
-    default:
-      break;
   }
 
   setIsSubmitting(true);
@@ -208,34 +203,32 @@ export async function submitReviewStep({
   missingDocsCount,
   filingId,
   periodData,
+  documents,
+  setCreatedAppId,
+  clearGstFilingDraft,
   setCurrentStep,
   setIsSubmitting,
 }: {
   missingDocsCount: number;
   filingId: string | null;
   periodData: GstFilingPeriodData;
+  documents: FilingDocItem[];
+  setCreatedAppId: (id: string) => void;
+  clearGstFilingDraft: () => void;
   setCurrentStep: (step: number) => void;
   setIsSubmitting: (val: boolean) => void;
 }): Promise<void> {
   const isNilReturn = periodData.filingNature === "Nil Return";
-  switch (isNilReturn ? "NIL" : "REGULAR") {
-    case "REGULAR": {
-      if (missingDocsCount > 0) {
-        Alert.alert(
-          "Documents Missing",
-          `You have ${missingDocsCount} missing required document(s). Please upload all required documents before submitting your return.`,
-          [
-            { text: "Cancel", style: "cancel" },
-            { text: "Upload Now", onPress: () => setCurrentStep(1) },
-          ],
-        );
-        return;
-      }
-      break;
-    }
-    case "NIL":
-    default:
-      break;
+  if (!isNilReturn && missingDocsCount > 0) {
+    Alert.alert(
+      "Documents Missing",
+      `You have ${missingDocsCount} missing required document(s). Please upload all 12 required documents before submitting your return.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Upload Now", onPress: () => setCurrentStep(1) },
+      ],
+    );
+    return;
   }
 
   const hasEstimates =
@@ -246,99 +239,57 @@ export async function submitReviewStep({
       (periodData.eligibleItc && String(periodData.eligibleItc).trim() !== "" && String(periodData.eligibleItc).trim() !== "0")
     );
 
-  if (filingId && hasEstimates) {
-    setIsSubmitting(true);
-    try {
+  setIsSubmitting(true);
+  try {
+    if (filingId && hasEstimates) {
       const custId = await getResolvedCustomerId();
       const payload = buildFilingPayload(periodData, custId, true);
       await gstApi.updateFiling(filingId, payload);
-    } catch (err) {
-      logger.debug("[ReviewStep] Update manual estimates notice:", { error: err });
-    } finally {
-      setIsSubmitting(false);
     }
-  }
-  setCurrentStep(3);
-}
 
-export function promptPayLaterSubmission({
-  periodData,
-  selectedMethod,
-  filingId,
-  documents,
-  setCreatedAppId,
-  clearGstFilingDraft,
-  setIsSubmitting,
-  setCurrentStep,
-}: {
-  periodData: GstFilingPeriodData;
-  selectedMethod: string;
-  filingId: string | null;
-  documents: FilingDocItem[];
-  setCreatedAppId: (id: string) => void;
-  clearGstFilingDraft: () => void;
-  setIsSubmitting: (val: boolean) => void;
-  setCurrentStep: (step: number) => void;
-}): void {
-  Alert.alert(
-    "Payment Gateway Unavailable",
-    "Online payment processing is currently unavailable on this system. Would you like to submit your filing request for CA review and complete payment later?",
-    [
+    const periodLabel =
+      periodData.filingPeriod ||
+      periodData.filingMonth ||
+      "Current Period";
+
+    const newAppId = useApplicationStore.getState().createApplication(
+      "gst-filing",
+      `GST Filing (${periodLabel})`,
+      "GST",
       {
-        text: "Cancel",
-        style: "cancel",
-        onPress: () => setIsSubmitting(false),
+        gstin: periodData.gstin,
+        businessName:
+          periodData.tradeName ||
+          periodData.businessName ||
+          "Registered Business",
+        filingPeriod: periodLabel,
+        filingType: periodData.filingType || "GSTR-1",
+        filingNature: periodData.filingNature || "Regular Return",
+        financialYear: periodData.financialYear || "FY 2025-26",
+        filingId: filingId || undefined,
+        taxableSales: periodData.taxableSales || periodData.turnover || "0",
+        taxablePurchases: periodData.taxablePurchases || "0",
+        eligibleItc: periodData.eligibleItc || "0",
+        calculationMethod:
+          periodData.calculationMethod ||
+          (hasEstimates ? "manual_estimates" : "ca_assisted"),
       },
-      {
-        text: "Submit (Pay Later)",
-        onPress: () => {
-          const periodLabel =
-            periodData.filingPeriod ||
-            periodData.filingMonth ||
-            "Current Period";
-          const hasEstimates =
-            periodData.calculationMethod === "manual_estimates" ||
-            Boolean(
-              (periodData.taxableSales && String(periodData.taxableSales).trim() !== "" && String(periodData.taxableSales).trim() !== "0") ||
-              (periodData.taxablePurchases && String(periodData.taxablePurchases).trim() !== "" && String(periodData.taxablePurchases).trim() !== "0") ||
-              (periodData.eligibleItc && String(periodData.eligibleItc).trim() !== "" && String(periodData.eligibleItc).trim() !== "0")
-            );
-          const newAppId = useApplicationStore.getState().createApplication(
-            "gst-filing",
-            `GST Filing (${periodLabel})`,
-            "GST",
-            {
-              gstin: periodData.gstin,
-              businessName:
-                periodData.tradeName ||
-                periodData.businessName ||
-                "Registered Business",
-              filingPeriod: periodLabel,
-              filingType: periodData.filingType || "GSTR-1",
-              filingNature: periodData.filingNature || "Regular Return",
-              financialYear: periodData.financialYear || "FY 2025-26",
-              paymentStatus: "Payment Pending",
-              paymentMethod: selectedMethod.toUpperCase(),
-              filingId: filingId || undefined,
-              taxableSales: periodData.taxableSales || periodData.turnover || "0",
-              taxablePurchases: periodData.taxablePurchases || "0",
-              eligibleItc: periodData.eligibleItc || "0",
-              calculationMethod:
-                periodData.calculationMethod ||
-                (hasEstimates ? "manual_estimates" : "ca_assisted"),
-            },
-            extractUploadedDocumentNames(documents),
-            0,
-            "Pending",
-            false,
-            filingId || undefined,
-          );
-          setCreatedAppId(newAppId);
-          clearGstFilingDraft();
-          setIsSubmitting(false);
-          setCurrentStep(6);
-        },
-      },
-    ],
-  );
+      extractUploadedDocumentNames(documents),
+      0,
+      "Pending",
+      false,
+      filingId || undefined,
+    );
+    setCreatedAppId(newAppId);
+    clearGstFilingDraft();
+    setCurrentStep(3);
+  } catch (err) {
+    logger.warn("[ReviewStep] Submission notice:", { error: err });
+    Alert.alert(
+      "Submission Error",
+      getErrorMessage(err) || "Failed to submit filing application. Please try again.",
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
 }

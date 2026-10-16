@@ -97,14 +97,19 @@ export async function getResolvedCustomerId(): Promise<string> {
 }
 
 /**
- * Parses numeric inputs with comma/currency stripping and zero-fallback.
+ * Parses numeric inputs with comma/currency stripping, overflow capping, and zero-fallback.
  */
 export function parseFilingNumber(val: unknown): number {
-  if (typeof val === "number") return isNaN(val) ? 0 : Math.round(val);
+  if (typeof val === "number") {
+    if (!Number.isFinite(val) || isNaN(val) || val < 0) return 0;
+    return Math.min(9999999999, Math.round(val));
+  }
   if (typeof val === "string") {
     const cleaned = val.replace(/[^\d.]/g, "");
+    if (!cleaned) return 0;
     const parsed = parseFloat(cleaned);
-    return isNaN(parsed) ? 0 : Math.round(parsed);
+    if (!Number.isFinite(parsed) || isNaN(parsed) || parsed < 0) return 0;
+    return Math.min(9999999999, Math.round(parsed));
   }
   return 0;
 }
@@ -182,8 +187,9 @@ export function buildFilingPayload(
  */
 export function mapDtoToPeriodData(
   dto?: Partial<GstFilingBackendDto> | null,
+  existingData?: Partial<GstFilingPeriodData>,
 ): Partial<GstFilingPeriodData> {
-  if (!dto) return {};
+  if (!dto) return existingData || {};
 
   const freq =
     dto.filingFrequency === "MONTHLY"
@@ -200,13 +206,21 @@ export function mapDtoToPeriodData(
   const filNature =
     dto.filingType === "NIL_RETURN" ? "Nil Return" : "Regular Return";
 
-  const hasEstimates =
+  const hasEstimatesInDto =
     dto.taxCalculationMethod === "ESTIMATION_FIGURES" ||
     dto.estimatedTaxableSales != null ||
     dto.estimatedTaxablePurchases != null ||
     dto.estimatedEligibleItc != null;
 
-  const calcMethod = hasEstimates ? "manual_estimates" : "ca_assisted";
+  const hasExistingEstimates =
+    existingData?.calculationMethod === "manual_estimates" ||
+    Boolean(
+      (existingData?.taxableSales && existingData.taxableSales !== "0") ||
+      (existingData?.taxablePurchases && existingData.taxablePurchases !== "0") ||
+      (existingData?.eligibleItc && existingData.eligibleItc !== "0")
+    );
+
+  const calcMethod = (hasEstimatesInDto || hasExistingEstimates) ? "manual_estimates" : "ca_assisted";
 
   const fy = dto.financialYear
     ? String(dto.financialYear).startsWith("FY")
@@ -215,14 +229,19 @@ export function mapDtoToPeriodData(
     : undefined;
 
   const result: Partial<GstFilingPeriodData> = {
-    gstin: dto.gstin || undefined,
-    financialYear: fy,
-    filingPeriod: dto.filingPeriod || undefined,
-    filingMonth: dto.filingPeriod || undefined,
-    periodType: freq,
-    filingType: retType,
-    filingNature: filNature as "Regular Return" | "Nil Return",
+    ...existingData,
+    gstin: dto.gstin || existingData?.gstin || undefined,
+    financialYear: fy || existingData?.financialYear,
+    filingPeriod: dto.filingPeriod || existingData?.filingPeriod,
+    filingMonth: dto.filingPeriod || existingData?.filingMonth,
+    periodType: freq || existingData?.periodType,
+    filingType: retType || existingData?.filingType,
+    filingNature: (existingData?.filingNature || filNature) as "Regular Return" | "Nil Return",
     calculationMethod: calcMethod as "ca_assisted" | "manual_estimates",
+    taxableSales: existingData?.taxableSales,
+    turnover: existingData?.turnover || existingData?.taxableSales,
+    taxablePurchases: existingData?.taxablePurchases,
+    eligibleItc: existingData?.eligibleItc,
   };
 
   if (dto.estimatedTaxableSales !== null && dto.estimatedTaxableSales !== undefined) {
@@ -302,10 +321,19 @@ export function mapDtoToFilingDocuments(
  * Deduplicates and resolves target filing ID across routes, drafts, and store records.
  */
 export function resolveTargetFilingId(
-  candidates: (string | null | undefined)[],
+  candidates:
+    | (string | null | undefined)[]
+    | Record<string, string | null | undefined>
+    | undefined
+    | null,
 ): string {
-  for (const c of candidates) {
-    if (c && typeof c === "string" && c.trim() && c.trim() !== "undefined") {
+  if (!candidates) return "";
+  const list = Array.isArray(candidates)
+    ? candidates
+    : Object.values(candidates);
+
+  for (const c of list) {
+    if (c && typeof c === "string" && c.trim() && c.trim() !== "undefined" && c.trim() !== "null") {
       return c.trim();
     }
   }
@@ -326,11 +354,18 @@ export function syncPreviousAppDocuments(
         d.name?.toLowerCase() === initDoc.name?.toLowerCase() ||
         d.id === initDoc.id,
     );
-    if (matched && matched.status === "Uploaded") {
+    if (
+      matched &&
+      matched.status === "Uploaded" &&
+      matched.fileUri &&
+      typeof matched.fileUri === "string" &&
+      matched.fileUri.trim() !== "" &&
+      !matched.fileUri.startsWith("https://taxedge.in/docs/")
+    ) {
       return {
         ...initDoc,
-        fileUri: matched.fileUri || `https://taxedge.in/docs/${initDoc.id}`,
-        fileName: matched.name,
+        fileUri: matched.fileUri,
+        fileName: matched.name || initDoc.name,
       };
     }
     return initDoc;

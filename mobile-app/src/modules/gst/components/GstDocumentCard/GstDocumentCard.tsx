@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
+import { pickDocumentFromDrive } from "@/shared/utils/driveDocumentUploader";
 import { styles } from "./GstDocumentCard.styles";
 import { GstViewDocumentModal } from "./GstViewDocumentModal";
 import { GstRemoveConfirmModal } from "./GstRemoveConfirmModal";
@@ -34,6 +34,7 @@ export interface GstDocumentCardProps {
       uri: string;
       name: string;
       size: string;
+      rawSizeBytes?: number;
       mimeType?: string;
       fileTypeLabel?: string;
     }
@@ -45,6 +46,7 @@ export interface GstDocumentCardProps {
   onDropdownPress?: () => void;
   triggerUploadKey?: number;
   maxSizeBytes?: number;
+  onChooseFilesOverride?: () => Promise<void> | void;
 }
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -59,6 +61,7 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
   onDropdownPress,
   triggerUploadKey,
   maxSizeBytes = MAX_FILE_SIZE_BYTES,
+  onChooseFilesOverride,
 }) => {
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
@@ -76,7 +79,7 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
   const hasError = Boolean(item.errorMessage);
 
   const formatFileSize = (bytes?: number): string => {
-    if (!bytes) return "0.01 MB";
+    if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes <= 0) return "0.01 MB";
     const mb = bytes / (1024 * 1024);
     return `${mb.toFixed(2)} MB`;
   };
@@ -85,23 +88,42 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
     uri: string;
     name?: string;
     size?: number;
+    fileSize?: number;
+    rawSizeBytes?: number;
     mimeType?: string;
   }) => {
+    const rawBytes =
+      typeof asset.rawSizeBytes === "number" && Number.isFinite(asset.rawSizeBytes)
+        ? asset.rawSizeBytes
+        : typeof asset.size === "number" && Number.isFinite(asset.size)
+        ? asset.size
+        : typeof asset.fileSize === "number" && Number.isFinite(asset.fileSize)
+        ? asset.fileSize
+        : undefined;
+
     const fileName = asset.name || `${item.id}_document.pdf`;
     const extension = fileName.split(".").pop()?.toUpperCase() || "PDF";
 
     const effectiveMaxSize = maxSizeBytes ?? MAX_FILE_SIZE_BYTES;
-    if (asset.size && asset.size > effectiveMaxSize) {
-      const maxMb = Math.round(effectiveMaxSize / (1024 * 1024));
-      const err = `File exceeds ${maxMb} MB limit. Please select a smaller file.`;
-      onUploadError?.(item.id, err);
-      return;
+    const maxMb = Math.round(effectiveMaxSize / (1024 * 1024));
+
+    if (typeof rawBytes === "number") {
+      if (rawBytes <= 0) {
+        onUploadError?.(item.id, "The selected file is empty (0 bytes). Please select a valid document.");
+        return;
+      }
+      if (rawBytes > effectiveMaxSize) {
+        Alert.alert("File Too Large", `File size exceeds the ${maxMb} MB limit`);
+        onUploadError?.(item.id, `File exceeds ${maxMb} MB limit. Please select a smaller file.`);
+        return;
+      }
     }
 
     onUploadSuccess(item.id, {
       uri: asset.uri,
       name: fileName,
-      size: formatFileSize(asset.size),
+      size: formatFileSize(rawBytes),
+      rawSizeBytes: rawBytes,
       mimeType: asset.mimeType,
       fileTypeLabel: extension,
     });
@@ -109,14 +131,45 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
 
   const handleChooseFiles = async () => {
     setShowSourceModal(false);
+    if (onChooseFilesOverride) {
+      await onChooseFilesOverride();
+      return;
+    }
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["*/*"],
-        copyToCacheDirectory: true,
+      const picked = await pickDocumentFromDrive({
+        maxSizeBytes,
+        allowedExtensions: [
+          "pdf",
+          "jpg",
+          "jpeg",
+          "png",
+          "xls",
+          "xlsx",
+          "csv",
+          "doc",
+          "docx",
+          "json",
+        ],
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        processFileAsset(result.assets[0]);
+      if (picked) {
+        const effectiveMaxSize = maxSizeBytes ?? MAX_FILE_SIZE_BYTES;
+        const maxMb = Math.round(effectiveMaxSize / (1024 * 1024));
+
+        if (picked.sizeBytes > effectiveMaxSize) {
+          Alert.alert("File Too Large", `File size exceeds the ${maxMb} MB limit`);
+          onUploadError?.(item.id, `File exceeds ${maxMb} MB limit. Please select a smaller file.`);
+          return;
+        }
+
+        onUploadSuccess(item.id, {
+          uri: picked.uri,
+          name: picked.name,
+          size: picked.size,
+          rawSizeBytes: picked.sizeBytes,
+          mimeType: picked.mimeType,
+          fileTypeLabel: picked.fileTypeLabel,
+        });
       }
     } catch {
       onUploadError?.(item.id, "Could not open document picker. Please try again.");
@@ -126,9 +179,21 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
   const handleTakePhoto = async () => {
     setShowSourceModal(false);
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== "granted") {
-        onUploadError?.(item.id, "Camera permission is required to take photos.");
+      const currentPerm = await ImagePicker.getCameraPermissionsAsync();
+      let granted = currentPerm.granted;
+
+      if (!granted) {
+        if (currentPerm.canAskAgain) {
+          const req = await ImagePicker.requestCameraPermissionsAsync();
+          granted = req.granted;
+        }
+      }
+
+      if (!granted) {
+        onUploadError?.(
+          item.id,
+          "Camera permission is required to take photos. Please enable camera access in your device settings."
+        );
         return;
       }
 
@@ -137,15 +202,28 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
         quality: 0.85,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        processFileAsset({
-          uri: asset.uri,
-          name: `${item.id}_camera_${Date.now()}.jpg`,
-          size: asset.fileSize,
-          mimeType: asset.mimeType || "image/jpeg",
-        });
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        // User cancelled camera capture gracefully
+        return;
       }
+
+      const asset = result.assets[0];
+      const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const fallbackName = `${safeId}_photo_${Date.now()}.jpg`;
+      const fileName = asset.fileName || fallbackName;
+      const rawBytes =
+        typeof asset.fileSize === "number" && Number.isFinite(asset.fileSize)
+          ? asset.fileSize
+          : undefined;
+
+      processFileAsset({
+        uri: asset.uri,
+        name: fileName,
+        size: rawBytes,
+        fileSize: rawBytes,
+        rawSizeBytes: rawBytes,
+        mimeType: asset.mimeType || "image/jpeg",
+      });
     } catch {
       onUploadError?.(item.id, "Could not open camera. Please try again.");
     }
@@ -191,8 +269,10 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
         {/* Text Column */}
         <View style={styles.textColumn}>
           <View style={styles.titleRow}>
-            <Text style={styles.titleText}>{item.name}</Text>
-            {item.required && <Text style={styles.requiredStar}>*</Text>}
+            <Text style={styles.titleText}>
+              {item.name}
+              {item.required ? <Text style={styles.requiredStar}> *</Text> : null}
+            </Text>
           </View>
 
           {isDropdownSelector ? (
@@ -224,7 +304,7 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
               <View style={styles.uploadedFileDetails}>
                 <Text
                   style={styles.uploadedFileName}
-                  numberOfLines={2}
+                  numberOfLines={1}
                   ellipsizeMode="middle"
                 >
                   {item.fileName || "Uploaded document"}

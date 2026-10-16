@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
 import type { CompanyCategory, CompanySubCategory } from '../../types/company.types';
+import { isOpcCompanyType } from '../../validation/companySchema';
 import { CompanySectionCard } from '../CompanySectionCard/CompanySectionCard';
 import { styles } from './StepClassification.styles';
 
@@ -12,13 +13,13 @@ export const StepClassification: React.FC = () => {
   const fieldErrors = useCompanyRegistrationStore((state) => state.fieldErrors);
 
   const getAvailableCategories = (): CompanyCategory[] => {
-    if (company.companyType === 'One Person Company (OPC)') return ['Company limited by Shares'];
+    if (isOpcCompanyType(company.companyType)) return ['Company limited by Shares'];
     if (company.companyType === 'Section 8 (NGO)') return ['Company limited by Guarantee', 'Company limited by Shares'];
     return ['Company limited by Shares', 'Company limited by Guarantee', 'Unlimited Company'];
   };
 
   const getAvailableSubCategories = (): CompanySubCategory[] => {
-    if (company.companyType === 'One Person Company (OPC)') return ['Indian Non-Government Company'];
+    if (isOpcCompanyType(company.companyType)) return ['Indian Non-Government Company'];
     return ['Indian Non-Government Company', 'State Government Company', 'Central Government Company'];
   };
 

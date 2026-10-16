@@ -42,6 +42,7 @@ interface GstCoreAmendmentEditProps {
   onUpdateField: (field: keyof AmendmentFormData, value: string) => void;
   onClearError: (key: string) => void;
   onOpenPicker: (title: string, options: string[], selectedVal: string, onSelect: (val: string) => void) => void;
+  onUploadSuccess?: (doc: SupportingDoc) => void;
   onBrowseFiles: () => void;
   onScanFile: () => void;
   onDeleteDoc: () => void;
@@ -64,6 +65,7 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
   onUpdateField,
   onClearError,
   onOpenPicker,
+  onUploadSuccess,
   onBrowseFiles,
   onScanFile,
   onDeleteDoc,
@@ -79,15 +81,19 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
     <View style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
-      {/* Header */}
+      {/* Header (Back button hidden when returned from review to preserve edit mode integrity) */}
       <View style={[styles.headerBar, getHeaderBarStyle(insets.top)]}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={onBack}
-          style={styles.roundBackButton}
-        >
-          <Ionicons name="chevron-back" size={22} color={BrandColors.PRIMARY_BLUE} />
-        </TouchableOpacity>
+        {!isEditMode ? (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={onBack}
+            style={styles.roundBackButton}
+          >
+            <Ionicons name="chevron-back" size={22} color={BrandColors.PRIMARY_BLUE} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.placeholderBox} />
+        )}
         <View style={styles.headerTitleWrap}>
           <Text style={styles.headerMainTitle}>{selectedSection.title}</Text>
           <Text style={styles.headerSubtitle}>Core field amendment</Text>
@@ -104,8 +110,15 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
         <View style={styles.editContainer}>
           {/* Current Registered Info */}
           <View style={styles.currentRegisteredCard}>
-            <Text style={styles.currentRegisteredHeader}>Currently Registered on Portal</Text>
-            <Text style={styles.currentRegisteredSubtitle}>Read-only baseline from GST profile</Text>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardIconBox}>
+                <Ionicons name="business" size={18} color={BrandColors.PRIMARY_ORANGE} />
+              </View>
+              <View style={styles.cardTitleWrap}>
+                <Text style={styles.currentRegisteredHeader}>Currently Registered on Portal</Text>
+                <Text style={styles.currentRegisteredSubtitle}>Read-only baseline from GST profile</Text>
+              </View>
+            </View>
 
             {sectionId === "legal-name" && (
               <View style={styles.currentFieldRow}>
@@ -146,17 +159,23 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
           </View>
 
           {/* Form Fields Section */}
-          <Text style={styles.formSectionTitle}>Amended details</Text>
+          <View style={styles.amendedDetailsCard}>
+            <View style={styles.cardHeaderRow}>
+              <View style={styles.cardIconBox}>
+                <Ionicons name="create-outline" size={18} color={BrandColors.PRIMARY_ORANGE} />
+              </View>
+              <View style={styles.cardTitleWrap}>
+                <Text style={styles.currentRegisteredHeader}>Amended details</Text>
+                <Text style={styles.currentRegisteredSubtitle}>Enter revised information for verification</Text>
+              </View>
+            </View>
 
-          {sectionId === "legal-name" && (
+            {sectionId === "legal-name" && (
             <InputField
               label="New Legal Business Name"
               value={formData.newLegalBusinessName}
-              onChangeText={(val) => {
-                onUpdateField("newLegalBusinessName", val);
-                onClearError("newLegalBusinessName");
-              }}
-              placeholder="Enter amended legal name"
+              onChangeText={(val) => onUpdateField("newLegalBusinessName", val)}
+              placeholder="Enter legal business name"
               error={errors.newLegalBusinessName}
             />
           )}
@@ -166,40 +185,31 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
               <InputField
                 label="New Principal Business Address"
                 value={formData.newPrincipalAddress}
-                onChangeText={(val) => {
-                  onUpdateField("newPrincipalAddress", val);
-                  onClearError("newPrincipalAddress");
-                }}
-                placeholder="Building Name, Floor, Flat No., Street"
+                onChangeText={(val) => onUpdateField("newPrincipalAddress", val)}
+                placeholder="Enter principal business address"
                 error={errors.newPrincipalAddress}
               />
               <InputField
                 label="City / Town"
                 value={formData.newPrincipalCity}
-                onChangeText={(val) => {
-                  onUpdateField("newPrincipalCity", val);
-                  onClearError("newPrincipalCity");
-                }}
-                placeholder="City or Town"
+                onChangeText={(val) => onUpdateField("newPrincipalCity", val)}
+                placeholder="Enter city or town"
                 error={errors.newPrincipalCity}
               />
               <InputField
                 label="District"
                 value={formData.newPrincipalDistrict}
-                onChangeText={(val) => {
-                  onUpdateField("newPrincipalDistrict", val);
-                  onClearError("newPrincipalDistrict");
-                }}
-                placeholder="District"
+                onChangeText={(val) => onUpdateField("newPrincipalDistrict", val)}
+                placeholder="Enter district"
                 error={errors.newPrincipalDistrict}
               />
               <DropdownField
                 label="State / Union Territory"
                 value={formData.newPrincipalState}
-                placeholder="Select State"
+                placeholder="Select state or union territory"
                 error={errors.newPrincipalState}
                 onPress={() =>
-                  onOpenPicker("Select State", INDIAN_STATES_AND_UTS, formData.newPrincipalState, (val) => {
+                  onOpenPicker("Select state or union territory", INDIAN_STATES_AND_UTS, formData.newPrincipalState, (val) => {
                     onUpdateField("newPrincipalState", val);
                     onClearError("newPrincipalState");
                   })
@@ -208,11 +218,8 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
               <InputField
                 label="PIN Code"
                 value={formData.newPrincipalPincode}
-                onChangeText={(val) => {
-                  onUpdateField("newPrincipalPincode", val.replace(/[^0-9]/g, "").slice(0, 6));
-                  onClearError("newPrincipalPincode");
-                }}
-                placeholder="6-digit PIN code"
+                onChangeText={(val) => onUpdateField("newPrincipalPincode", val.replace(/[^0-9]/g, "").slice(0, 6))}
+                placeholder="Enter 6-digit PIN code"
                 keyboardType="number-pad"
                 maxLength={6}
                 error={errors.newPrincipalPincode}
@@ -220,11 +227,11 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
               <DropdownField
                 label="Nature of Possession of Premises"
                 value={formData.newPrincipalNatureOfPremises}
-                placeholder="Select Nature of Premises"
+                placeholder="Select nature of possession"
                 error={errors.newPrincipalNatureOfPremises}
                 onPress={() =>
                   onOpenPicker(
-                    "Select Nature of Premises",
+                    "Select nature of possession",
                     NATURE_OF_PREMISES_OPTIONS,
                     formData.newPrincipalNatureOfPremises,
                     (val) => {
@@ -242,31 +249,22 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
               <InputField
                 label="New Additional Place Address"
                 value={formData.newAdditionalAddress}
-                onChangeText={(val) => {
-                  onUpdateField("newAdditionalAddress", val);
-                  onClearError("newAdditionalAddress");
-                }}
-                placeholder="Building Name, Unit No., Street"
+                onChangeText={(val) => onUpdateField("newAdditionalAddress", val)}
+                placeholder="Enter additional business address"
                 error={errors.newAdditionalAddress}
               />
               <InputField
                 label="City / Town"
                 value={formData.newAdditionalCity}
-                onChangeText={(val) => {
-                  onUpdateField("newAdditionalCity", val);
-                  onClearError("newAdditionalCity");
-                }}
-                placeholder="City or Town"
+                onChangeText={(val) => onUpdateField("newAdditionalCity", val)}
+                placeholder="Enter city or town"
                 error={errors.newAdditionalCity}
               />
               <InputField
                 label="PIN Code"
                 value={formData.newAdditionalPincode}
-                onChangeText={(val) => {
-                  onUpdateField("newAdditionalPincode", val.replace(/[^0-9]/g, "").slice(0, 6));
-                  onClearError("newAdditionalPincode");
-                }}
-                placeholder="6-digit PIN code"
+                onChangeText={(val) => onUpdateField("newAdditionalPincode", val.replace(/[^0-9]/g, "").slice(0, 6))}
+                placeholder="Enter 6-digit PIN code"
                 keyboardType="number-pad"
                 maxLength={6}
                 error={errors.newAdditionalPincode}
@@ -274,11 +272,11 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
               <DropdownField
                 label="Nature of Possession"
                 value={formData.newAdditionalNatureOfPremises}
-                placeholder="Select Nature of Premises"
+                placeholder="Select nature of possession"
                 error={errors.newAdditionalNatureOfPremises}
                 onPress={() =>
                   onOpenPicker(
-                    "Select Nature of Premises",
+                    "Select nature of possession",
                     NATURE_OF_PREMISES_OPTIONS,
                     formData.newAdditionalNatureOfPremises,
                     (val) => {
@@ -290,10 +288,12 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
               />
             </>
           )}
+          </View>
 
           {/* Supporting Proof Upload */}
           <GstAmendmentProofs
             supportingDoc={supportingDoc}
+            onUploadSuccess={onUploadSuccess}
             onBrowseFiles={onBrowseFiles}
             onScanFile={onScanFile}
             onDeleteDoc={onDeleteDoc}
@@ -316,7 +316,7 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
           <Text style={styles.primaryBtnText}>
             {isSaving
               ? (isEditMode ? "Updating Changes..." : "Saving Changes...")
-              : (isEditMode ? "Review Updated Changes" : "Review Changes")}
+              : (isEditMode ? "Update and Save Your Changes" : "Review Changes")}
           </Text>
         </TouchableOpacity>
       </KeyboardStickyFooter>

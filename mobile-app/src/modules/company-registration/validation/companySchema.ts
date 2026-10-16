@@ -1,16 +1,39 @@
 import type { CompanyDetails } from '../types/company.types';
 import type { LinkedRegistrations } from '../types/registration.types';
 
+export const isOpcCompanyType = (type?: string): boolean => {
+  if (!type?.trim()) return false;
+  const normalized = type.trim().toLowerCase();
+  return (
+    normalized === 'one person company (opc)' ||
+    normalized === 'one person company' ||
+    normalized === 'opc' ||
+    normalized.includes('one person') ||
+    normalized.includes('opc')
+  );
+};
+
+export const isPublicCompanyType = (type?: string): boolean => {
+  if (!type?.trim()) return false;
+  const normalized = type.trim().toLowerCase();
+  return normalized === 'public limited' || normalized.includes('public limited');
+};
+
+export const getMinRequiredPromoters = (companyType?: string): number => {
+  if (isPublicCompanyType(companyType)) return 3;
+  if (isOpcCompanyType(companyType)) return 1;
+  return 2;
+};
+
 export const getSuffixForType = (type?: string): string => {
-  switch (type) {
+  if (!type?.trim()) return '';
+  if (isOpcCompanyType(type)) return '(OPC) Private Limited';
+  if (isPublicCompanyType(type)) return 'Limited';
+  switch (type.trim()) {
     case 'Private Limited':
       return 'Private Limited';
-    case 'One Person Company (OPC)':
-      return '(OPC) Private Limited';
     case 'Section 8 (NGO)':
       return 'Foundation / Section 8';
-    case 'Public Limited':
-      return 'Limited';
     case 'Limited Liability Partnership (LLP)':
       return 'LLP';
     default:

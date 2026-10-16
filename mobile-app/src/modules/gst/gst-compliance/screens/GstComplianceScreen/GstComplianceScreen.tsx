@@ -89,6 +89,7 @@ export function GstComplianceScreen() {
     currentStep, isEditMode, editSection, formData, errors,
     isSubmitting, isSaving, complianceId, dbReviewData,
     showConfirmModal, setShowConfirmModal, draftGuard,
+    hasEnteredReview,
     updateField, clearError, setFieldError, handleGstinChange,
     handleEditStep, handleContinue, handleBack, handleReturnToReview,
     handleConfirmSubmit, getButtonText,
@@ -171,7 +172,8 @@ export function GstComplianceScreen() {
         currentStep={currentStep + 1}
         totalSteps={2}
         stepLabel={currentStep === 1 ? "Review & Submit" : "Request Details"}
-        onBackPress={handleBack}
+        onBackPress={hasEnteredReview ? undefined : handleBack}
+        showBack={!hasEnteredReview}
       />
 
       <KeyboardAwareScrollView

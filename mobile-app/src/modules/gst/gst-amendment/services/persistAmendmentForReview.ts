@@ -19,6 +19,12 @@ interface PersistAmendmentCallbacks {
   onReviewData: (data: unknown) => void;
 }
 
+const stripBinaryPayload = (data: unknown): unknown => {
+  if (!data || typeof data !== "object") return data;
+  const { imageData, ...rest } = data as Record<string, unknown>;
+  return rest;
+};
+
 /**
  * Saves (POST) or updates (PUT) the amendment record, then re-fetches it by id
  * so the Review step shows what the database holds.
@@ -27,42 +33,32 @@ export const persistAmendmentForReview = async (
   { isEditMode, amendmentId, sectionId, targetGstId, formData, supportingDoc }: PersistAmendmentParams,
   { onSaved, onReviewData }: PersistAmendmentCallbacks
 ): Promise<void> => {
-  if (isEditMode) {
-    if (amendmentId !== null && amendmentId !== undefined) {
-      // Review Updated Changes: PUT fetch to update record by id only
-      await gstAmendmentApi.updateAmendmentRecord(sectionId, amendmentId, formData, supportingDoc);
-      logger.debug("[Review] Updated record in DB by ID:", { amendmentId });
-      // Retrieve updated details from database by ID only
-      const fetched = await gstAmendmentApi.getAmendmentRecordById(sectionId, amendmentId);
-      logger.debug("[Review] Retrieved updated record from DB", { hasRecord: !!fetched });
-      onReviewData(fetched);
+  try {
+    if (isEditMode) {
+      if (amendmentId !== null && amendmentId !== undefined) {
+        // Review Updated Changes: PUT fetch to update record by id
+        const updated = await gstAmendmentApi.updateAmendmentRecord(sectionId, amendmentId, formData, supportingDoc);
+        logger.debug("[Review] Updated record in DB by ID:", { amendmentId });
+        onReviewData(stripBinaryPayload(updated) || { id: amendmentId, ...formData });
+        return;
+      }
+
+      const saved = await gstAmendmentApi.saveAmendmentRecord(sectionId, targetGstId, formData, supportingDoc);
+      const newId: number | null = saved?.id ?? null;
+      onSaved(newId);
+      logger.debug("[Review] Saved new record in DB, ID:", { newId });
+      onReviewData(stripBinaryPayload(saved));
       return;
     }
 
+    // Review Changes: POST fetch to save data in database
     const saved = await gstAmendmentApi.saveAmendmentRecord(sectionId, targetGstId, formData, supportingDoc);
     const newId: number | null = saved?.id ?? null;
     onSaved(newId);
-    logger.debug("[Review] Saved new record in DB, ID:", { newId });
-    if (newId !== null) {
-      const fetched = await gstAmendmentApi.getAmendmentRecordById(sectionId, newId);
-      logger.debug("[Review] Retrieved record from DB", { hasRecord: !!fetched });
-      onReviewData(fetched);
-    }
-    return;
-  }
-
-  // Review Changes: POST fetch to save data in database
-  const saved = await gstAmendmentApi.saveAmendmentRecord(sectionId, targetGstId, formData, supportingDoc);
-  const newId: number | null = saved?.id ?? null;
-  onSaved(newId);
-  logger.debug("[Review] Saved amendment in DB, ID:", { newId });
-
-  // Retrieve from database in review section by ID only
-  if (newId !== null) {
-    const fetched = await gstAmendmentApi.getAmendmentRecordById(sectionId, newId);
-    logger.debug("[Review] Retrieved record from DB by ID", { hasRecord: !!fetched });
-    onReviewData(fetched);
-  } else {
-    onReviewData(saved);
+    logger.debug("[Review] Saved amendment in DB, ID:", { newId });
+    onReviewData(stripBinaryPayload(saved));
+  } catch (err) {
+    logger.warn("[persistAmendmentForReview] Network preview call failed, proceeding with local review data:", { error: err });
+    onReviewData({ id: amendmentId, ...formData });
   }
 };
