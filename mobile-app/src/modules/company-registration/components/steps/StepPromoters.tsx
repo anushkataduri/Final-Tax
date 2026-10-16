@@ -11,6 +11,7 @@ import {
   validateDirectorMobile,
   validateNomineeAadhaar,
 } from '../../validation/directorSchema';
+import { isOpcCompanyType, getMinRequiredPromoters } from '../../validation/companySchema';
 import { PromoterDirectorCard } from './PromoterDirectorCard';
 import { DeleteDirectorModal } from './DeleteDirectorModal';
 import { styles } from './StepPromoters.styles';
@@ -40,9 +41,8 @@ export const StepPromoters: React.FC = () => {
 
   const [deletingDirector, setDeletingDirector] = useState<DirectorInfo | null>(null);
 
-  const isOpc = company.companyType === 'One Person Company (OPC)';
-  const isPublic = company.companyType === 'Public Limited';
-  const minRequiredDirectors = isPublic ? 3 : isOpc ? 1 : 2;
+  const isOpc = isOpcCompanyType(company.companyType);
+  const minRequiredDirectors = getMinRequiredPromoters(company.companyType);
 
   // Auto-recalculate total subscribed shares & individual percentage
   const totalSubscribedShares = directors.reduce(
@@ -104,7 +104,11 @@ export const StepPromoters: React.FC = () => {
     const trimmed = raw.trim();
     if (trimmed !== raw) setOpcNominee({ ...opcNominee, [key]: trimmed } as any);
     const err = validator(trimmed);
-    if (err) setFieldErrors({ ...fieldErrors, [`nominee_${key}`]: err });
+    if (err) {
+      setFieldErrors({ ...fieldErrors, [`nominee_${key}`]: err });
+    } else {
+      clearFieldError(`nominee_${key}`);
+    }
   };
 
   return (
@@ -121,31 +125,33 @@ export const StepPromoters: React.FC = () => {
         </View>
       </View>
 
-      {!!fieldErrors.directorsCount && (
-        <Text style={[styles.errorText, { marginBottom: 12 }]}>{fieldErrors.directorsCount}</Text>
-      )}
+      {!isOpc && (
+        <>
+          {!!fieldErrors.directorsCount && (
+            <Text style={[styles.errorText, { marginBottom: 12 }]}>{fieldErrors.directorsCount}</Text>
+          )}
 
-      {directors.map((director, idx) => (
-        <PromoterDirectorCard
-          key={director.id}
-          director={director}
-          index={idx}
-          isExpanded={expandedDirectorId === director.id}
-          canRemove={directors.length > minRequiredDirectors}
-          shareholdingPct={getShareholdingPct(director.numberOfShares)}
-          onToggleExpand={() =>
-            setExpandedDirectorId(expandedDirectorId === director.id ? null : director.id)
-          }
-          onSave={(updatedFields) => handleSaveDirector(director.id, updatedFields)}
-          onDeleteRequest={() => setDeletingDirector(director)}
-        />
-      ))}
+          {directors.map((director, idx) => (
+            <PromoterDirectorCard
+              key={director.id}
+              director={director}
+              index={idx}
+              isExpanded={expandedDirectorId === director.id}
+              canRemove={directors.length > minRequiredDirectors}
+              shareholdingPct={getShareholdingPct(director.numberOfShares)}
+              onToggleExpand={() =>
+                setExpandedDirectorId(expandedDirectorId === director.id ? null : director.id)
+              }
+              onSave={(updatedFields) => handleSaveDirector(director.id, updatedFields)}
+              onDeleteRequest={() => setDeletingDirector(director)}
+            />
+          ))}
 
-      {(!isOpc || directors.length === 0) && (
-        <TouchableOpacity style={styles.addBtn} onPress={handleAddPromoter} activeOpacity={0.7}>
-          <Ionicons name="add-circle-outline" size={20} color="#083B75" />
-          <Text style={styles.addBtnText}>+ Add Promoter / Director</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.addBtn} onPress={handleAddPromoter} activeOpacity={0.7}>
+            <Ionicons name="add-circle-outline" size={20} color="#083B75" />
+            <Text style={styles.addBtnText}>+ Add Promoter / Director</Text>
+          </TouchableOpacity>
+        </>
       )}
 
       {isOpc && (

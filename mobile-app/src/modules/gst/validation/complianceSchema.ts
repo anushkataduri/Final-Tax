@@ -110,26 +110,45 @@ export function parseDateToComparableDay(dateStr?: string): number | null {
 }
 
 /**
- * Validates notice dates: checks presence and ensures Reply Due Date is on or after Notice Issue Date.
+ * Returns today's local calendar date as an integer (YYYYMMDD) for timezone-independent comparison.
+ */
+export function getLocalTodayComparableDay(): number {
+  const now = new Date();
+  return now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+}
+
+/**
+ * Validates notice dates: checks presence, rejects future Notice Issue Dates,
+ * and ensures Reply Due Date is on or after Notice Issue Date.
  * Allows the same calendar day.
  */
 export function validateNoticeDates(
   issueDateStr?: string,
-  dueDateStr?: string
+  dueDateStr?: string,
+  referenceToday: number = getLocalTodayComparableDay()
 ): { issueDateError?: string; dueDateError?: string } {
   const result: { issueDateError?: string; dueDateError?: string } = {};
 
   const cleanIssue = (issueDateStr || "").trim();
   const cleanDue = (dueDateStr || "").trim();
 
+  let issueDay: number | null = null;
+
   if (!cleanIssue) {
     result.issueDateError = "Select Notice Issue Date";
+  } else {
+    issueDay = parseDateToComparableDay(cleanIssue);
+
+    if (issueDay === null) {
+      result.issueDateError = "Enter a valid Notice Issue Date";
+    } else if (issueDay > referenceToday) {
+      result.issueDateError = "Notice Issue Date cannot be in the future";
+    }
   }
 
   if (!cleanDue) {
     result.dueDateError = "Select Reply Due Date";
   } else if (cleanIssue) {
-    const issueDay = parseDateToComparableDay(cleanIssue);
     const dueDay = parseDateToComparableDay(cleanDue);
 
     if (issueDay !== null && dueDay !== null && dueDay < issueDay) {
@@ -168,9 +187,12 @@ export function validateComplianceForm(data: ComplianceFormData): {
 
   // Dynamic Validation: Reconciliation Support
   if (data.requestType === "Reconciliation Support") {
-    if (!data.purchaseDoc) {
+    const isDocValid = (doc: UploadedDocInfo | null | undefined): boolean =>
+      Boolean(doc && typeof doc.uri === "string" && doc.uri.trim() && typeof doc.name === "string" && doc.name.trim());
+
+    if (!isDocValid(data.purchaseDoc)) {
       errors.purchaseDoc = "Upload Purchase Register";
-    } else {
+    } else if (data.purchaseDoc) {
       if (!isFileSizeValid(data.purchaseDoc.size)) {
         errors.purchaseDoc =
           data.purchaseDoc.size && data.purchaseDoc.size > MAX_FILE_SIZE_BYTES
@@ -181,7 +203,9 @@ export function validateComplianceForm(data: ComplianceFormData): {
       }
     }
 
-    if (data.salesDoc) {
+    if (!isDocValid(data.salesDoc)) {
+      errors.salesDoc = "Upload Sales Register";
+    } else if (data.salesDoc) {
       if (!isFileSizeValid(data.salesDoc.size)) {
         errors.salesDoc =
           data.salesDoc.size && data.salesDoc.size > MAX_FILE_SIZE_BYTES

@@ -4,7 +4,7 @@ import type { CompanyType, CompanyDetails } from '../types/company.types';
 import type { DirectorInfo, OpcNomineeInfo, PartnerInfo } from '../types/director.types';
 import type { DocumentStatus, Application } from '../../../types/domain';
 import { useApplicationStore } from '../../../store/applicationStore';
-import { getSuffixForType } from '../validation/companySchema';
+import { getSuffixForType, isOpcCompanyType } from '../validation/companySchema';
 import { getInitialDraft } from './initialDraft';
 
 interface CompanyRegistrationState {
@@ -46,7 +46,7 @@ export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set
   clearAllFieldErrors: () => set({ fieldErrors: {} }),
   setCompanyType: (type) =>
     set((state) => {
-      const isOpc = type === 'One Person Company (OPC)';
+      const isOpc = isOpcCompanyType(type);
       let directors = state.draft.directors;
       if (isOpc && directors.length > 0) {
         directors = [{ ...directors[0], sharesPercentage: 100 }];
@@ -78,7 +78,7 @@ export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set
     }),
   addDirector: (director) =>
     set((state) => {
-      if (state.draft.company.companyType === 'One Person Company (OPC)' && state.draft.directors.length >= 1) {
+      if (isOpcCompanyType(state.draft.company.companyType) && state.draft.directors.length >= 1) {
         return state;
       }
       const nextErrors = { ...state.fieldErrors };

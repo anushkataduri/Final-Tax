@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, Alert, Text } from 'react-native';
+import { View, TouchableOpacity, Alert, Text, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from '@/shared/components/KeyboardAwareFormLayout';
 import { KeyboardStickyFooter } from '@/shared/components/KeyboardStickyFooter';
@@ -10,7 +11,6 @@ import { useUniversalDraftGuard } from '@/shared/hooks/useUniversalDraftGuard';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
 import { LinearGradient } from 'expo-linear-gradient';
 import { validateRegistrationStep } from '../../validation/companyStepValidation';
-import { companyRegistrationApi } from '../../services/companyRegistrationApi';
 import { getErrorMessage } from '@/core/error-handling/errorMessage';
 
 import { StepCompanyType } from '../../components/steps/StepCompanyType';
@@ -31,7 +31,6 @@ const STEP_NAMES = [
   'Promoter / Director Details',
   'Shareholding & Capital',
   'Documents & KYC Checklist',
-  // 'Linked Registrations', // Disabled (Step 7)
   'Review Application',
   'Submission Success',
 ];
@@ -97,16 +96,45 @@ export const CompanyRegistrationScreen: React.FC = () => {
 
   const setFieldErrors = useCompanyRegistrationStore((state) => state.setFieldErrors);
 
+  const handleUpdateAndContinue = async () => {
+    if (isSubmitting) return;
+
+    const { valid, fieldErrors } = validateRegistrationStep(currentStep, draft);
+    if (!valid) {
+      setFieldErrors(fieldErrors);
+      return;
+    }
+
+    setFieldErrors({});
+    setIsSubmitting(true);
+    try {
+      clearEditingStep();
+      setStep(6);
+    } catch (err: any) {
+      Alert.alert('Update Error', getErrorMessage(err) || 'Failed to update section.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleNext = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
     if (currentStep === 6) {
-      for (let s = 0; s <= 5; s++) {
+      const invalidStepIndex = [0, 1, 2, 3, 4, 5].find((s) => {
         const { valid, fieldErrors: errs } = validateRegistrationStep(s, draft);
         if (!valid) {
           setFieldErrors(errs);
           setStep(s);
           Alert.alert('Incomplete Section', 'Please complete all required fields in this step before submitting.');
-          return;
+          return true;
         }
+        return false;
+      });
+      if (invalidStepIndex !== undefined) {
+        return;
       }
 
       if (draft.status === 'Submitted') {
@@ -115,22 +143,8 @@ export const CompanyRegistrationScreen: React.FC = () => {
       }
 
       setFieldErrors({});
-      setIsSubmitting(true);
-      try {
-        const res = await companyRegistrationApi.submitApplication(draft);
-        const appId = res?.applicationId || draft.id || `APP-${Date.now().toString().slice(-6)}`;
-        submitRegistrationSuccess(appId, res?.status || 'Submitted');
-      } catch (err: any) {
-        const msg = getErrorMessage(err) || 'Failed to submit application.';
-        if (msg.includes('Unable to connect') || msg.includes('Request failed') || msg.includes('404')) {
-          const fallbackId = draft.id || `INC-${Math.floor(100000 + Math.random() * 900000)}`;
-          submitRegistrationSuccess(fallbackId, 'Submitted');
-        } else {
-          Alert.alert('Submission Error', msg);
-        }
-      } finally {
-        setIsSubmitting(false);
-      }
+      const appId = draft.id || `APP-${Date.now().toString().slice(-6)}`;
+      submitRegistrationSuccess(appId, 'Submitted');
       return;
     }
 
@@ -142,20 +156,6 @@ export const CompanyRegistrationScreen: React.FC = () => {
 
     setFieldErrors({});
 
-    // Dedicated edit mode from Review Application: Save updates and return to Review
-    if (isEditing) {
-      setIsSubmitting(true);
-      try {
-        clearEditingStep();
-        setStep(6);
-      } catch (err: any) {
-        Alert.alert('Update Error', getErrorMessage(err) || 'Failed to update section.');
-      } finally {
-        setIsSubmitting(false);
-      }
-      return;
-    }
-
     if (currentStep < totalSteps - 1) {
       setStep(currentStep + 1);
     }
@@ -163,24 +163,15 @@ export const CompanyRegistrationScreen: React.FC = () => {
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case 0:
-        return <StepCompanyType />;
-      case 1:
-        return <StepCombinedDetails />;
-      case 2:
-        return <StepRegisteredOffice />;
-      case 3:
-        return <StepPromoters />;
-      case 4:
-        return <StepCapitalShareholding />;
-      case 5:
-        return <StepDocumentsKYC />;
-      case 6:
-        return <StepReviewApplication />;
-      case 7:
-        return <StepSubmissionSuccess />;
-      default:
-        return <StepCompanyType />;
+      case 0: return <StepCompanyType />;
+      case 1: return <StepCombinedDetails />;
+      case 2: return <StepRegisteredOffice />;
+      case 3: return <StepPromoters />;
+      case 4: return <StepCapitalShareholding />;
+      case 5: return <StepDocumentsKYC />;
+      case 6: return <StepReviewApplication />;
+      case 7: return <StepSubmissionSuccess />;
+      default: return <StepCompanyType />;
     }
   };
 
@@ -215,27 +206,54 @@ export const CompanyRegistrationScreen: React.FC = () => {
       {/* Sticky Bottom Footer Navigation */}
       {currentStep < 7 && (
         <KeyboardStickyFooter style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), justifyContent: 'flex-end' }]}>
-          <TouchableOpacity
-            style={[styles.nextBtn, isSubmitting && { opacity: 0.7 }]}
-            onPress={handleNext}
-            disabled={isSubmitting}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#FF8A00', '#FF5500']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.gradientBtn}
+          {isEditing ? (
+            /* Separate Button 1: Update and Continue (Review Edit Mode) */
+            <TouchableOpacity
+              style={[styles.updateBtn, isSubmitting && styles.btnDisabled]}
+              onPress={handleUpdateAndContinue}
+              disabled={isSubmitting}
+              activeOpacity={0.8}
             >
-              <Text style={styles.nextBtnText}>
-                {currentStep === 6
-                  ? (isSubmitting ? 'Submitting...' : 'Submit Application')
-                  : isEditing
-                    ? (isSubmitting ? 'Updating...' : 'Update and Continue')
-                    : 'Continue →'}
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              <LinearGradient
+                colors={['#FF8A00', '#FF5500']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientBtn}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <View style={styles.btnContentRow}>
+                    <Text style={styles.updateBtnText}>Update and Continue</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" style={styles.btnIcon} />
+                  </View>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            /* Separate Button 2: Continue / Submit (Normal Flow) */
+            <TouchableOpacity
+              style={[styles.nextBtn, isSubmitting && styles.btnDisabled]}
+              onPress={handleNext}
+              disabled={isSubmitting}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#FF8A00', '#FF5500']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientBtn}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.nextBtnText}>
+                    {currentStep === 6 ? 'Submit Application' : 'Continue →'}
+                  </Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
         </KeyboardStickyFooter>
       )}
 

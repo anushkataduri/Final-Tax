@@ -11,7 +11,12 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Sharing from "expo-sharing";
-import { resolveDocType } from "../../gst-compliance/utils/gstPreviewUtils";
+import {
+  resolveDocType,
+  prepareShareableUri,
+  DocumentOpenError,
+  logSafeDiagnostic,
+} from "../../gst-compliance/utils/gstPreviewUtils";
 import { styles } from "./GstViewDocumentModal.styles";
 
 export interface GstViewDocumentModalProps {
@@ -83,7 +88,7 @@ export const GstViewDocumentModal: React.FC<GstViewDocumentModalProps> = ({
       /^(blob:|https?:|data:)/i.test(fileUri)
   );
 
-  const handleOpenInNewTab = useCallback(() => {
+  const openWebDocument = useCallback(() => {
     if (Platform.OS === "web" && typeof window !== "undefined" && fileUri) {
       if (/^(blob:|https?:|data:)/i.test(fileUri)) {
         const opened = window.open(fileUri, "_blank", "noopener,noreferrer");
@@ -96,6 +101,8 @@ export const GstViewDocumentModal: React.FC<GstViewDocumentModalProps> = ({
     }
   }, [fileUri]);
 
+  const handleOpenInNewTab = openWebDocument;
+
   const handleOpenOrShare = useCallback(async () => {
     if (!fileUri) {
       setActionError("Document location is unavailable.");
@@ -105,43 +112,66 @@ export const GstViewDocumentModal: React.FC<GstViewDocumentModalProps> = ({
     setIsSharing(true);
     try {
       if (Platform.OS === "web") {
-        if (typeof window !== "undefined") {
-          if (/^(blob:|https?:|data:)/i.test(fileUri)) {
-            const opened = window.open(fileUri, "_blank", "noopener,noreferrer");
-            if (!opened) {
-              setActionError("Pop-up was blocked. Please allow pop-ups to open the document.");
-            }
-          } else {
-            setActionError("Direct browser opening is not supported for this file scheme.");
-          }
-        }
+        openWebDocument();
         return;
       }
 
+      // 1. Resolve and prepare a valid, accessible native local file URI
+      const { shareableUri, alreadyOpened } = await prepareShareableUri(fileUri, fileName);
+      if (alreadyOpened) {
+        return;
+      }
+
+      // 2. Verify platform sharing/opening capability
       const available = await Sharing.isAvailableAsync();
       if (!available) {
-        setActionError("Sharing is not supported on this device.");
+        setActionError("Document opening is not supported on this device.");
         return;
       }
 
-      await Sharing.shareAsync(fileUri, {
+      // 3. Launch native sharing / file opener with normalized MIME type and UTI
+      await Sharing.shareAsync(shareableUri, {
         mimeType: docType.resolvedMime,
         dialogTitle: fileName || title,
         UTI: docType.uti,
       });
     } catch (err: unknown) {
       const errorMsg =
-        err instanceof Error ? err.message : "Unable to open or share document.";
+        err instanceof Error ? err.message : String(err || "");
       const isCancelled =
         errorMsg.toLowerCase().includes("cancel") ||
         errorMsg.toLowerCase().includes("dismiss");
-      if (!isCancelled) {
-        setActionError("Unable to open file in external viewer. Please try again.");
+
+      if (isCancelled) {
+        return;
+      }
+
+      logSafeDiagnostic("handleOpenOrShare", {
+        scheme: (fileUri.split(":")[0] || "").toLowerCase(),
+        error: errorMsg,
+      });
+
+      if (err instanceof DocumentOpenError) {
+        setActionError(err.safeMessage);
+      } else if (
+        errorMsg.toLowerCase().includes("no app") ||
+        errorMsg.toLowerCase().includes("no activity") ||
+        errorMsg.toLowerCase().includes("activitynotfound")
+      ) {
+        setActionError("No compatible app found to open this document. Please install a PDF viewer.");
+      } else if (errorMsg.includes("FILE_NOT_FOUND")) {
+        setActionError("The document file was not found on this device. Please re-select the document.");
+      } else if (errorMsg.includes("STORAGE_UNAVAILABLE")) {
+        setActionError("Device storage is unavailable. Please check available disk space.");
+      } else if (errorMsg.includes("REMOTE_URL_UNREACHABLE")) {
+        setActionError("Unable to download or open remote document. Please check your internet connection.");
+      } else {
+        setActionError(`Unable to open file in external viewer: ${errorMsg}. Please try again.`);
       }
     } finally {
       setIsSharing(false);
     }
-  }, [fileUri, docType, fileName, title]);
+  }, [fileUri, docType, fileName, title, openWebDocument]);
 
   const renderPreviewContent = () => {
     if (!fileUri) {
@@ -341,4 +371,3 @@ export const GstViewDocumentModal: React.FC<GstViewDocumentModalProps> = ({
 };
 
 export default GstViewDocumentModal;
-

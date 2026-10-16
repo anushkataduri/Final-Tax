@@ -9,6 +9,7 @@ export interface ComplianceHeaderProps {
   currentStep?: number;
   totalSteps?: number;
   stepLabel?: string;
+  showBack?: boolean;
 }
 
 export const ComplianceHeader: React.FC<ComplianceHeaderProps> = ({
@@ -17,6 +18,7 @@ export const ComplianceHeader: React.FC<ComplianceHeaderProps> = ({
   currentStep = 1,
   totalSteps = 2,
   stepLabel = "Request Details",
+  showBack = true,
 }) => {
   const router = useRouter();
 
@@ -35,6 +37,7 @@ export const ComplianceHeader: React.FC<ComplianceHeaderProps> = ({
       totalSteps={totalSteps}
       stepLabel={stepLabel}
       onBack={handleBack}
+      showBack={showBack}
     />
   );
 };

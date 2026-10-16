@@ -10,7 +10,8 @@ export interface GstStepHeaderProps {
   currentStep: number; // 1-indexed (e.g. 1 to 4)
   totalSteps: number; // e.g. 4
   stepLabel: string;
-  onBack: () => void;
+  onBack?: () => void;
+  showBack?: boolean;
   rightAction?: React.ReactNode;
 }
 
@@ -20,6 +21,7 @@ export const GstStepHeader: React.FC<GstStepHeaderProps> = ({
   totalSteps,
   stepLabel,
   onBack,
+  showBack = true,
   rightAction,
 }) => {
   const insets = useSafeAreaInsets();
@@ -31,15 +33,19 @@ export const GstStepHeader: React.FC<GstStepHeaderProps> = ({
       <FocusAwareStatusBar barStyle="dark-content" />
       {/* Top App Bar */}
       <View style={styles.topRow}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={onBack}
-          style={styles.circleBtn}
-          accessibilityLabel="Back"
-          accessibilityRole="button"
-        >
-          <Ionicons name="chevron-back" size={20} color="#0B1F3A" />
-        </TouchableOpacity>
+        {showBack && onBack ? (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={onBack}
+            style={styles.circleBtn}
+            accessibilityLabel="Back"
+            accessibilityRole="button"
+          >
+            <Ionicons name="chevron-back" size={20} color="#0B1F3A" />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.rightSpacer} />
+        )}
 
         <View style={styles.titleCenter}>
           <Text style={styles.mainTitle} numberOfLines={1}>

@@ -285,7 +285,7 @@ export const GstComplianceReviewStep: React.FC<GstComplianceReviewStepProps> = (
         {isRecon ? (
           <>
             {renderDocRow("Purchase Register", formData.purchaseDoc, true)}
-            {renderDocRow("Sales Register", formData.salesDoc, false)}
+            {renderDocRow("Sales Register", formData.salesDoc, true)}
           </>
         ) : (
           renderDocRow("Notice Copy", formData.noticeDoc, true)

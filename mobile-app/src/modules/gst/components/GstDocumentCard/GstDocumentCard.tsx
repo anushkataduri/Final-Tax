@@ -34,6 +34,7 @@ export interface GstDocumentCardProps {
       uri: string;
       name: string;
       size: string;
+      rawSizeBytes?: number;
       mimeType?: string;
       fileTypeLabel?: string;
     }
@@ -76,7 +77,7 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
   const hasError = Boolean(item.errorMessage);
 
   const formatFileSize = (bytes?: number): string => {
-    if (!bytes) return "0.01 MB";
+    if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes <= 0) return "0.01 MB";
     const mb = bytes / (1024 * 1024);
     return `${mb.toFixed(2)} MB`;
   };
@@ -85,23 +86,41 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
     uri: string;
     name?: string;
     size?: number;
+    fileSize?: number;
+    rawSizeBytes?: number;
     mimeType?: string;
   }) => {
+    const rawBytes =
+      typeof asset.rawSizeBytes === "number" && Number.isFinite(asset.rawSizeBytes)
+        ? asset.rawSizeBytes
+        : typeof asset.size === "number" && Number.isFinite(asset.size)
+        ? asset.size
+        : typeof asset.fileSize === "number" && Number.isFinite(asset.fileSize)
+        ? asset.fileSize
+        : undefined;
+
     const fileName = asset.name || `${item.id}_document.pdf`;
     const extension = fileName.split(".").pop()?.toUpperCase() || "PDF";
 
     const effectiveMaxSize = maxSizeBytes ?? MAX_FILE_SIZE_BYTES;
-    if (asset.size && asset.size > effectiveMaxSize) {
-      const maxMb = Math.round(effectiveMaxSize / (1024 * 1024));
-      const err = `File exceeds ${maxMb} MB limit. Please select a smaller file.`;
-      onUploadError?.(item.id, err);
-      return;
+    const maxMb = Math.round(effectiveMaxSize / (1024 * 1024));
+
+    if (typeof rawBytes === "number") {
+      if (rawBytes <= 0) {
+        onUploadError?.(item.id, "The selected file is empty (0 bytes). Please select a valid document.");
+        return;
+      }
+      if (rawBytes > effectiveMaxSize) {
+        onUploadError?.(item.id, `File exceeds ${maxMb} MB limit. Please select a smaller file.`);
+        return;
+      }
     }
 
     onUploadSuccess(item.id, {
       uri: asset.uri,
       name: fileName,
-      size: formatFileSize(asset.size),
+      size: formatFileSize(rawBytes),
+      rawSizeBytes: rawBytes,
       mimeType: asset.mimeType,
       fileTypeLabel: extension,
     });
@@ -116,7 +135,19 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        processFileAsset(result.assets[0]);
+        const picked = result.assets[0];
+        const rawBytes =
+          typeof picked.size === "number" && Number.isFinite(picked.size)
+            ? picked.size
+            : undefined;
+
+        processFileAsset({
+          uri: picked.uri,
+          name: picked.name,
+          size: rawBytes,
+          rawSizeBytes: rawBytes,
+          mimeType: picked.mimeType,
+        });
       }
     } catch {
       onUploadError?.(item.id, "Could not open document picker. Please try again.");
@@ -126,9 +157,21 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
   const handleTakePhoto = async () => {
     setShowSourceModal(false);
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== "granted") {
-        onUploadError?.(item.id, "Camera permission is required to take photos.");
+      const currentPerm = await ImagePicker.getCameraPermissionsAsync();
+      let granted = currentPerm.granted;
+
+      if (!granted) {
+        if (currentPerm.canAskAgain) {
+          const req = await ImagePicker.requestCameraPermissionsAsync();
+          granted = req.granted;
+        }
+      }
+
+      if (!granted) {
+        onUploadError?.(
+          item.id,
+          "Camera permission is required to take photos. Please enable camera access in your device settings."
+        );
         return;
       }
 
@@ -137,15 +180,28 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
         quality: 0.85,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        processFileAsset({
-          uri: asset.uri,
-          name: `${item.id}_camera_${Date.now()}.jpg`,
-          size: asset.fileSize,
-          mimeType: asset.mimeType || "image/jpeg",
-        });
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        // User cancelled camera capture gracefully
+        return;
       }
+
+      const asset = result.assets[0];
+      const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const fallbackName = `${safeId}_photo_${Date.now()}.jpg`;
+      const fileName = asset.fileName || fallbackName;
+      const rawBytes =
+        typeof asset.fileSize === "number" && Number.isFinite(asset.fileSize)
+          ? asset.fileSize
+          : undefined;
+
+      processFileAsset({
+        uri: asset.uri,
+        name: fileName,
+        size: rawBytes,
+        fileSize: rawBytes,
+        rawSizeBytes: rawBytes,
+        mimeType: asset.mimeType || "image/jpeg",
+      });
     } catch {
       onUploadError?.(item.id, "Could not open camera. Please try again.");
     }

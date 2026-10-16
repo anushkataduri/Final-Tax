@@ -183,32 +183,78 @@ export const SIGNATORY_FIELD_NAMES = [
   "signatoryName", "signatoryPan", "signatoryDob",
   "signatoryDesignation", "signatoryMobile", "signatoryEmail",
 ];
+export const GST_ALL_FIELD_ORDER = [
+  "legalName", "businessName", "businessType", "natureOfBusiness", "placeOfBusiness",
+  "businessStartDate", "reasonForRegistration", "compositionScheme", "businessAddress",
+  "city", "district", "state", "pinCode", "hsnCode", "accountHolderName",
+  "bankAccountNumber", "confirmBankAccountNumber", "ifscCode", "bankName",
+  "branchName", "accountType", "signatoryName", "signatoryPan", "signatoryDob",
+  "signatoryDesignation", "signatoryMobile", "signatoryEmail", "aadhaarConsent",
+] as const;
+export type GstFieldName = (typeof GST_ALL_FIELD_ORDER)[number];
 
-export const getFirstErrorSection = (errors: Record<string, string>): "business" | "bank" | "signatory" => {
-  const errorKeys = Object.keys(errors);
-  if (errorKeys.length === 0) return "business";
-  const firstKey = errorKeys[0];
-  if (SIGNATORY_FIELD_NAMES.includes(firstKey)) return "signatory";
-  if (BANK_FIELD_NAMES.includes(firstKey)) return "bank";
+export const getFirstErrorField = (errors: Record<string, string>): string | null => {
+  return GST_ALL_FIELD_ORDER.find((f) => Boolean(errors[f])) || Object.keys(errors)[0] || null;
+};
+
+export const isTextFormField = (field?: string | null): boolean => {
+  if (!field) return false;
+  return ![
+    "signatoryDob", "businessStartDate", "aadhaarConsent",
+    "businessType", "natureOfBusiness", "placeOfBusiness",
+    "reasonForRegistration", "compositionScheme", "bankName", "accountType", "state",
+  ].includes(field);
+};
+
+export const getFirstErrorSection = (errors: Record<string, string>): "business" | "bank" | "signatory" | "consent" => {
+  const firstField = getFirstErrorField(errors);
+  if (!firstField) return "business";
+  if (firstField === "aadhaarConsent") return "consent";
+  if (SIGNATORY_FIELD_NAMES.includes(firstField)) return "signatory";
+  if (BANK_FIELD_NAMES.includes(firstField)) return "bank";
   return "business";
 };
 
 export const getFirstErrorScrollOffset = (
   errors: Record<string, string>,
-  positions?: { bank?: number; signatory?: number },
+  positions?: Record<string, number>,
 ): number => {
-  const section = getFirstErrorSection(errors);
-  if (section === "signatory") {
-    return typeof positions?.signatory === "number" && positions.signatory > 0
-      ? positions.signatory
-      : 1100;
+  const firstField = getFirstErrorField(errors);
+  if (!firstField) return 0;
+  if (typeof positions?.[firstField] === "number" && positions[firstField] > 0) {
+    return positions[firstField];
   }
-  if (section === "bank") {
-    return typeof positions?.bank === "number" && positions.bank > 0
-      ? positions.bank
-      : 550;
+  if (firstField === "aadhaarConsent") {
+    if (typeof positions?.consent === "number" && positions.consent > 0) return positions.consent;
+    const sigY = typeof positions?.signatory === "number" && positions.signatory > 0 ? positions.signatory : 1100;
+    return sigY + 340;
   }
-  return 0;
+  if (SIGNATORY_FIELD_NAMES.includes(firstField)) {
+    const sigY = typeof positions?.signatory === "number" && positions.signatory > 0 ? positions.signatory : 1100;
+    switch (firstField) {
+      case "signatoryName": return sigY + 50;
+      case "signatoryPan":
+      case "signatoryDob": return sigY + 120;
+      case "signatoryDesignation": return sigY + 200;
+      case "signatoryMobile":
+      case "signatoryEmail": return sigY + 280;
+      default: return sigY;
+    }
+  }
+  if (BANK_FIELD_NAMES.includes(firstField)) {
+    const bankY = typeof positions?.bank === "number" && positions.bank > 0 ? positions.bank : 550;
+    switch (firstField) {
+      case "accountHolderName": return bankY + 50;
+      case "bankAccountNumber": return bankY + 120;
+      case "confirmBankAccountNumber": return bankY + 190;
+      case "ifscCode": return bankY + 260;
+      case "bankName":
+      case "branchName": return bankY + 330;
+      case "accountType": return bankY + 400;
+      default: return bankY;
+    }
+  }
+  return typeof positions?.[firstField] === "number" ? positions[firstField] : 0;
 };
 
 /**
