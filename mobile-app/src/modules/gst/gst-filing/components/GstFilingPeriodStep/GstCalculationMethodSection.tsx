@@ -13,6 +13,7 @@ interface GstCalculationMethodSectionProps {
   taxableSales?: string;
   taxablePurchases?: string;
   eligibleItc?: string;
+  errors?: Record<string, string>;
   onChange: (fields: {
     calculationMethod?: "ca_assisted" | "manual_estimates";
     taxableSales?: string;
@@ -26,6 +27,7 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
   taxableSales,
   taxablePurchases,
   eligibleItc,
+  errors = {},
   onChange,
 }) => {
   const hasFigures = Boolean(
@@ -91,7 +93,7 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
               Estimated Taxable Sales (₹)
             </Text>
             <TextInput
-              style={styles.estimateInput}
+              style={[styles.estimateInput, errors.taxableSales && styles.inputError]}
               placeholder="Enter sales amount"
               placeholderTextColor="#94A3B8"
               keyboardType="numeric"
@@ -103,6 +105,9 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
                 })
               }
             />
+            {errors.taxableSales ? (
+              <Text style={styles.errorText}>{errors.taxableSales}</Text>
+            ) : null}
           </View>
 
           <View style={styles.estimateInputRow}>
@@ -110,7 +115,7 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
               Estimated Taxable Purchases (₹)
             </Text>
             <TextInput
-              style={styles.estimateInput}
+              style={[styles.estimateInput, errors.taxablePurchases && styles.inputError]}
               placeholder="Enter purchases amount"
               placeholderTextColor="#94A3B8"
               keyboardType="numeric"
@@ -122,6 +127,9 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
                 })
               }
             />
+            {errors.taxablePurchases ? (
+              <Text style={styles.errorText}>{errors.taxablePurchases}</Text>
+            ) : null}
           </View>
 
           <View style={styles.estimateInputRow}>
@@ -129,7 +137,7 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
               Estimated Eligible ITC (₹)
             </Text>
             <TextInput
-              style={styles.estimateInput}
+              style={[styles.estimateInput, errors.eligibleItc && styles.inputError]}
               placeholder="Enter eligible ITC amount"
               placeholderTextColor="#94A3B8"
               keyboardType="numeric"
@@ -141,6 +149,9 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
                 })
               }
             />
+            {errors.eligibleItc ? (
+              <Text style={styles.errorText}>{errors.eligibleItc}</Text>
+            ) : null}
           </View>
         </View>
       ) : null}

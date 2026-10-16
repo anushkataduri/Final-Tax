@@ -10,6 +10,13 @@ import { useApplicationStore } from "@/store/applicationStore";
 import { applicationService } from "@/modules/applications/services/applicationService";
 import { logger } from "@/core/logging/logger";
 
+import {
+  validateGstin,
+  validateEstimatedAmount,
+  validatePeriodSelection,
+} from "@/modules/gst/gst-filing/utils/gstFilingValidation";
+import { getFilingPeriodsForFrequency } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/gstPeriodUtils";
+
 export function useGstFilingForm(createdAppId: string) {
   const [periodData, setPeriodData] = useState<GstFilingPeriodData>({
     periodType: "",
@@ -26,24 +33,51 @@ export function useGstFilingForm(createdAppId: string) {
 
   const validatePeriodStep = useCallback((): boolean => {
     const errs: Record<string, string> = {};
-    if (!GstValidators.isNotEmpty(periodData.periodType)) {
+
+    if (!periodData.periodType || !periodData.periodType.trim()) {
       errs.periodType = "Please select a filing frequency";
     }
-    if (
-      !periodData.financialYear ||
-      !GstValidators.isNotEmpty(periodData.financialYear)
-    ) {
+
+    if (!periodData.financialYear || !periodData.financialYear.trim()) {
       errs.financialYear = "Please select a financial year";
     }
-    const periodVal = periodData.filingPeriod || periodData.filingMonth;
-    if (!periodVal || !GstValidators.isNotEmpty(periodVal)) {
+
+    const periodVal = (periodData.filingPeriod || periodData.filingMonth || "").trim();
+    if (!periodVal) {
       errs.filingPeriod = "Please select a filing return period";
+    } else if (periodData.periodType && periodData.financialYear) {
+      const validPeriods = getFilingPeriodsForFrequency(
+        periodData.periodType,
+        periodData.financialYear
+      );
+      if (!validPeriods.includes(periodVal)) {
+        errs.filingPeriod = "Selected period is invalid for the chosen frequency";
+      }
     }
-    if (!GstValidators.isValidGstin(periodData.gstin)) {
-      errs.gstin = "Enter a valid 15-character GSTIN (e.g. 29AAAAA0000A1Z5)";
+
+    const gstinErr = validateGstin(periodData.gstin, true);
+    if (gstinErr) {
+      errs.gstin = gstinErr;
     }
-    if (!GstValidators.isNotEmpty(periodData.filingType)) {
+
+    if (!periodData.filingType || !periodData.filingType.trim()) {
       errs.filingType = "Please select a return type";
+    }
+
+    // Validate estimated figures if user selected manual estimates or entered values
+    if (periodData.filingNature !== "Nil Return") {
+      if (periodData.taxableSales !== undefined && periodData.taxableSales !== "") {
+        const salesErr = validateEstimatedAmount(periodData.taxableSales, "sales", false);
+        if (salesErr) errs.taxableSales = salesErr;
+      }
+      if (periodData.taxablePurchases !== undefined && periodData.taxablePurchases !== "") {
+        const purchErr = validateEstimatedAmount(periodData.taxablePurchases, "purchases", false);
+        if (purchErr) errs.taxablePurchases = purchErr;
+      }
+      if (periodData.eligibleItc !== undefined && periodData.eligibleItc !== "") {
+        const itcErr = validateEstimatedAmount(periodData.eligibleItc, "eligible ITC", false);
+        if (itcErr) errs.eligibleItc = itcErr;
+      }
     }
 
     setPeriodErrors(errs);
@@ -54,6 +88,9 @@ export function useGstFilingForm(createdAppId: string) {
         filingPeriod: "Filing period",
         gstin: "GSTIN",
         filingType: "Return type",
+        taxableSales: "Estimated sales",
+        taxablePurchases: "Estimated purchases",
+        eligibleItc: "Eligible ITC",
       };
       const errKeys = Object.keys(errs);
       const buildBulletLines = (
