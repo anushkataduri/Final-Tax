@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { BrandColors, BorderRadius, Spacing, Typography } from "@/shared/theme";
+import { BrandColors, Spacing, Typography } from "@/shared/theme";
 
 export const getHeaderBarStyle = (topInset: number) => ({
   paddingTop: Math.max(topInset, 16),
@@ -61,22 +61,58 @@ export const styles = StyleSheet.create({
     marginTop: 4,
   },
   currentRegisteredCard: {
-    backgroundColor: "#F1F5F9",
-    borderRadius: BorderRadius.base,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#F1F5F9",
     padding: 16,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
     gap: 12,
   },
+  amendedDetailsCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+    padding: 16,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    gap: 16,
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 4,
+  },
+  cardIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#FFF7ED",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cardTitleWrap: {
+    flex: 1,
+  },
   currentRegisteredHeader: {
-    fontSize: Typography.fontSize.sm + 1,
-    fontWeight: "800",
+    fontSize: 15,
+    fontWeight: "700",
     color: "#0F172A",
   },
   currentRegisteredSubtitle: {
-    fontSize: Typography.fontSize.xs + 1,
+    fontSize: 12,
     fontWeight: "500",
     color: "#64748B",
+    marginTop: 1,
   },
   currentFieldRow: {
     flexDirection: "row",
@@ -98,11 +134,11 @@ export const styles = StyleSheet.create({
     textAlign: "right",
   },
   formSectionTitle: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: 16,
     fontWeight: "800",
     color: "#0F172A",
     marginTop: 4,
-    marginBottom: -6,
+    marginBottom: -4,
   },
   bottomBar: {
     backgroundColor: "#FFFFFF",
@@ -110,17 +146,32 @@ export const styles = StyleSheet.create({
     borderTopColor: "#E2E8F0",
     paddingHorizontal: Spacing.base,
     paddingTop: 12,
+    gap: 8,
   },
   primaryBtn: {
-    height: 52,
+    height: 50,
     backgroundColor: BrandColors.PRIMARY_ORANGE,
-    borderRadius: BorderRadius.base,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
   primaryBtnText: {
-    fontSize: Typography.fontSize.base,
+    fontSize: 15,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  secondaryDraftBtn: {
+    height: 44,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  secondaryDraftBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#475569",
   },
 });

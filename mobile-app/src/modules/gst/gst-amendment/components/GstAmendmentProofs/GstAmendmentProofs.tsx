@@ -5,6 +5,7 @@ import { BrandColors } from "@/shared/theme";
 import { styles } from "./GstAmendmentProofs.styles";
 import { SupportingDoc } from "../../types/gstAmendmentTypes";
 import { GstDocumentCard } from "@/modules/gst/components/GstDocumentCard";
+import { pickDocumentFromDrive } from "@/shared/utils/driveDocumentUploader";
 
 interface GstAmendmentProofsProps {
   supportingDoc: SupportingDoc | null;
@@ -38,6 +39,19 @@ export const GstAmendmentProofs: React.FC<GstAmendmentProofsProps> = ({
     ? acceptedProofs.all.length > acceptedProofs.initial.length
     : false;
 
+  const handleChooseFilesFromDrive = async () => {
+    const doc = await pickDocumentFromDrive({
+      maxSizeBytes: 10 * 1024 * 1024,
+    });
+    if (doc && onUploadSuccess) {
+      onUploadSuccess({
+        uri: doc.uri,
+        name: doc.name,
+        size: doc.size,
+      });
+    }
+  };
+
   return (
     <>
       <Text style={styles.formSectionTitle}>Supporting Proof</Text>
@@ -63,11 +77,10 @@ export const GstAmendmentProofs: React.FC<GstAmendmentProofsProps> = ({
               name: asset.name,
               size: asset.size,
             });
-          } else if (onBrowseFiles) {
-            onBrowseFiles();
           }
         }}
         onRemove={() => onDeleteDoc()}
+        onChooseFilesOverride={handleChooseFilesFromDrive}
       />
 
       {acceptedProofs && (

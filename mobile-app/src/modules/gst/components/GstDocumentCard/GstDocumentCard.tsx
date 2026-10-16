@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
+import { pickDocumentFromDrive } from "@/shared/utils/driveDocumentUploader";
 import { styles } from "./GstDocumentCard.styles";
 import { GstViewDocumentModal } from "./GstViewDocumentModal";
 import { GstRemoveConfirmModal } from "./GstRemoveConfirmModal";
@@ -46,6 +46,7 @@ export interface GstDocumentCardProps {
   onDropdownPress?: () => void;
   triggerUploadKey?: number;
   maxSizeBytes?: number;
+  onChooseFilesOverride?: () => Promise<void> | void;
 }
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -60,6 +61,7 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
   onDropdownPress,
   triggerUploadKey,
   maxSizeBytes = MAX_FILE_SIZE_BYTES,
+  onChooseFilesOverride,
 }) => {
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [showRemoveModal, setShowRemoveModal] = useState(false);
@@ -111,6 +113,7 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
         return;
       }
       if (rawBytes > effectiveMaxSize) {
+        Alert.alert("File Too Large", `File size exceeds the ${maxMb} MB limit`);
         onUploadError?.(item.id, `File exceeds ${maxMb} MB limit. Please select a smaller file.`);
         return;
       }
@@ -128,25 +131,44 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
 
   const handleChooseFiles = async () => {
     setShowSourceModal(false);
+    if (onChooseFilesOverride) {
+      await onChooseFilesOverride();
+      return;
+    }
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["*/*"],
-        copyToCacheDirectory: true,
+      const picked = await pickDocumentFromDrive({
+        maxSizeBytes,
+        allowedExtensions: [
+          "pdf",
+          "jpg",
+          "jpeg",
+          "png",
+          "xls",
+          "xlsx",
+          "csv",
+          "doc",
+          "docx",
+          "json",
+        ],
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const picked = result.assets[0];
-        const rawBytes =
-          typeof picked.size === "number" && Number.isFinite(picked.size)
-            ? picked.size
-            : undefined;
+      if (picked) {
+        const effectiveMaxSize = maxSizeBytes ?? MAX_FILE_SIZE_BYTES;
+        const maxMb = Math.round(effectiveMaxSize / (1024 * 1024));
 
-        processFileAsset({
+        if (picked.sizeBytes > effectiveMaxSize) {
+          Alert.alert("File Too Large", `File size exceeds the ${maxMb} MB limit`);
+          onUploadError?.(item.id, `File exceeds ${maxMb} MB limit. Please select a smaller file.`);
+          return;
+        }
+
+        onUploadSuccess(item.id, {
           uri: picked.uri,
           name: picked.name,
-          size: rawBytes,
-          rawSizeBytes: rawBytes,
+          size: picked.size,
+          rawSizeBytes: picked.sizeBytes,
           mimeType: picked.mimeType,
+          fileTypeLabel: picked.fileTypeLabel,
         });
       }
     } catch {
@@ -247,8 +269,10 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
         {/* Text Column */}
         <View style={styles.textColumn}>
           <View style={styles.titleRow}>
-            <Text style={styles.titleText}>{item.name}</Text>
-            {item.required && <Text style={styles.requiredStar}>*</Text>}
+            <Text style={styles.titleText}>
+              {item.name}
+              {item.required ? <Text style={styles.requiredStar}> *</Text> : null}
+            </Text>
           </View>
 
           {isDropdownSelector ? (
@@ -280,7 +304,7 @@ export const GstDocumentCard: React.FC<GstDocumentCardProps> = ({
               <View style={styles.uploadedFileDetails}>
                 <Text
                   style={styles.uploadedFileName}
-                  numberOfLines={2}
+                  numberOfLines={1}
                   ellipsizeMode="middle"
                 >
                   {item.fileName || "Uploaded document"}
