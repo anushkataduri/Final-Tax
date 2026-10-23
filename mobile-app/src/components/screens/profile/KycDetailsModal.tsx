@@ -1,16 +1,19 @@
 import React from "react";
-import { View, Text, Modal } from "react-native";
+import { View, Text, Modal, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SecondaryButton } from "@/shared/components/Button/SecondaryButton";
 import { styles } from "@/styles/app/(main)/profile.styles";
+import { useTheme } from "@/hooks/use-theme";
 
 interface KycDetailsModalProps {
   visible: boolean;
   onClose: () => void;
-  colors: any;
+  colors: ReturnType<typeof useTheme>;
   activePan?: string;
   activeAadhaar?: string;
   kycVerified: boolean;
+  isProfileComplete?: boolean;
+  onCompleteProfile?: () => void;
 }
 
 export function KycDetailsModal({
@@ -20,16 +23,22 @@ export function KycDetailsModal({
   activePan,
   activeAadhaar,
   kycVerified,
+  isProfileComplete = true,
+  onCompleteProfile,
 }: KycDetailsModalProps) {
+  const hasKycDetails = Boolean(
+    isProfileComplete && (activePan || activeAadhaar)
+  );
+
   const panDisplay = activePan
     ? `${activePan.substring(0, 5)}****${activePan.substring(9)}`
-    : "N/A";
+    : "Not provided";
 
   const aadhaarDisplay = activeAadhaar
     ? `**** **** ${activeAadhaar.substring(
         Math.max(0, activeAadhaar.length - 4)
       )}`
-    : "N/A";
+    : "Not provided";
 
   const statusColor = kycVerified ? colors.success : colors.orange;
   const statusIcon = kycVerified ? "checkmark-circle" : "time";
@@ -53,49 +62,112 @@ export function KycDetailsModal({
             KYC Details
           </Text>
 
-          <View style={styles.modalBody}>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoKey, { color: colors.textSecondary }]}>
-                PAN Number
+          {!hasKycDetails ? (
+            <View style={styles.incompleteModalBox}>
+              <View style={[styles.incompleteIconCircle, { backgroundColor: "#FEF0E6" }]}>
+                <Ionicons name="shield-checkmark-outline" size={32} color={colors.orange} />
+              </View>
+              <Text style={[styles.incompleteTitle, { color: colors.text }]}>
+                Identity Verification (KYC)
               </Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>
-                {panDisplay}
+              <Text style={[styles.incompleteSubtitle, { color: colors.textSecondary }]}>
+                Identity verification becomes available during profile setup. Complete your profile to verify your PAN & Aadhaar details and unlock all TaxEdge services.
               </Text>
-            </View>
 
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoKey, { color: colors.textSecondary }]}>
-                Aadhaar Number
-              </Text>
-              <Text style={[styles.infoValue, { color: colors.text }]}>
-                {aadhaarDisplay}
-              </Text>
-            </View>
+              <View
+                style={[
+                  styles.incompleteCard,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <View style={styles.incompleteRow}>
+                  <Text style={[styles.infoKey, { color: colors.textSecondary }]}>PAN Verification</Text>
+                  <View style={styles.pendingBadge}>
+                    <Text style={styles.pendingText}>Pending Setup</Text>
+                  </View>
+                </View>
+                <View style={styles.incompleteRow}>
+                  <Text style={[styles.infoKey, { color: colors.textSecondary }]}>Aadhaar Identity</Text>
+                  <View style={styles.pendingBadge}>
+                    <Text style={styles.pendingText}>Pending Setup</Text>
+                  </View>
+                </View>
+                <View style={styles.incompleteRow}>
+                  <Text style={[styles.infoKey, { color: colors.textSecondary }]}>KYC Status</Text>
+                  <View style={styles.pendingBadge}>
+                    <Text style={styles.pendingText}>Setup Required</Text>
+                  </View>
+                </View>
+              </View>
 
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoKey, { color: colors.textSecondary }]}>
-                Verification Status
-              </Text>
-              <View style={styles.statusLabelContainer}>
-                <Ionicons name={statusIcon} size={16} color={statusColor} />
-                <Text
+              <View style={styles.personalActions}>
+                <SecondaryButton
+                  title="Close"
+                  onPress={onClose}
+                  style={styles.modalActionBtn}
+                />
+                <TouchableOpacity
                   style={[
-                    styles.statusLabelText,
-                    { color: statusColor },
+                    styles.completeActionBtn,
+                    { backgroundColor: colors.orange },
                   ]}
+                  onPress={onCompleteProfile}
                 >
-                  {statusLabel}
-                </Text>
+                  <Ionicons name="shield-checkmark-outline" size={16} color="#FFFFFF" />
+                  <Text style={styles.completeActionBtnText}>Complete Profile</Text>
+                </TouchableOpacity>
               </View>
             </View>
-          </View>
+          ) : (
+            <>
+              <View style={styles.modalBody}>
+                <View style={styles.infoRow}>
+                  <Text style={[styles.infoKey, { color: colors.textSecondary }]}>
+                    PAN Number
+                  </Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>
+                    {panDisplay}
+                  </Text>
+                </View>
 
-          <Text style={[styles.modalNote, { color: colors.textSecondary }]}>
-            Status reflects the PAN and Aadhaar documents uploaded against your
-            applications.
-          </Text>
+                <View style={styles.infoRow}>
+                  <Text style={[styles.infoKey, { color: colors.textSecondary }]}>
+                    Aadhaar Number
+                  </Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>
+                    {aadhaarDisplay}
+                  </Text>
+                </View>
 
-          <SecondaryButton title="Close" onPress={onClose} />
+                <View style={styles.infoRow}>
+                  <Text style={[styles.infoKey, { color: colors.textSecondary }]}>
+                    Verification Status
+                  </Text>
+                  <View style={styles.statusLabelContainer}>
+                    <Ionicons name={statusIcon} size={16} color={statusColor} />
+                    <Text
+                      style={[
+                        styles.statusLabelText,
+                        { color: statusColor },
+                      ]}
+                    >
+                      {statusLabel}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <Text style={[styles.modalNote, { color: colors.textSecondary }]}>
+                Status reflects the PAN and Aadhaar documents uploaded against your
+                applications.
+              </Text>
+
+              <SecondaryButton title="Close" onPress={onClose} />
+            </>
+          )}
         </View>
       </View>
     </Modal>

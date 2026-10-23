@@ -1,18 +1,21 @@
 import { AmendmentFormData, RegisteredDetails } from "../types/gstAmendmentTypes";
 
+const sv = (v: unknown): string => (v ? String(v) : "");
+
 export function resolveTargetGstId(
   gstin: string,
-  customer: any,
-  gstDraft: any,
-  applications: any[]
+  customer: Record<string, unknown> | null | undefined,
+  gstDraft: Record<string, unknown> | null | undefined,
+  applications: { formData?: Record<string, unknown> }[]
 ): string {
+  const appMatch = applications.find((a) => a.formData?.createdGstId || a.formData?.gstId || a.formData?.gstin);
   return (
     gstin ||
-    customer?.gstId ||
-    gstDraft?.createdGstId ||
-    applications.find((a) => a.formData?.createdGstId || a.formData?.gstId || a.formData?.gstin)?.formData?.createdGstId ||
-    applications.find((a) => a.formData?.createdGstId || a.formData?.gstId || a.formData?.gstin)?.formData?.gstId ||
-    applications.find((a) => a.formData?.createdGstId || a.formData?.gstId || a.formData?.gstin)?.formData?.gstin ||
+    sv(customer?.gstId) ||
+    sv(gstDraft?.createdGstId) ||
+    sv(appMatch?.formData?.createdGstId) ||
+    sv(appMatch?.formData?.gstId) ||
+    sv(appMatch?.formData?.gstin) ||
     "GST29AAACU9876P1Z5"
   );
 }
@@ -145,65 +148,62 @@ export function buildComparisonSummaries(
 export function buildDbReviewSummaries(
   sectionId: string,
   registeredDetails: RegisteredDetails,
-  dbData: any,
+  dbData: Record<string, unknown> | null | undefined,
   fallbackFormData: AmendmentFormData
 ): Record<string, string> {
   let requestedValDict: Record<string, string> = {};
 
   switch (sectionId) {
     case "legal-name": {
-      const legalName = dbData?.newLegalName ?? fallbackFormData.newLegalBusinessName;
-      requestedValDict = { "Legal Business Name": legalName };
+      requestedValDict = { "Legal Business Name": sv(dbData?.newLegalName) || fallbackFormData.newLegalBusinessName };
       break;
     }
     case "principal-place": {
       requestedValDict = {
-        "Business Address": dbData?.newBusinessAddress ?? fallbackFormData.newPrincipalAddress,
-        City: dbData?.newCity ?? fallbackFormData.newPrincipalCity,
-        District: dbData?.newDistrict ?? fallbackFormData.newPrincipalDistrict,
-        "State / UT": dbData?.newState ?? fallbackFormData.newPrincipalState,
-        "PIN Code": dbData?.newPinCode ?? fallbackFormData.newPrincipalPincode,
-        "Nature of Premises": dbData?.natureOfPremises ?? fallbackFormData.newPrincipalNatureOfPremises,
+        "Business Address": sv(dbData?.newBusinessAddress) || fallbackFormData.newPrincipalAddress,
+        City: sv(dbData?.newCity) || fallbackFormData.newPrincipalCity,
+        District: sv(dbData?.newDistrict) || fallbackFormData.newPrincipalDistrict,
+        "State / UT": sv(dbData?.newState) || fallbackFormData.newPrincipalState,
+        "PIN Code": sv(dbData?.newPinCode) || fallbackFormData.newPrincipalPincode,
+        "Nature of Premises": sv(dbData?.natureOfPremises) || fallbackFormData.newPrincipalNatureOfPremises,
       };
       break;
     }
     case "additional-place": {
       requestedValDict = {
-        "Additional Place Address": dbData?.address ?? fallbackFormData.newAdditionalAddress,
-        City: dbData?.city ?? fallbackFormData.newAdditionalCity,
-        "PIN Code": dbData?.pinCode ?? fallbackFormData.newAdditionalPincode,
-        "Nature of Premises": dbData?.natureOfPremises ?? fallbackFormData.newAdditionalNatureOfPremises,
+        "Additional Place Address": sv(dbData?.address) || fallbackFormData.newAdditionalAddress,
+        City: sv(dbData?.city) || fallbackFormData.newAdditionalCity,
+        "PIN Code": sv(dbData?.pinCode) || fallbackFormData.newAdditionalPincode,
+        "Nature of Premises": sv(dbData?.natureOfPremises) || fallbackFormData.newAdditionalNatureOfPremises,
       };
       break;
     }
     case "bank-accounts": {
-      const rawAcct = dbData?.newBankAccountNumber ?? fallbackFormData.newBankAccountNumber;
-      const maskedAcct = rawAcct && rawAcct.length > 4 
-        ? "XXXX" + rawAcct.slice(-4) 
-        : rawAcct || "";
+      const rawAcct = sv(dbData?.newBankAccountNumber) || fallbackFormData.newBankAccountNumber;
+      const maskedAcct = rawAcct.length > 4 ? "XXXX" + rawAcct.slice(-4) : rawAcct;
       requestedValDict = {
-        "Bank Name": dbData?.newBankName ?? fallbackFormData.newBankName,
+        "Bank Name": sv(dbData?.newBankName) || fallbackFormData.newBankName,
         "Account Number": maskedAcct,
-        "IFSC Code": dbData?.newIfscCode ?? fallbackFormData.newIfscCode,
-        "Account Type": dbData?.newAccountType ?? fallbackFormData.newAccountType,
+        "IFSC Code": sv(dbData?.newIfscCode) || fallbackFormData.newIfscCode,
+        "Account Type": sv(dbData?.newAccountType) || fallbackFormData.newAccountType,
       };
       break;
     }
     case "contact-details": {
       requestedValDict = {
-        "Mobile Number": dbData?.newMobileNumber ?? fallbackFormData.newContactMobile,
-        "Email Address": dbData?.newEmail ?? fallbackFormData.newContactEmail,
+        "Mobile Number": sv(dbData?.newMobileNumber) || fallbackFormData.newContactMobile,
+        "Email Address": sv(dbData?.newEmail) || fallbackFormData.newContactEmail,
       };
       break;
     }
     case "authorised-signatories": {
       requestedValDict = {
-        "Signatory Name": dbData?.newSignatoryName ?? fallbackFormData.newSignatoryName,
-        "Signatory PAN": dbData?.newSignatoryPan ?? fallbackFormData.newSignatoryPan,
-        "Date of Birth": dbData?.newSignatoryDob ?? fallbackFormData.newSignatoryDob,
-        Designation: dbData?.newDesignation ?? dbData?.newSignatoryDesignation ?? fallbackFormData.newSignatoryDesignation,
-        "Signatory Mobile": dbData?.newSignatoryMobile ?? fallbackFormData.newSignatoryMobile,
-        "Signatory Email": dbData?.newSignatoryEmail ?? fallbackFormData.newSignatoryEmail,
+        "Signatory Name": sv(dbData?.newSignatoryName) || fallbackFormData.newSignatoryName,
+        "Signatory PAN": sv(dbData?.newSignatoryPan) || fallbackFormData.newSignatoryPan,
+        "Date of Birth": sv(dbData?.newSignatoryDob) || fallbackFormData.newSignatoryDob,
+        Designation: sv(dbData?.newDesignation) || sv(dbData?.newSignatoryDesignation) || fallbackFormData.newSignatoryDesignation,
+        "Signatory Mobile": sv(dbData?.newSignatoryMobile) || fallbackFormData.newSignatoryMobile,
+        "Signatory Email": sv(dbData?.newSignatoryEmail) || fallbackFormData.newSignatoryEmail,
       };
       break;
     }

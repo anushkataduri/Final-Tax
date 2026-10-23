@@ -194,7 +194,7 @@ export const UniversalDatePicker: React.FC<UniversalDatePickerProps> = ({
       return `${y}-${m}-${day}`;
     };
 
-    const handleWebChange = (e: any) => {
+    const handleWebChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
       if (val) {
         const [y, m, d] = val.split("-").map(Number);

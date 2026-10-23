@@ -3,10 +3,6 @@ import { LogBox } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { Stack } from "expo-router";
 import { ServiceRouteGuard } from "@/shared/components/ServiceRouteGuard";
-
-LogBox.ignoreLogs([
-  "Can't perform a React state update on a component that hasn't mounted yet",
-]);
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ThemeProvider } from "@/design-system/theme";
 import { AnimatedSplashOverlay } from "@/components";
@@ -15,6 +11,10 @@ import { ErrorBoundary } from "@/core/error-handling/ErrorBoundary";
 import { RootStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { AppBootstrap } from "@/app/bootstrap/AppBootstrap";
 import { logger } from "@/core/logging/logger";
+
+LogBox.ignoreLogs([
+  "Can't perform a React state update on a component that hasn't mounted yet",
+]);
 
 SplashScreen.preventAutoHideAsync();
 

@@ -1,16 +1,24 @@
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { styles } from "../styles/home.styles";
 import { APPLY_BANNERS } from "../constants/home-screen.constants";
+import type { UseThemeResult } from "../../../hooks/use-theme";
 import type { ServiceCategoryId } from "../../../shared/types/domain";
 
 interface HomeScreenBannerCarouselProps {
   bannerRef: React.RefObject<ScrollView | null>;
-  onBannerScroll: (e: any) => void;
+  onBannerScroll: (e: NativeSyntheticEvent<NativeScrollEvent>) => void;
   handleExploreCategory: (categoryId: ServiceCategoryId) => void;
   bannerPage: number;
-  colors: any;
+  colors: UseThemeResult;
 }
 
 export function HomeScreenBannerCarousel({

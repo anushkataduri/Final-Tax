@@ -11,13 +11,11 @@ import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRevisedProgressStore } from "../../store/revisedProgressStore";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
-import { DocumentPreviewModal } from "../../../itr-filing/components/DocumentPreviewModal/DocumentPreviewModal";
 import { SharedItrDocumentCard } from "@/modules/itr/components/documents/SharedItrDocumentCard/SharedItrDocumentCard";
-import { DocumentUploadBottomSheet } from "@/modules/itr/tds/components/upload/DocumentUploadBottomSheet/DocumentUploadBottomSheet";
 import { RevisedItrApiService } from "../../services/RevisedItrApiService";
+import { logger } from "@/core/logging/logger";
 import { RevisedItrHeader } from "../../components/common";
 import { REVISED_SUPPORTING_DOCUMENTS } from "../../mock/revisedItrData";
 import { RevisedDocumentItem } from "../../types/revisedItr.types";
@@ -31,7 +29,7 @@ import {
 
 export const RevisedDocumentsScreen: React.FC = () => {
   const router = useRouter();
-  const maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
+  const _maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     acknowledgementNumber?: string;
@@ -86,7 +84,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
   const isCompleted = uploadedCount === totalCount && totalCount > 0;
   const percent = totalCount > 0 ? (uploadedCount / totalCount) * 100 : 0;
 
-  const [previewDoc, setPreviewDoc] = useState<any>(null);
+  const [_previewDoc, _setPreviewDoc] = useState<RevisedDocumentItem | null>(null);
   const [selectedDocForUpload, setSelectedDocForUpload] = useState<RevisedDocumentItem | null>(null);
 
   const handleFileSelected = (uri: string, name: string, size?: number) => {
@@ -117,7 +115,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
     setSelectedDocForUpload(null);
   };
 
-  const handlePickFiles = async () => {
+  const _handlePickFiles = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ["application/pdf", "image/jpeg", "image/png"],
@@ -133,7 +131,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
     }
   };
 
-  const handlePickGallery = async () => {
+  const _handlePickGallery = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
@@ -150,14 +148,14 @@ export const RevisedDocumentsScreen: React.FC = () => {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         const fileName = asset.fileName || `revised_doc_${Date.now()}.jpg`;
-        handleFileSelected(asset.uri, fileName, (asset as any).fileSize);
+        handleFileSelected(asset.uri, fileName, (asset as { fileSize?: number }).fileSize);
       }
     } catch {
       Alert.alert("Gallery Error", "Could not open photo gallery. Please try again.");
     }
   };
 
-  const handlePickCamera = async () => {
+  const _handlePickCamera = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") {
@@ -173,14 +171,14 @@ export const RevisedDocumentsScreen: React.FC = () => {
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
         const fileName = asset.fileName || `revised_doc_${Date.now()}.jpg`;
-        handleFileSelected(asset.uri, fileName, (asset as any).fileSize);
+        handleFileSelected(asset.uri, fileName, (asset as { fileSize?: number }).fileSize);
       }
     } catch {
       Alert.alert("Camera Error", "Could not open camera. Please try again.");
     }
   };
 
-  const handleDeleteDocument = (id: string) => {
+  const _handleDeleteDocument = (id: string) => {
     setDocuments((prev) =>
       prev.map((d) =>
         d.id === id
@@ -224,7 +222,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
 
       // Navigate to Screen 5: Review Revised Computation
       router.push({
-        pathname: "/service/revised-itr-review" as any,
+        pathname: "/service/revised-itr-review" as never,
         params: {
           acknowledgementNumber: params.acknowledgementNumber,
           assessmentYear,
@@ -235,7 +233,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
         },
       });
     } catch (e) {
-      console.error("Error saving documents:", e);
+      logger.error("Error saving documents", e);
       Alert.alert("Error", "Failed to upload documents");
     } finally {
       setIsSubmitting(false);
@@ -263,7 +261,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
 
       // Redirect back to Review screen
       router.push({
-        pathname: "/service/revised-itr-review" as any,
+        pathname: "/service/revised-itr-review" as never,
         params: {
           acknowledgementNumber: params.acknowledgementNumber,
           assessmentYear,
@@ -274,7 +272,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
         },
       });
     } catch (e) {
-      console.error("Error updating documents:", e);
+      logger.error("Error updating documents", e);
       Alert.alert("Error", "Failed to update documents");
     } finally {
       setIsSubmitting(false);

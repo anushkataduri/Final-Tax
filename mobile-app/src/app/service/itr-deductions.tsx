@@ -6,6 +6,6 @@ export default function ItrDeductionsRoute() {
   const setStep = useITRStore((state) => state.setStep);
   useEffect(() => {
     setStep(2);
-  }, []);
+  }, [setStep]);
   return <ItrFilingScreen />;
 }

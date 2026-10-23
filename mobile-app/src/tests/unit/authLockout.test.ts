@@ -10,6 +10,7 @@ import test, { beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import { formatCountdown, lockoutMessage, secondsUntil } from "../../modules/authentication/services/lockoutPolicy";
+import { isPublicEndpoint } from "../../core/api/apiClient";
 
 type AuthServiceModule = typeof import("../../modules/authentication/services/authService");
 type PasscodeServiceModule = typeof import("../../modules/authentication/services/passcodeService");
@@ -37,11 +38,12 @@ interface ScriptedResponse {
   body: unknown;
   headers?: Record<string, string>;
 }
-const queue: ScriptedResponse[] = [];
-const requests: { url: string; body: Record<string, unknown> }[] = [];
 
-globalThis.fetch = (async (url: string, init?: { body?: string }) => {
-  requests.push({ url, body: init?.body ? JSON.parse(init.body) : {} });
+const queue: ScriptedResponse[] = [];
+const requests: { url: string; body: Record<string, unknown>; headers?: Record<string, string> }[] = [];
+
+globalThis.fetch = (async (url: string, init?: { body?: string; headers?: Record<string, string> }) => {
+  requests.push({ url, body: init?.body ? JSON.parse(init.body) : {}, headers: init?.headers });
   const next = queue.shift();
   if (!next) throw new Error(`Unscripted request to ${url}`);
   const text = typeof next.body === "string" ? next.body : JSON.stringify(next.body);
@@ -130,12 +132,16 @@ const loginOk = () =>
 // ---- app under test --------------------------------------------------------------------------
 let authService: AuthServiceModule["authService"];
 let passcodeService: PasscodeServiceModule["passcodeService"];
+let apiClient: typeof import("../../core/api/apiClient").apiClient;
+let tokenManager: typeof import("../../core/authentication/tokenManager").tokenManager;
 
 /** Simulates killing and relaunching the app: all modules are re-evaluated, device storage stays. */
 async function launchApp() {
   harness.freshLaunch();
   authService = (await import("../../modules/authentication/services/authService")).authService;
   passcodeService = (await import("../../modules/authentication/services/passcodeService")).passcodeService;
+  apiClient = (await import("../../core/api/apiClient")).apiClient;
+  tokenManager = (await import("../../core/authentication/tokenManager")).tokenManager;
 }
 
 beforeEach(async () => {
@@ -468,6 +474,142 @@ test("a network failure still counts as a failed attempt locally", async () => {
   assert.equal(res.error, "Incorrect passcode. 4 attempt(s) remaining.");
 });
 
+test("isPublicEndpoint correctly classifies public auth endpoints", () => {
+  assert.equal(isPublicEndpoint("/otp/generate"), true);
+  assert.equal(isPublicEndpoint("/otp/verify"), true);
+  assert.equal(isPublicEndpoint("/customer/exists/9876543210"), true);
+  assert.equal(isPublicEndpoint("/customer/login"), true);
+  assert.equal(isPublicEndpoint("/customer/register"), true);
+  assert.equal(isPublicEndpoint("http://backend.test/otp/generate"), true);
+  assert.equal(isPublicEndpoint("http://backend.test/customer/exists/9876543210"), true);
+  assert.equal(isPublicEndpoint("/customer/profile"), false);
+  assert.equal(isPublicEndpoint("/auth/validate"), false);
+});
+
+test("public endpoints do not send Authorization Bearer token even when token is stored", async () => {
+  // Put a token in storage
+  await tokenManager.setAccessToken("mock.jwt.token");
+  requests.length = 0;
+  reply(200, "OTP generated successfully");
+
+  const res = await authService.sendOtp(MOBILE);
+
+  assert.equal(res.success, true);
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url.endsWith("/otp/generate"), true);
+  // Authorization header must NOT be present
+  const authHeader = requests[0].headers?.Authorization || requests[0].headers?.authorization;
+  assert.equal(authHeader, undefined);
+
+  await tokenManager.clearTokens();
+});
+
+function createTestJwt(expSecondsFromNow = 3600): string {
+  const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
+  const exp = Math.floor(Date.now() / 1000) + expSecondsFromNow;
+  const payload = Buffer.from(JSON.stringify({ sub: "CUST123", exp, name: "Test" })).toString("base64url");
+  return `${header}.${payload}.mockSignature`;
+}
+
+test("access token is attached to protected endpoints when token is present and valid", async () => {
+  const validToken = createTestJwt(3600);
+  await tokenManager.setAccessToken(validToken);
+
+  requests.length = 0;
+  reply(200, { customerId: "CUST123", name: "Test User" });
+
+  const res = await apiClient.get<any>("/customer/details/CUST123");
+
+  assert.equal(res.customerId, "CUST123");
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url.endsWith("/customer/details/CUST123"), true);
+  assert.equal(requests[0].headers?.Authorization, `Bearer ${validToken}`);
+
+  await tokenManager.clearTokens();
+});
+
+test("token rotation happens when access token is expired (proactive refresh before protected endpoint)", async () => {
+  // Store an expired access token and a valid refresh token
+  const expiredToken = createTestJwt(-100); // expired 100s ago
+  const oldRefreshToken = "old-refresh-token-uuid-1";
+  await tokenManager.setAccessToken(expiredToken);
+  await tokenManager.setRefreshToken(oldRefreshToken);
+
+  const newRotatedToken = createTestJwt(3600);
+  const newRotatedRefreshToken = "new-refresh-token-uuid-2";
+
+  requests.length = 0;
+  // 1. Response for POST /auth/refresh
+  reply(200, {
+    accessToken: newRotatedToken,
+    refreshToken: newRotatedRefreshToken,
+    tokenType: "Bearer",
+  });
+  // 2. Response for the actual protected request
+  reply(200, { customerId: "CUST123", profileCompleted: true });
+
+  const res = await apiClient.get<any>("/customer/profile");
+
+  assert.equal(res.profileCompleted, true);
+  // Verify 2 requests were made: 1) refresh, 2) protected call with fresh token
+  assert.equal(requests.length, 2);
+  assert.equal(requests[0].url.endsWith("/auth/refresh"), true);
+  assert.equal(requests[0].body.refreshToken, oldRefreshToken);
+  assert.equal(requests[1].url.endsWith("/customer/profile"), true);
+  assert.equal(requests[1].headers?.Authorization, `Bearer ${newRotatedToken}`);
+
+  // Verify tokens were rotated in storage
+  const storedAccess = await tokenManager.getAccessToken();
+  const storedRefresh = await tokenManager.getRefreshToken();
+  assert.equal(storedAccess, newRotatedToken);
+  assert.equal(storedRefresh, newRotatedRefreshToken);
+
+  await tokenManager.clearTokens();
+});
+
+test("token rotation happens on 401 response and retries request with new rotated token", async () => {
+  const currentToken = createTestJwt(300);
+  const currentRefresh = "current-refresh-token-abc";
+  await tokenManager.setAccessToken(currentToken);
+  await tokenManager.setRefreshToken(currentRefresh);
+
+  const nextRotatedAccess = createTestJwt(3600);
+  const nextRotatedRefresh = "next-refresh-token-xyz";
+
+  requests.length = 0;
+  // 1. First attempt to protected endpoint returns 401 Unauthorized
+  reply(401, { error: "Unauthorized", code: "TOKEN_EXPIRED", message: "Token expired" });
+  // 2. Refresh endpoint succeeds with rotated tokens
+  reply(200, {
+    accessToken: nextRotatedAccess,
+    refreshToken: nextRotatedRefresh,
+    tokenType: "Bearer",
+  });
+  // 3. Retry of protected endpoint succeeds
+  reply(200, { status: "OK", data: "loan-app-1" });
+
+  const res = await apiClient.get<any>("/loan/vehicle/application/1");
+
+  assert.equal(res.data, "loan-app-1");
+  assert.equal(requests.length, 3);
+  // Request 1: protected endpoint with original token
+  assert.equal(requests[0].url.endsWith("/loan/vehicle/application/1"), true);
+  assert.equal(requests[0].headers?.Authorization, `Bearer ${currentToken}`);
+  // Request 2: /auth/refresh
+  assert.equal(requests[1].url.endsWith("/auth/refresh"), true);
+  assert.equal(requests[1].body.refreshToken, currentRefresh);
+  // Request 3: retry of protected endpoint with ROTATED new token
+  assert.equal(requests[2].url.endsWith("/loan/vehicle/application/1"), true);
+  assert.equal(requests[2].headers?.Authorization, `Bearer ${nextRotatedAccess}`);
+
+  // Verify storage was updated with rotated tokens
+  assert.equal(await tokenManager.getAccessToken(), nextRotatedAccess);
+  assert.equal(await tokenManager.getRefreshToken(), nextRotatedRefresh);
+
+  await tokenManager.clearTokens();
+});
+
 test.after(() => {
   Date.now = realNow;
 });
+

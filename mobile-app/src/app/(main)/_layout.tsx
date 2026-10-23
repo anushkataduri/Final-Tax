@@ -24,11 +24,10 @@ export default function MainLayout() {
       }}
     >
       <Tabs.Screen name="home" options={{ title: "Home" }} />
-      <Tabs.Screen name="applications" options={{ title: "Applications" }} />
-      <Tabs.Screen name="payments" options={{ title: "Payments" }} />
+      <Tabs.Screen name="applications" options={{ title: "My Applications" }} />
+      <Tabs.Screen name="payments" options={{ title: "Payment" }} />
       <Tabs.Screen name="profile" options={{ title: "Profile" }} />
       {/* Nested and secondary routes: reachable by navigation, not shown in the tab bar. */}
-      <Tabs.Screen name="documents" options={{ href: null }} />
       <Tabs.Screen name="gst" options={{ href: null }} />
     </Tabs>
   );

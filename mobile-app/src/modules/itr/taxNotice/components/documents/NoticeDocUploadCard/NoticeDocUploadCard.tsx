@@ -1,10 +1,11 @@
 import React from "react";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { TaxNoticeSupportingDoc } from "../../../types/taxNotice.types";
 import { SharedItrDocumentCard } from "@/modules/itr/components/documents/SharedItrDocumentCard/SharedItrDocumentCard";
 
 interface NoticeDocUploadCardProps {
   item: TaxNoticeSupportingDoc;
-  iconName: any;
+  iconName: React.ComponentProps<typeof Ionicons>["name"];
   onUploadSuccess: (id: string, fileInfo: { uri: string; name: string; size: string; mimeType?: string }) => void;
   onRemove?: (id: string) => void;
   hasError?: boolean;

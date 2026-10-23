@@ -13,4 +13,8 @@ export interface GstApplicationStatusStepProps {
   estCompletion?: string;
   isFilingWorkflow?: boolean;
   onReuploadDocuments?: () => void;
+  showTimeline?: boolean;
+  onGoHome?: () => void;
+  onGoApplications?: () => void;
+  onContactSupport?: () => void;
 }

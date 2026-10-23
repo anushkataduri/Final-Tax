@@ -138,7 +138,7 @@ export function useGstFiling() {
       try {
         const dto = await gstApi.getFiling(idToFetch);
         if (dto) {
-          setPeriodData((prev) => mapDtoToPeriodData(dto, prev));
+          setPeriodData((prev) => ({ ...prev, ...mapDtoToPeriodData(dto, prev) } as typeof prev));
           setDocuments((prev) => mapDtoToFilingDocuments(dto, prev));
         }
       } catch (err) {

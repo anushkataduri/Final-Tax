@@ -1,6 +1,6 @@
 import React, { RefObject } from "react";
 import { View, Text, TextInput } from "react-native";
-import { BankAccountType, BankRefundDetails, IncomeTaxDetails } from "../../types/customerIncome.types";
+import { BankRefundDetails, IncomeTaxDetails } from "../../types/customerIncome.types";
 import { styles } from "./TdsRefundFormScreen.styles";
 
 export type UpdateBankField = <K extends keyof BankRefundDetails>(

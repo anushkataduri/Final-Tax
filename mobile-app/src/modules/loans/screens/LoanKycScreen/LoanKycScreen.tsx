@@ -43,8 +43,8 @@ export const LoanKycScreen: React.FC<LoanKycScreenProps> = ({
       profileCompleted: s.profileCompleted,
       isExistingUser: s.isExistingUser,
       customerExists: s.customerExists,
-      customer: s.customer || (storageUser as any),
-      authenticatedUser: s.authenticatedUser || (storageUser as any),
+      customer: s.customer || (storageUser as unknown as typeof s.customer),
+      authenticatedUser: s.authenticatedUser || (storageUser as unknown as typeof s.authenticatedUser),
     });
   }, []);
 

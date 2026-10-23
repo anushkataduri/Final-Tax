@@ -12,7 +12,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   TdsHeroCard,
   TdsBenefitsGrid,
-  TdsProcessTimeline,
   TdsDocumentsGrid,
   TdsInfoBanner,
 } from "../../components";
@@ -40,14 +39,14 @@ export const TdsRefundEntryScreen: React.FC = () => {
 
   const handleStart = () => {
     if (draftStep === "DOCUMENTS") {
-      router.push("/service/tds-checklist" as any);
+      router.push("/service/tds-checklist" as never);
     } else if (draftStep === "ESTIMATE") {
-      router.push("/service/tds-estimate" as any);
+      router.push("/service/tds-estimate" as never);
     } else if (draftStep === "PAYMENT") {
-      router.push("/service/tds-payment" as any);
+      router.push("/service/tds-payment" as never);
     } else {
       router.push({
-        pathname: "/service/tds-form" as any,
+        pathname: "/service/tds-form" as never,
       });
     }
   };
@@ -56,7 +55,7 @@ export const TdsRefundEntryScreen: React.FC = () => {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/service/itr" as any);
+      router.replace("/service/itr" as never);
     }
   };
 

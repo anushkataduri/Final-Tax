@@ -10,8 +10,6 @@ import { UniversalDraftModal } from '@/shared/components/UniversalDraftModal';
 import { useUniversalDraftGuard } from '@/shared/hooks/useUniversalDraftGuard';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
 import { LinearGradient } from 'expo-linear-gradient';
-import { validateRegistrationStep } from '../../validation/companyStepValidation';
-import { getErrorMessage } from '@/core/error-handling/errorMessage';
 
 import { StepCompanyType } from '../../components/steps/StepCompanyType';
 import { StepCombinedDetails } from '../../components/steps/StepCombinedDetails';
@@ -21,7 +19,7 @@ import { StepCapitalShareholding } from '../../components/steps/StepCapitalShare
 import { StepDocumentsKYC } from '../../components/steps/StepDocumentsKYC';
 import { StepReviewApplication } from '../../components/steps/StepReviewApplication';
 import { StepSubmissionSuccess } from '../../components/steps/StepSubmissionSuccess';
-
+import { useCompanyRegistrationHandlers } from './useCompanyRegistrationHandlers';
 import { styles } from './CompanyRegistrationScreen.styles';
 
 const STEP_NAMES = [
@@ -41,9 +39,15 @@ export const CompanyRegistrationScreen: React.FC = () => {
   const draft = useCompanyRegistrationStore((state) => state.draft);
   const setStep = useCompanyRegistrationStore((state) => state.setStep);
   const editingStep = useCompanyRegistrationStore((state) => state.editingStep);
+  const startEditingStep = useCompanyRegistrationStore((state) => state.startEditingStep);
   const clearEditingStep = useCompanyRegistrationStore((state) => state.clearEditingStep);
   const submitRegistrationSuccess = useCompanyRegistrationStore((state) => state.submitRegistrationSuccess);
   const resetRegistration = useCompanyRegistrationStore((state) => state.resetRegistration);
+  const setFieldErrors = useCompanyRegistrationStore((state) => state.setFieldErrors);
+  const registrationId = useCompanyRegistrationStore((state) => state.registrationId);
+  const setRegistrationId = useCompanyRegistrationStore((state) => state.setRegistrationId);
+  const registeredOfficeId = useCompanyRegistrationStore((state) => state.registeredOfficeId);
+  const setRegisteredOfficeId = useCompanyRegistrationStore((state) => state.setRegisteredOfficeId);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -52,12 +56,10 @@ export const CompanyRegistrationScreen: React.FC = () => {
   const isEditing = editingStep !== null && editingStep === currentStep;
 
   useEffect(() => {
-    // If mounting with a previously submitted application, reset immediately to open a fresh form
     const initialDraftState = useCompanyRegistrationStore.getState().draft;
     if (initialDraftState.status === 'Submitted' || initialDraftState.currentStep === 7) {
       resetRegistration();
     }
-
     return () => {
       clearEditingStep();
       const currentDraftState = useCompanyRegistrationStore.getState().draft;
@@ -67,23 +69,31 @@ export const CompanyRegistrationScreen: React.FC = () => {
     };
   }, [clearEditingStep, resetRegistration]);
 
-  const {
-    showDraftModal,
-    handleSaveAndExit,
-    handleDiscardAndExit,
-    handleCancel,
-  } = useUniversalDraftGuard({
-    isDirty: () => {
-      return currentStep > 0 || !!draft.company.companyType;
-    },
-    onSaveDraft: () => {
-      clearEditingStep();
-    },
-    onDiscardDraft: () => {
-      resetRegistration();
-    },
-    isSubmitted: () => draft.status === 'Submitted' || currentStep === 7,
-    discardDestination: '/(main)/home',
+  const { showDraftModal, handleSaveAndExit, handleDiscardAndExit, handleCancel } =
+    useUniversalDraftGuard({
+      isDirty: () => currentStep > 0 || !!draft.company.companyType,
+      onSaveDraft: () => { clearEditingStep(); },
+      onDiscardDraft: () => { resetRegistration(); },
+      isSubmitted: () => draft.status === 'Submitted' || currentStep === 7,
+      discardDestination: '/(main)/home',
+    });
+
+  const { handleNext, handleUpdateAndContinue } = useCompanyRegistrationHandlers({
+    draft,
+    currentStep,
+    totalSteps,
+    isEditing,
+    isSubmitting,
+    setIsSubmitting,
+    registrationId,
+    registeredOfficeId,
+    setRegistrationId,
+    setRegisteredOfficeId,
+    setFieldErrors,
+    startEditingStep,
+    clearEditingStep,
+    submitRegistrationSuccess,
+    setStep,
   });
 
   const handleHeaderBack = () => {
@@ -91,73 +101,6 @@ export const CompanyRegistrationScreen: React.FC = () => {
       setStep(currentStep - 1);
     } else {
       router.back();
-    }
-  };
-
-  const setFieldErrors = useCompanyRegistrationStore((state) => state.setFieldErrors);
-
-  const handleUpdateAndContinue = async () => {
-    if (isSubmitting) return;
-
-    const { valid, fieldErrors } = validateRegistrationStep(currentStep, draft);
-    if (!valid) {
-      setFieldErrors(fieldErrors);
-      return;
-    }
-
-    setFieldErrors({});
-    setIsSubmitting(true);
-    try {
-      clearEditingStep();
-      setStep(6);
-    } catch (err: any) {
-      Alert.alert('Update Error', getErrorMessage(err) || 'Failed to update section.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleNext = async () => {
-    if (isSubmitting) {
-      return;
-    }
-
-    if (currentStep === 6) {
-      const invalidStepIndex = [0, 1, 2, 3, 4, 5].find((s) => {
-        const { valid, fieldErrors: errs } = validateRegistrationStep(s, draft);
-        if (!valid) {
-          setFieldErrors(errs);
-          setStep(s);
-          Alert.alert('Incomplete Section', 'Please complete all required fields in this step before submitting.');
-          return true;
-        }
-        return false;
-      });
-      if (invalidStepIndex !== undefined) {
-        return;
-      }
-
-      if (draft.status === 'Submitted') {
-        setStep(7);
-        return;
-      }
-
-      setFieldErrors({});
-      const appId = draft.id || `APP-${Date.now().toString().slice(-6)}`;
-      submitRegistrationSuccess(appId, 'Submitted');
-      return;
-    }
-
-    const { valid, fieldErrors } = validateRegistrationStep(currentStep, draft);
-    if (!valid) {
-      setFieldErrors(fieldErrors);
-      return;
-    }
-
-    setFieldErrors({});
-
-    if (currentStep < totalSteps - 1) {
-      setStep(currentStep + 1);
     }
   };
 
@@ -177,7 +120,6 @@ export const CompanyRegistrationScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Home Loan-style Reusable Header & Progress Bar */}
       <LoanStepIndicator
         variant="linear"
         title="Company Incorporation"
@@ -193,7 +135,6 @@ export const CompanyRegistrationScreen: React.FC = () => {
         }
       />
 
-      {/* Main Scroll Content with Keyboard Handling */}
       <KeyboardAwareScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.scrollContent}
@@ -203,11 +144,9 @@ export const CompanyRegistrationScreen: React.FC = () => {
         {renderStepContent()}
       </KeyboardAwareScrollView>
 
-      {/* Sticky Bottom Footer Navigation */}
       {currentStep < 7 && (
         <KeyboardStickyFooter style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16), justifyContent: 'flex-end' }]}>
           {isEditing ? (
-            /* Separate Button 1: Update and Continue (Review Edit Mode) */
             <TouchableOpacity
               style={[styles.updateBtn, isSubmitting && styles.btnDisabled]}
               onPress={handleUpdateAndContinue}
@@ -231,7 +170,6 @@ export const CompanyRegistrationScreen: React.FC = () => {
               </LinearGradient>
             </TouchableOpacity>
           ) : (
-            /* Separate Button 2: Continue / Submit (Normal Flow) */
             <TouchableOpacity
               style={[styles.nextBtn, isSubmitting && styles.btnDisabled]}
               onPress={handleNext}

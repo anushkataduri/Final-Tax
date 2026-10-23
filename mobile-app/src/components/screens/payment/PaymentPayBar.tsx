@@ -31,7 +31,7 @@ export function PaymentPayBar({
   const getButtonTitle = () => {
     if (alreadyPaid) return "Already Paid";
     if (hasValidAmount) return `Pay Securely ${formatIndianCurrency(total)}`;
-    return "Amount unavailable";
+    return "Fee Pending Calculation";
   };
 
   return (

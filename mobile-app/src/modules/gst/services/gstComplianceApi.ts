@@ -8,6 +8,7 @@ import { getActiveBaseUrl } from "@/core/api/apiConfig";
 import { tokenManager } from "@/core/authentication/tokenManager";
 import { tokenRefreshManager } from "@/core/authentication/tokenRefreshManager";
 import { getResolvedCustomerId } from "@/modules/gst/gst-filing/hooks/gstFilingHelpers";
+import type { GstComplianceDto } from "./gstApiTypes";
 import { appendFilePart } from "@/shared/utils/formDataFile";
 import { logger } from "@/core/logging/logger";
 import { ApiError } from "@/core/api/apiError";
@@ -300,8 +301,18 @@ export const gstComplianceApi = {
   },
 
   getCompliance: async (gstin: string, id: string) => {
-    return apiClient.get<any>(
+    return apiClient.get<GstComplianceDto>(
       `/api/v1/gst/compliance/${encodeURIComponent(gstin)}/${encodeURIComponent(id)}`,
     );
+  },
+
+  submitFinalCompliance: async (complianceId: string, pushToken?: string) => {
+    const token = await tokenManager.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const cleanId = String(complianceId || "").trim();
+    const params: Record<string, string> = { complianceId: cleanId };
+    if (pushToken) params.pushToken = pushToken;
+    return apiClient.post<string>("/api/v1/gst/compliance/submit", undefined, { headers, params });
   },
 };

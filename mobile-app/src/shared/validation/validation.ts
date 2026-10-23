@@ -1,6 +1,6 @@
 import { validators, ValidationRule } from "./validators";
 
-export type SchemaRules<T extends Record<string, any>> = {
+export type SchemaRules<T extends Record<string, unknown>> = {
   [K in keyof T]?: ValidationRule<T[K]>;
 };
 
@@ -8,7 +8,7 @@ export type SchemaRules<T extends Record<string, any>> = {
  * Validates a single field against a validation rule function.
  * Returns null if valid, or an error string if invalid.
  */
-export function validateField<T = any>(value: T, rule: ValidationRule<T>): string | null {
+export function validateField<T = unknown>(value: T, rule: ValidationRule<T>): string | null {
   return rule(value);
 }
 
@@ -16,7 +16,7 @@ export function validateField<T = any>(value: T, rule: ValidationRule<T>): strin
  * Validates a data object against a schema of validation rules.
  * Returns a Record<string, string> of field error messages.
  */
-export function validateForm<T extends Record<string, any>>(
+export function validateForm<T extends Record<string, unknown>>(
   values: Partial<T>,
   schema: SchemaRules<T>
 ): Record<string, string> {
@@ -27,7 +27,7 @@ export function validateForm<T extends Record<string, any>>(
       const rule = schema[key];
       if (rule) {
         const value = values[key];
-        const error = (rule as (val: any) => string | null)(value);
+        const error = rule(value as T[Extract<keyof T, string>]);
         if (error) {
           errors[key] = error;
         }

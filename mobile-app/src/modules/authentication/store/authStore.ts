@@ -10,6 +10,7 @@ import { createPasscodeRecoveryActions } from "./authPasscodeRecoveryActions";
 import { createSessionActions } from "./authSessionActions";
 import { loginPresentationResetPatch, otpRefusalPatch, passcodeFailurePatch } from "./authLockoutState";
 import { registrationProgressService } from "../services/registrationProgressService";
+import { tokenManager } from "@/core/authentication/tokenManager";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
 import { logger } from "@/core/logging/logger";
 
@@ -125,6 +126,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const cleanMobile = validation.value ?? mobileToUse.replace(/\D/g, "");
     set({ isLoading: true, error: null });
     try {
+      // Clear dead tokens from any previous expired session before starting new login
+      const hasValid = await tokenManager.hasValidToken().catch(() => false);
+      if (!hasValid) {
+        await tokenManager.clearTokens().catch(() => {});
+      }
+
       // 1. Check database status for user state
       const checkRes = await authService.checkUser(cleanMobile);
 
@@ -344,6 +351,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   changeNumber: () => {
+    tokenManager.clearTokens().catch(() => {});
     set({
       authFlowState: "ENTER_MOBILE",
       otp: "",
@@ -356,6 +364,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   resetFlow: () => {
+    tokenManager.clearTokens().catch(() => {});
     set({
       authFlowState: "ENTER_MOBILE",
       mobileNumber: "",

@@ -1,5 +1,5 @@
-﻿import React from "react";
-import SupportChatScreen from "./SupportChatScreen";
+import React from "react";
+import { SupportChatScreen } from "./SupportChatScreen";
 
 export function ChatDetailsScreen() {
   return <SupportChatScreen />;

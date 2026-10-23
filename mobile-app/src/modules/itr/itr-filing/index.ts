@@ -1,4 +1,4 @@
-﻿export * from "./types/itrFiling.types";
+export * from "./types/itrFiling.types";
 export * from "./engine/itrFormEngine";
 export * from "./engine/itrTaxCalculator";
 export * from "./engine/itrDocumentEngine";

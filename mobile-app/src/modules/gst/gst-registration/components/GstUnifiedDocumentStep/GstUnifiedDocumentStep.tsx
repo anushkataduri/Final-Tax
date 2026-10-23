@@ -152,7 +152,7 @@ export const GstUnifiedDocumentStep: React.FC<Props> = ({
                     fileUri: doc.fileUri,
                     fileName: doc.fileName,
                     fileSize: doc.fileSize,
-                    iconName: doc.iconName as any,
+                    iconName: doc.iconName as React.ComponentProps<typeof Ionicons>["name"],
                     iconBg: doc.iconBg,
                     iconColor: doc.iconColor,
                     category: doc.category,

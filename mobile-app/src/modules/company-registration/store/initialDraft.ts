@@ -1,13 +1,13 @@
 import type { CompanyRegistrationDraft } from '../types/registration.types';
-import type { CompanyType } from '../types/company.types';
+import type { CompanyType, CompanyClass, CompanyCategory, CompanySubCategory } from '../types/company.types';
 
 export const initialDraft: CompanyRegistrationDraft = {
   id: '',
   company: {
     companyType: '' as CompanyType,
-    companyClass: '' as any,
-    companyCategory: '' as any,
-    companySubCategory: '' as any,
+    companyClass: '' as CompanyClass,
+    companyCategory: '' as CompanyCategory,
+    companySubCategory: '' as CompanySubCategory,
     primaryActivity: '',
     nicCode: '',
     secondaryActivity: '',
@@ -21,7 +21,7 @@ export const initialDraft: CompanyRegistrationDraft = {
     registeredDistrict: '',
     registeredState: '',
     registeredPincode: '',
-    premisesOwnership: '' as any,
+    premisesOwnership: '' as 'Rented' | 'Owned' | 'Leased',
     companyEmail: '',
     companyMobile: '',
     officeAddressProofName: '',

@@ -166,7 +166,7 @@ export function ExploreServicesSheet({
                   color={colors.textSecondary}
                 />
                 <Text style={[styles.sheetEmptyText, { color: colors.text }]}>
-                  No services match "{query.trim()}"
+                  No services match &quot;{query.trim()}&quot;
                 </Text>
               </View>
             )}

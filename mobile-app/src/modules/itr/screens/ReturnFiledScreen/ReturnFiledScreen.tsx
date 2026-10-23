@@ -14,7 +14,6 @@ import { ReturnFiledHeader } from "../../components/verification/ReturnFiledHead
 import { FilingDetailsCard } from "../../components/verification/FilingDetailsCard";
 import { AadhaarOtpModal } from "../../components/verification/AadhaarOtpModal";
 import { VerifiedSplashScreen } from "../../components/verification/VerifiedSplashScreen";
-import { DEFAULT_FILING_DATA } from "../../mock/verificationData";
 import { FilingVerificationData } from "../../types/verification.types";
 import {
   styles,
@@ -60,7 +59,7 @@ export const ReturnFiledScreen: React.FC = () => {
         {
           text: "Exit",
           style: "destructive",
-          onPress: () => router.replace("/(main)/home" as any),
+          onPress: () => router.replace("/(main)/home" as never),
         },
       ]
     );
@@ -86,7 +85,7 @@ export const ReturnFiledScreen: React.FC = () => {
     return (
       <VerifiedSplashScreen
         acknowledgementNumber={filingData.acknowledgementNumber}
-        onDone={() => router.replace("/(main)/home" as any)}
+        onDone={() => router.replace("/(main)/home" as never)}
       />
     );
   }

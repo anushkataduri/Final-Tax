@@ -56,7 +56,7 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
   const uploadedCount = params.uploadedDocsCount || "0";
   const totalCount = params.totalDocsCount || "0";
   const docsUploaded = `${uploadedCount} of ${totalCount} received`;
-  const refundBank = params.refundBank || "Verified Primary Bank";
+  const _refundBank = params.refundBank || "Verified Primary Bank";
   const taxRegime = params.regime || "New Tax Regime";
 
   const summaryData: ApplicationSummaryData = {
@@ -75,20 +75,20 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
   };
 
   const handleBack = () => {
-    router.replace("/(main)/home" as any);
+    router.replace("/(main)/home" as never);
   };
 
   const handleGoHome = () => {
-    router.replace("/(main)/home" as any);
+    router.replace("/(main)/home" as never);
   };
 
   const handleTrackStatus = () => {
     if (onTrackStatus) {
       onTrackStatus();
     } else if (appId && appId !== "Application Received" && !appId.includes(" ")) {
-      router.replace(`/application/${appId}` as any);
+      router.replace(`/application/${appId}` as never);
     } else {
-      router.replace("/(main)/applications" as any);
+      router.replace("/(main)/applications" as never);
     }
   };
 

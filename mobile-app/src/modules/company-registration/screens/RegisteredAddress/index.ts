@@ -1,2 +1,2 @@
-﻿export { RegisteredAddressScreen } from "./RegisteredAddressScreen";
+export { RegisteredAddressScreen } from "./RegisteredAddressScreen";
 export { default } from "./RegisteredAddressScreen";

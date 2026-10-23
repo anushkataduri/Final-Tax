@@ -157,7 +157,7 @@ export default function HomeScreen() {
     if (tile.isMore) { setMoreQuery(""); setMoreOpen(true); return; }
     setMoreOpen(false);
     // accessService applies the one profile rule (shared/guards/serviceAccess) for every tile.
-    if (tile.route) accessService(tile.route);
+    if (tile.route) accessService(tile.route as Parameters<typeof accessService>[0]);
   };
 
   // Catalogue filtered by the sheet's search box.
@@ -181,7 +181,6 @@ export default function HomeScreen() {
         unreadCount={unreadCount}
         colors={colors}
         topInset={insets.top + Spacing.sm}
-        onMenuPress={() => router.push("/(main)/profile")}
         onNotificationsPress={() => router.push("/notifications")}
       />
 

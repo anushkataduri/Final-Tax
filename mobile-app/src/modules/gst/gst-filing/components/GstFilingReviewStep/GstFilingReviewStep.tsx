@@ -3,20 +3,13 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Modal,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
-import {
-  formatIndianCurrency,
-  formatIndianNumberInput,
-  toRawNumericString,
-} from "@/shared/formatters/currencyFormatter";
+import { formatIndianCurrency } from "@/shared/formatters/currencyFormatter";
 import { validateEstimatedAmount } from "@/modules/gst/gst-filing/utils/gstFilingValidation";
+import { GstFilingComputationModal } from "./GstFilingComputationModal";
 import { styles } from "@/modules/gst/gst-filing/components/GstFilingReviewStep/GstFilingReviewStep.styles";
 
 export interface GstFilingReviewStepProps {
@@ -96,14 +89,17 @@ export const GstFilingReviewStep: React.FC<GstFilingReviewStepProps> = ({
 
   // Automatically update computation state when values are retrieved from database
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentTurnover(baseTurnover);
   }, [baseTurnover]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPurchases(basePurchases);
   }, [basePurchases]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentItc(baseItc);
   }, [baseItc]);
 
@@ -368,125 +364,29 @@ export const GstFilingReviewStep: React.FC<GstFilingReviewStepProps> = ({
         )}
       </View>
 
-      {/* Interactive Modal to Edit Tax Computation (Omitted for Nil Return) */}
       {!isNilReturn && (
-        <Modal
+        <GstFilingComputationModal
           visible={isEditingComputation}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setIsEditingComputation(false)}
-        >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.modalBackdrop}
-          >
-            <View style={styles.modalBox}>
-              <View style={styles.modalHeaderRow}>
-                <Text style={styles.modalTitle}>Edit Tax Computation</Text>
-                <TouchableOpacity onPress={() => setIsEditingComputation(false)}>
-                  <Ionicons name="close" size={22} color="#64748B" />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.modalSub}>
-                Adjust your taxable turnover and eligible ITC figures below. Tax liability will recalculate automatically.
-              </Text>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Gross Taxable Turnover (₹)</Text>
-                <TextInput
-                  style={[styles.modalInput, modalErrors.turnover ? styles.modalInputError : null]}
-                  keyboardType="numeric"
-                  value={formatIndianNumberInput(editTurnoverStr)}
-                  onChangeText={(val) => {
-                    setEditTurnoverStr(toRawNumericString(val));
-                    if (modalErrors.turnover) setModalErrors((prev) => ({ ...prev, turnover: "" }));
-                  }}
-                  placeholder="Enter gross taxable turnover"
-                  placeholderTextColor="#94A3B8"
-                />
-                {modalErrors.turnover ? (
-                  <Text style={styles.modalErrorText}>{modalErrors.turnover}</Text>
-                ) : null}
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Estimated Taxable Purchases (₹)</Text>
-                <TextInput
-                  style={[styles.modalInput, modalErrors.purchases ? styles.modalInputError : null]}
-                  keyboardType="numeric"
-                  value={formatIndianNumberInput(editPurchasesStr)}
-                  onChangeText={(val) => {
-                    setEditPurchasesStr(toRawNumericString(val));
-                    if (modalErrors.purchases) setModalErrors((prev) => ({ ...prev, purchases: "" }));
-                  }}
-                  placeholder="Enter estimated taxable purchases"
-                  placeholderTextColor="#94A3B8"
-                />
-                {modalErrors.purchases ? (
-                  <Text style={styles.modalErrorText}>{modalErrors.purchases}</Text>
-                ) : null}
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Eligible Input Tax Credit (ITC) (₹)</Text>
-                <TextInput
-                  style={[styles.modalInput, modalErrors.itc ? styles.modalInputError : null]}
-                  keyboardType="numeric"
-                  value={formatIndianNumberInput(editItcStr)}
-                  onChangeText={(val) => {
-                    setEditItcStr(toRawNumericString(val));
-                    if (modalErrors.itc) setModalErrors((prev) => ({ ...prev, itc: "" }));
-                  }}
-                  placeholder="Enter eligible ITC amount"
-                  placeholderTextColor="#94A3B8"
-                />
-                {modalErrors.itc ? (
-                  <Text style={styles.modalErrorText}>{modalErrors.itc}</Text>
-                ) : null}
-              </View>
-
-              <View style={styles.modalSummaryBox}>
-                <View style={styles.modalSummaryRow}>
-                  <Text style={styles.modalSummaryLabel}>Output GST (18%):</Text>
-                  <Text style={styles.modalSummaryVal}>
-                    {formatInr(Math.round(parseNumeric(editTurnoverStr, 0) * 0.18))}
-                  </Text>
-                </View>
-                <View style={styles.modalSummaryRow}>
-                  <Text style={styles.modalSummaryLabel}>Net Tax Liability:</Text>
-                  <Text style={[styles.modalSummaryVal, styles.modalSummaryValHighlight]}>
-                    {formatInr(
-                      Math.max(
-                        0,
-                        Math.round(parseNumeric(editTurnoverStr, 0) * 0.18) - parseNumeric(editItcStr, 0)
-                      )
-                    )}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.modalBtnRow}>
-                <TouchableOpacity
-                  style={styles.modalSecondaryBtn}
-                  onPress={() => {
-                    setIsEditingComputation(false);
-                    onEditTaxComputation?.();
-                  }}
-                >
-                  <Text style={styles.modalSecondaryBtnText}>Full Form</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.modalPrimaryBtn}
-                  onPress={handleSaveComputation}
-                >
-                  <Text style={styles.modalPrimaryBtnText}>Apply & Recalculate</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </KeyboardAvoidingView>
-        </Modal>
+          editTurnoverStr={editTurnoverStr}
+          editPurchasesStr={editPurchasesStr}
+          editItcStr={editItcStr}
+          modalErrors={modalErrors}
+          onChangeTurnover={(val) => {
+            setEditTurnoverStr(val);
+            if (modalErrors.turnover) setModalErrors((prev) => ({ ...prev, turnover: "" }));
+          }}
+          onChangePurchases={(val) => {
+            setEditPurchasesStr(val);
+            if (modalErrors.purchases) setModalErrors((prev) => ({ ...prev, purchases: "" }));
+          }}
+          onChangeItc={(val) => {
+            setEditItcStr(val);
+            if (modalErrors.itc) setModalErrors((prev) => ({ ...prev, itc: "" }));
+          }}
+          onSave={handleSaveComputation}
+          onClose={() => setIsEditingComputation(false)}
+          onFullForm={() => { setIsEditingComputation(false); onEditTaxComputation?.(); }}
+        />
       )}
     </View>
   );

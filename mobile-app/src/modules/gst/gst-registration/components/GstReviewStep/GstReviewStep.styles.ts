@@ -249,5 +249,5 @@ export const styles = StyleSheet.create({
 });
 
 export const getDocProgressFillStyle = (progressPercent: number) => ({
-  width: `${progressPercent}%` as any,
+  width: `${progressPercent}%` as `${number}%`,
 });

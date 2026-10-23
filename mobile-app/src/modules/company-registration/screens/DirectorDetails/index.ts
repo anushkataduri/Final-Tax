@@ -1,2 +1,2 @@
-﻿export { DirectorDetailsScreen } from "./DirectorDetailsScreen";
+export { DirectorDetailsScreen } from "./DirectorDetailsScreen";
 export { default } from "./DirectorDetailsScreen";

@@ -5,8 +5,6 @@ import path from "node:path";
 import { beforeEach, describe, test } from "node:test";
 import {
   getLoanDetailsStep,
-  getLoanEntryStep,
-  getLoanFlowDefinition,
   getLoanFlowTotalSteps,
   resolveLoanActiveStep,
 } from "../../modules/loans/constants/loanFlow";
@@ -14,7 +12,6 @@ import { LOAN_CATEGORIES } from "../../modules/loans/constants/loanCategories";
 import { useLoansStore } from "../../modules/loans/store/loansStore";
 import {
   createInitialMsmeLoanAddress,
-  createInitialMsmeLoanFormData,
   type MsmeLoanFormData,
 } from "../../modules/loans/msme/types/msmeLoan.types";
 import {

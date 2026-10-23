@@ -1,4 +1,6 @@
 import { gstAmendmentApi } from "@/modules/gst/services/gstAmendmentApi";
+import { useAuthStore } from "@/modules/authentication/store/authStore";
+import { getErrorMessage } from "@/core/error-handling/errorMessage";
 import { logger } from "@/core/logging/logger";
 import {
   AmendmentSectionConfig,
@@ -8,81 +10,6 @@ import {
   SubmissionResult,
 } from "../types/gstAmendmentTypes";
 import { generateArn, buildComparisonSummaries } from "../utils/gstAmendmentHelpers";
-
-/** Posts the amendment to the endpoint for its section. Unknown sections are a no-op. */
-const submitSectionAmendment = async (
-  selectedSectionId: string,
-  targetGstId: string,
-  formData: AmendmentFormData,
-  supportingDoc: SupportingDoc
-): Promise<void> => {
-  switch (selectedSectionId) {
-    case "legal-name":
-      await gstAmendmentApi.submitLegalNameAmendment(
-        targetGstId,
-        formData.newLegalBusinessName,
-        supportingDoc
-      );
-      break;
-
-    case "principal-place":
-      await gstAmendmentApi.submitPrincipalPlaceAmendment(
-        targetGstId,
-        formData.newPrincipalAddress,
-        formData.newPrincipalCity,
-        formData.newPrincipalState,
-        formData.newPrincipalPincode,
-        supportingDoc,
-        formData.newPrincipalDistrict,
-        formData.newPrincipalNatureOfPremises
-      );
-      break;
-
-    case "additional-place":
-      await gstAmendmentApi.submitAdditionalPlaceAmendment(
-        targetGstId,
-        formData.newAdditionalAddress,
-        formData.newAdditionalCity,
-        formData.newAdditionalPincode,
-        formData.newAdditionalNatureOfPremises,
-        supportingDoc
-      );
-      break;
-
-    case "bank-accounts":
-      await gstAmendmentApi.submitBankAccountAmendment(
-        targetGstId,
-        formData.newBankName,
-        formData.newBankAccountNumber,
-        formData.newIfscCode,
-        formData.newAccountType,
-        supportingDoc
-      );
-      break;
-
-    case "contact-details":
-      await gstAmendmentApi.submitContactAmendment(
-        targetGstId,
-        formData.newContactMobile,
-        formData.newContactEmail,
-        supportingDoc
-      );
-      break;
-
-    case "authorised-signatories":
-      await gstAmendmentApi.submitSignatoryAmendment(
-        targetGstId,
-        formData.newSignatoryName,
-        formData.newSignatoryPan,
-        supportingDoc,
-        formData.newSignatoryDob,
-        formData.newSignatoryDesignation,
-        formData.newSignatoryMobile,
-        formData.newSignatoryEmail
-      );
-      break;
-  }
-};
 
 /** Metadata stored on the tracked "GST Amendment" application. */
 const buildAmendmentApplicationDetails = ({
@@ -94,6 +21,7 @@ const buildAmendmentApplicationDetails = ({
   dateStr,
   comparison,
   supportingDoc,
+  amendmentId,
 }: {
   targetGstId: string;
   generatedArn: string;
@@ -103,6 +31,7 @@ const buildAmendmentApplicationDetails = ({
   dateStr: string;
   comparison: ReturnType<typeof buildComparisonSummaries>;
   supportingDoc: SupportingDoc;
+  amendmentId?: number | string | null;
 }) => {
   const { currentValSummary, requestedValSummary, currentValDict, requestedValDict } = comparison;
   return {
@@ -118,6 +47,7 @@ const buildAmendmentApplicationDetails = ({
     currentValues: currentValDict ? JSON.stringify(currentValDict) : "",
     requestedValues: requestedValDict ? JSON.stringify(requestedValDict) : "",
     supportingDocName: supportingDoc.name,
+    ...(amendmentId ? { amendmentId: String(amendmentId) } : {}),
   };
 };
 
@@ -146,17 +76,79 @@ export async function submitAmendmentService(params: {
     amendmentId,
   } = params;
 
-  try {
-    switch (Boolean(amendmentId)) {
-      case true:
-        // Already persisted in database with ID during Review step
-        break;
-      case false:
-        await submitSectionAmendment(selectedSectionId, targetGstId, formData, supportingDoc);
-        break;
+  let activeAmendmentId: number | string | null = amendmentId ?? null;
+
+  // 1. If amendment was not previously persisted to database, create it now
+  if (!activeAmendmentId) {
+    try {
+      logger.debug("[submitAmendmentService] Persisting new amendment record before submit", { selectedSectionId, targetGstId });
+      const savedRecord = await gstAmendmentApi.saveAmendmentRecord(
+        selectedSectionId,
+        targetGstId,
+        formData,
+        supportingDoc
+      );
+      if (savedRecord?.id) {
+        activeAmendmentId = savedRecord.id;
+      }
+    } catch (saveErr) {
+      logger.warn("[submitAmendmentService] Preliminary record save notice:", { error: saveErr });
     }
-  } catch (apiError) {
-    logger.warn("[submitAmendmentService] API call error captured, proceeding with application creation fallback:", { error: apiError });
+  }
+
+  // 2. Resolve push token from auth store
+  let pushToken = "";
+  try {
+    const authState = useAuthStore.getState();
+    pushToken =
+      authState.customer?.pushToken ||
+      authState.authenticatedUser?.pushToken ||
+      "";
+  } catch (tokenErr) {
+    logger.debug("[submitAmendmentService] Push token resolution notice:", { error: tokenErr });
+  }
+
+  // 3. Call backend final submit endpoint for this amendment section
+  try {
+    logger.info("[submitAmendmentService] Submitting final amendment to backend", {
+      section: selectedSectionId,
+      targetGstId,
+      id: activeAmendmentId,
+      hasPushToken: Boolean(pushToken),
+    });
+
+    await gstAmendmentApi.submitFinalAmendmentRecord(
+      selectedSectionId,
+      targetGstId,
+      activeAmendmentId,
+      pushToken || undefined
+    );
+    logger.info(`[submitAmendmentService] Amendment (${selectedSectionId}) submitted successfully to backend.`);
+  } catch (subErr) {
+    const errMsg = getErrorMessage(subErr) || "";
+    if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
+      logger.warn(`[submitAmendmentService] Stale amendment record not found on backend (404). Re-creating and retrying submit...`);
+      try {
+        const freshRecord = await gstAmendmentApi.saveAmendmentRecord(
+          selectedSectionId,
+          targetGstId,
+          formData,
+          supportingDoc
+        );
+        activeAmendmentId = freshRecord?.id ?? null;
+        await gstAmendmentApi.submitFinalAmendmentRecord(
+          selectedSectionId,
+          targetGstId,
+          activeAmendmentId,
+          pushToken || undefined
+        );
+        logger.info(`[submitAmendmentService] Re-created amendment (${selectedSectionId}) and submitted successfully.`);
+      } catch (retryErr) {
+        logger.warn("[submitAmendmentService] Re-creation and submit retry notice:", { error: retryErr });
+      }
+    } else {
+      logger.warn("[submitAmendmentService] Backend submit call notice:", { error: subErr });
+    }
   }
 
   markSubmitted();
@@ -168,7 +160,7 @@ export async function submitAmendmentService(params: {
 
   const appId = createApplication(
     "gst-amendment",
-    `GST Amendment`,
+    `GST Amendment - ${selectedSection.title}`,
     "GST",
     buildAmendmentApplicationDetails({
       targetGstId,
@@ -179,9 +171,13 @@ export async function submitAmendmentService(params: {
       dateStr,
       comparison: buildComparisonSummaries(selectedSectionId, registeredDetails, formData),
       supportingDoc,
+      amendmentId: activeAmendmentId,
     }),
     [supportingDoc.name],
-    999
+    999,
+    "Pending",
+    false,
+    generatedArn
   );
 
   addNotification(

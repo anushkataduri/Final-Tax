@@ -37,10 +37,29 @@ export const persistAmendmentForReview = async (
     if (isEditMode) {
       if (amendmentId !== null && amendmentId !== undefined) {
         // Review Updated Changes: PUT fetch to update record by id
-        const updated = await gstAmendmentApi.updateAmendmentRecord(sectionId, amendmentId, formData, supportingDoc);
-        logger.debug("[Review] Updated record in DB by ID:", { amendmentId });
-        onReviewData(stripBinaryPayload(updated) || { id: amendmentId, ...formData });
-        return;
+        try {
+          const updated = await gstAmendmentApi.updateAmendmentRecord(sectionId, amendmentId, formData, supportingDoc);
+          logger.debug("[Review] Updated record in DB by ID:", { amendmentId });
+          onReviewData(stripBinaryPayload(updated) || { id: amendmentId, ...formData });
+          return;
+        } catch (updateErr: unknown) {
+          const e = updateErr as { response?: { status?: number }; status?: number; message?: string };
+          const isNotFound =
+            e?.response?.status === 404 ||
+            e?.status === 404 ||
+            (typeof e?.message === "string" && e.message.includes("404")) ||
+            (typeof e?.message === "string" && e.message.toLowerCase().includes("not found"));
+
+          if (isNotFound) {
+            logger.warn("[Review] Stale amendment ID not found (404). Auto-recovering by creating fresh record", { amendmentId });
+            const saved = await gstAmendmentApi.saveAmendmentRecord(sectionId, targetGstId, formData, supportingDoc);
+            const newId: number | null = saved?.id ?? null;
+            onSaved(newId);
+            onReviewData(stripBinaryPayload(saved));
+            return;
+          }
+          throw updateErr;
+        }
       }
 
       const saved = await gstAmendmentApi.saveAmendmentRecord(sectionId, targetGstId, formData, supportingDoc);

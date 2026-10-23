@@ -1,7 +1,7 @@
 import { StyleSheet } from "react-native";
 import type { IconName } from "@/types/domain";
 
-export const FLOATING_TAB_HEIGHT = 60;
+export const FLOATING_TAB_HEIGHT = 64;
 export const FLOATING_TAB_GAP = 12;
 
 export const BAR_BG = "#1E3A5F"; // Royal Navy Blue capsule background
@@ -26,16 +26,11 @@ export const FALLBACK_META: TabMeta = {
 export const TAB_META: Record<string, TabMeta> = {
   home: { label: "Home", icon: "home", iconOutline: "home-outline" },
   applications: {
-    label: "Applications",
+    label: "My Applications",
     icon: "grid",
     iconOutline: "grid-outline",
   },
-  documents: {
-    label: "Documents",
-    icon: "document-text",
-    iconOutline: "document-text-outline",
-  },
-  payments: { label: "Payments", icon: "card", iconOutline: "card-outline" },
+  payments: { label: "Payment", icon: "card", iconOutline: "card-outline" },
   profile: { label: "Profile", icon: "person", iconOutline: "person-outline" },
 };
 
@@ -51,19 +46,31 @@ export function metaFor(routeName: string): TabMeta {
 export const SPRING = { damping: 18, stiffness: 200, mass: 0.6 };
 
 export const styles = StyleSheet.create({
+  navBarContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    elevation: 20,
+  },
+  backdropGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
   floatingWrapper: {
     position: "absolute",
     left: 12,
     right: 12,
-    zIndex: 100,
-    elevation: 20,
     alignItems: "center",
   },
   capsuleContainer: {
     width: "100%",
     height: FLOATING_TAB_HEIGHT,
     backgroundColor: BAR_BG,
-    borderRadius: 30,
+    borderRadius: 32,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -83,12 +90,12 @@ export const styles = StyleSheet.create({
   },
   activePill: {
     backgroundColor: ACTIVE_PILL_BG,
-    width: "92%",
-    maxWidth: 62,
-    height: 48,
-    borderRadius: 24,
+    width: "94%",
+    height: 52,
+    borderRadius: 26,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.12,
@@ -97,8 +104,23 @@ export const styles = StyleSheet.create({
   },
   inactivePill: {
     width: "100%",
-    height: 48,
+    height: 52,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 2,
+  },
+  activeLabel: {
+    fontSize: 9.5,
+    fontWeight: "700",
+    color: ACTIVE_ICON_COLOR,
+    marginTop: 2,
+    textAlign: "center",
+  },
+  inactiveLabel: {
+    fontSize: 9.5,
+    fontWeight: "600",
+    color: INACTIVE_ICON_COLOR,
+    marginTop: 2,
+    textAlign: "center",
   },
 });

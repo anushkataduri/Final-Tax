@@ -6,7 +6,6 @@ export * as ITRModule from './itr';
 export * as LoansModule from './loans';
 export * as CompanyRegistrationModule from './company-registration';
 export * as InsuranceModule from './insurance';
-export * as DocumentsModule from './documents';
 export * as ApplicationsModule from './applications';
 export * as PaymentsModule from './payments';
 export * as NotificationsModule from './notifications';

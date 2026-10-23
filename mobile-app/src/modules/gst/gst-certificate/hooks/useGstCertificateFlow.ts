@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Alert, Animated, Platform, BackHandler } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as Print from "expo-print";
@@ -54,9 +54,9 @@ export function useGstCertificateFlow() {
   const [generatedFileName, setGeneratedFileName] = useState<string>("");
   const [isFocused, setIsFocused] = useState(false);
 
-  const floatAnim = useRef(new Animated.Value(0)).current;
-  const btnScale = useRef(new Animated.Value(1)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [floatAnim] = useState(() => new Animated.Value(0));
+  const [btnScale] = useState(() => new Animated.Value(1));
+  const [fadeAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (gstCertificateDraft?.formData) {
@@ -149,10 +149,10 @@ export function useGstCertificateFlow() {
       const regData = mapRegistrationDataToCertificate(
         gstin,
         params,
-        applications,
-        gstDraft,
-        registrationDraft,
-        customer
+        applications as { serviceId?: string; formData?: Record<string, unknown> }[],
+        gstDraft as unknown as Record<string, unknown> | null,
+        registrationDraft as unknown as Record<string, unknown> | null,
+        customer as unknown as Record<string, unknown> | null
       );
 
       const cleanGstin = regData.gstin.replace(/[^a-zA-Z0-9]/g, "");

@@ -6,6 +6,6 @@ export default function ItrReviewRoute() {
   const setStep = useITRStore((state) => state.setStep);
   useEffect(() => {
     setStep(4);
-  }, []);
+  }, [setStep]);
   return <ItrFilingScreen />;
 }

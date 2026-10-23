@@ -57,6 +57,7 @@ export interface OpcNomineeInfo {
   email: string;
   phone: string;
   relationship: string;
+  dob?: string;
 }
 
 export interface PartnerInfo {

@@ -45,7 +45,8 @@ export interface ApplyBanner {
 export interface DashboardServiceTile {
   id: string;
   label: string;
-  image: any;
-  route?: any;
+  image: number | { uri: string };
+  /** Typed as Href to remain compatible with expo-router's accessService / push guards. */
+  route?: Href;
   isMore?: boolean;
 }

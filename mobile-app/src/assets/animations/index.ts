@@ -1,2 +1,2 @@
-﻿export const Animations = {};
+export const Animations = {};
 export default Animations;

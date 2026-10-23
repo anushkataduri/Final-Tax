@@ -1,7 +1,6 @@
 import React from "react";
-import { PaymentsHomeScreen } from "@/modules/payments/screens/PaymentsHomeScreen";
-import { gstRegistrationPaymentOutcomeViews } from "@/modules/gst/gst-registration";
+import { PaymentOverviewScreen } from "@/modules/payments/screens/PaymentOverviewScreen";
 
 export default function PaymentsRoute() {
-  return <PaymentsHomeScreen outcomeViews={gstRegistrationPaymentOutcomeViews} />;
+  return <PaymentOverviewScreen />;
 }

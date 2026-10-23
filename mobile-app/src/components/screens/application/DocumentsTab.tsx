@@ -2,11 +2,12 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { styles } from "@/styles/app/application/[id].styles";
+import type { ApplicationDocument } from "@/types/domain";
 
 interface DocumentsTabProps {
   isGstAmendment: boolean;
-  formData: Record<string, any>;
-  documents: any[];
+  formData: Record<string, unknown>;
+  documents: ApplicationDocument[];
   onUploadDocument: (docName: string) => void;
 }
 
@@ -18,6 +19,7 @@ export function DocumentsTab({
 }: DocumentsTabProps) {
   const hasNoDocs =
     documents.length === 0 && !(isGstAmendment && formData.document);
+  const gstDoc = formData.document as { name?: string; size?: string | number } | undefined;
 
   return (
     <View style={styles.card}>
@@ -45,18 +47,18 @@ export function DocumentsTab({
           </View>
         ) : (
           <>
-            {isGstAmendment && formData.document && (
+            {isGstAmendment && gstDoc && (
               <View style={styles.docItemCard}>
                 <View style={styles.docIconWrap}>
                   <Ionicons name="checkmark-circle" size={24} color="#083B75" />
                 </View>
                 <View style={styles.docMetaWrap}>
                   <Text style={styles.docNameText}>
-                    {formData.document.name}
+                    {gstDoc.name}
                   </Text>
-                  {formData.document.size ? (
+                  {gstDoc.size ? (
                     <Text style={styles.docSubText}>
-                      {formData.document.size}
+                      {gstDoc.size}
                     </Text>
                   ) : null}
                 </View>
@@ -67,7 +69,7 @@ export function DocumentsTab({
               </View>
             )}
 
-            {documents.map((doc: any, i: number) => {
+            {documents.map((doc, i) => {
               const isUploaded = doc.status === "Uploaded";
               return (
                 <View key={i} style={styles.docItemCard}>

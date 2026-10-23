@@ -1,8 +1,9 @@
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { logger } from "../logging/logger";
 
-export const SERVER_IP = "192.168.88.17";
+export const SERVER_IP = "192.168.88.8";
 export const SERVER_PORT = 8086;
 export const STORAGE_KEY_SERVER_URL = "@taxedge_server_url";
 
@@ -36,7 +37,7 @@ export function getDefaultBaseUrl(): string {
     }
   } catch (error) {
     if (__DEV__) {
-      console.warn("Failed to resolve dynamic hostUri from Constants:", error);
+      logger.warn("Failed to resolve dynamic hostUri from Constants", error);
     }
   }
 
@@ -63,7 +64,7 @@ export async function getActiveBaseUrl(): Promise<string> {
     }
   } catch (error) {
     if (__DEV__) {
-      console.warn("Failed to read server URL from storage:", error);
+      logger.warn("Failed to read server URL from storage", error);
     }
   }
 

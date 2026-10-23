@@ -1,5 +1,5 @@
-import { StyleSheet, Platform } from "react-native";
-import { BrandColors, Typography, Spacing, BorderRadius } from "@/shared/theme";
+import { StyleSheet } from "react-native";
+import { Typography, Spacing, BorderRadius } from "@/shared/theme";
 
 export const styles = StyleSheet.create({
   card: {

@@ -1,6 +1,7 @@
 import {
   TdsCustomerIncomeFormData,
   PersonalDetails,
+  BusinessDetails,
 } from "../types/customerIncome.types";
 import {
   isValidPan,
@@ -11,7 +12,6 @@ import {
   isValidIfsc,
   isValidAccountNumber,
   isValidDob,
-  parsePositiveNumber,
 } from "../utils/tdsValidation";
 
 export type CustomerFormErrors = Record<string, string>;
@@ -81,7 +81,7 @@ export function validatePersonalDetails(personal: PersonalDetails): {
   };
 }
 
-export function validateBusinessDetails(business: any): {
+export function validateBusinessDetails(business: BusinessDetails): {
   isValid: boolean;
   errors: CustomerFormErrors;
 } {
@@ -130,7 +130,7 @@ export function validateCustomerIncomeForm(data: TdsCustomerIncomeFormData): {
   errors: CustomerFormErrors;
 } {
   const errors: CustomerFormErrors = {};
-  const { personal, business, bank, income } = data;
+  const { personal, business, bank, income: _income } = data;
 
   // --- 1. PERSONAL DETAILS ---
   const personalValidation = validatePersonalDetails(personal);

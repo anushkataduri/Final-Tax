@@ -12,7 +12,6 @@ import {
   st,
   getTopBarStyle,
   getScaleTransformStyle,
-  getOpacityAnimStyle,
 } from "./GstCertificateScreen.styles";
 
 const CERTIFICATE_REQUEST_TYPES = [

@@ -8,7 +8,7 @@ export const paymentService = {
       return null;
     }
   },
-  verifyPayment: async (paymentDetails: any): Promise<boolean> => {
+  verifyPayment: async (paymentDetails: Record<string, unknown>): Promise<boolean> => {
     try {
       await apiClient.post('/payments/verify', paymentDetails);
       return true;

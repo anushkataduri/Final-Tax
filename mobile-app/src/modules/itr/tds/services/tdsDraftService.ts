@@ -1,15 +1,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { TdsCustomerIncomeFormData } from "../types/customerIncome.types";
+import type { TdsDocumentItem } from "../types/tdsDocuments.types";
+import type { TdsChecklistItem } from "../types/checklist.types";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { authStorage } from "@/modules/authentication/services/authStorage";
 import { addDraftToIndex, removeDraftFromIndex } from "@/shared/hooks/useServiceDraft";
+import { logger } from "@/core/logging/logger";
 
 function getAuthMobile(): string {
   const state = useAuthStore.getState();
   return String(
     state.customer?.mobile ||
     state.authenticatedUser?.mobileNumber ||
-    (state.authenticatedUser as any)?.mobile ||
     authStorage.getSession().activeMobile ||
     state.mobileNumber ||
     ""
@@ -100,7 +102,7 @@ export const tdsDraftService = {
       await AsyncStorage.setItem(getStorageKeyForm(), JSON.stringify(payload));
       await addDraftToIndex(cleanMobile, "tds-refund");
     } catch (err) {
-      console.error("Failed to save TDS form draft:", err);
+      logger.error("Failed to save TDS form draft", err);
     }
   },
 
@@ -118,7 +120,7 @@ export const tdsDraftService = {
         };
       }
     } catch (err) {
-      console.error("Failed to read TDS form draft:", err);
+      logger.error("Failed to read TDS form draft", err);
     }
     return INITIAL_TDS_FORM_DATA;
   },
@@ -137,7 +139,7 @@ export const tdsDraftService = {
     return null;
   },
 
-  saveDocumentsDraft: async (documents: any[]): Promise<void> => {
+  saveDocumentsDraft: async (documents: TdsDocumentItem[]): Promise<void> => {
     try {
       const cleanMobile = getCleanMobile();
       await AsyncStorage.setItem(getStorageKeyDocs(), JSON.stringify(documents));
@@ -157,18 +159,18 @@ export const tdsDraftService = {
       );
       await addDraftToIndex(cleanMobile, "tds-refund");
     } catch (err) {
-      console.error("Failed to save TDS documents draft:", err);
+      logger.error("Failed to save TDS documents draft", err);
     }
   },
 
-  getDocumentsDraft: async (): Promise<any[] | null> => {
+  getDocumentsDraft: async (): Promise<TdsChecklistItem[] | null> => {
     try {
       const raw = await AsyncStorage.getItem(getStorageKeyDocs());
       if (raw) {
         return JSON.parse(raw);
       }
     } catch (err) {
-      console.error("Failed to read TDS documents draft:", err);
+      logger.error("Failed to read TDS documents draft", err);
     }
     return null;
   },
@@ -177,7 +179,7 @@ export const tdsDraftService = {
     try {
       await AsyncStorage.setItem(getStorageKeyAppId(), appId);
     } catch (err) {
-      console.error("Failed to save application ID:", err);
+      logger.error("Failed to save application ID", err);
     }
   },
 

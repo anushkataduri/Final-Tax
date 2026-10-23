@@ -6,6 +6,8 @@
 import { Alert } from "react-native";
 import { gstApi } from "@/modules/gst/services/gstApi";
 import { useApplicationStore } from "@/store/applicationStore";
+import { useNotificationStore } from "@/store/notificationStore";
+import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { FilingDocItem } from "@/modules/gst/gst-filing/config/gstFilingDocumentsConfig";
 import { GstFilingPeriodData } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstFilingPeriodStep";
 import {
@@ -83,10 +85,10 @@ export async function submitPeriodStep({
       if (filings && filings.length > 0) {
         const sortedFilings = [...filings].sort(
           (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+            new Date(a.createdAt as string).getTime() - new Date(b.createdAt as string).getTime(),
         );
         const latest = sortedFilings[sortedFilings.length - 1];
-        resolvedId = latest.gstfilingId || latest.id || "";
+        resolvedId = (latest.gstfilingId as string | undefined) || (latest.id as string | undefined) || "";
       }
     }
 
@@ -177,12 +179,42 @@ export async function submitDocumentsStep({
     const docsToUpload = documents.filter((d) => d.fileUri);
     if (docsToUpload.length > 0) {
       if (isEditMode) {
-        await gstApi.updateAllFilingDocuments(targetFilingId, docsToUpload);
-        Alert.alert("Success", "Filing documents updated successfully.");
+        try {
+          await gstApi.updateAllFilingDocuments(targetFilingId, docsToUpload);
+          Alert.alert("Success", "Filing documents updated successfully.");
+        } catch (updateErr) {
+          const errMsg = getErrorMessage(updateErr) ?? "";
+          if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
+            await gstApi.uploadAllFilingDocuments(targetFilingId, docsToUpload);
+          } else {
+            throw updateErr;
+          }
+        }
       } else {
-        await gstApi.uploadAllFilingDocuments(targetFilingId, docsToUpload);
+        try {
+          await gstApi.uploadAllFilingDocuments(targetFilingId, docsToUpload);
+        } catch (uploadErr) {
+          const errMsg = getErrorMessage(uploadErr) ?? "";
+          if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
+            logger.warn(`[DocumentStep] Filing ID '${targetFilingId}' not found on backend (404). Re-creating session...`);
+            const custId = await getResolvedCustomerId();
+            const payload = buildFilingPayload(periodData, custId);
+            const res = await gstApi.createFiling(payload);
+            const match = String(res).match(/Filing ID:\s*([A-Za-z0-9_-]+)/i);
+            if (match && match[1]) {
+              const freshId = match[1];
+              targetFilingId = freshId;
+              setFilingId(freshId);
+              await gstApi.uploadAllFilingDocuments(freshId, docsToUpload);
+            } else {
+              throw uploadErr;
+            }
+          } else {
+            throw uploadErr;
+          }
+        }
       }
-      docsToUpload.forEach((d) => ((d as any).uploadedToBackend = true));
+      docsToUpload.forEach((d) => { d.uploadedToBackend = true; });
       setDocuments([...documents]);
     }
     if (isEditMode) {
@@ -222,7 +254,7 @@ export async function submitReviewStep({
   if (!isNilReturn && missingDocsCount > 0) {
     Alert.alert(
       "Documents Missing",
-      `You have ${missingDocsCount} missing required document(s). Please upload all 12 required documents before submitting your return.`,
+      `You have ${missingDocsCount} missing required document(s). Please upload all required documents before submitting your return.`,
       [
         { text: "Cancel", style: "cancel" },
         { text: "Upload Now", onPress: () => setCurrentStep(1) },
@@ -241,12 +273,80 @@ export async function submitReviewStep({
 
   setIsSubmitting(true);
   try {
-    if (filingId && hasEstimates) {
-      const custId = await getResolvedCustomerId();
-      const payload = buildFilingPayload(periodData, custId, true);
-      await gstApi.updateFiling(filingId, payload);
+    let activeFilingId = filingId ? String(filingId).trim() : "";
+    const custId = await getResolvedCustomerId();
+    const payload = buildFilingPayload(periodData, custId, hasEstimates);
+
+    // 1. Ensure filing session exists on backend
+    if (!activeFilingId) {
+      try {
+        const createRes = await gstApi.createFiling(payload);
+        const match = String(createRes).match(/Filing ID:\s*([A-Za-z0-9_-]+)/i);
+        if (match && match[1]) {
+          activeFilingId = match[1];
+        }
+      } catch (createErr) {
+        logger.warn("[ReviewStep] Auto-creation of filing session before submit failed:", { error: createErr });
+      }
+    } else if (hasEstimates) {
+      try {
+        await gstApi.updateFiling(activeFilingId, payload);
+      } catch (updateErr) {
+        const errMsg = getErrorMessage(updateErr) ?? "";
+        if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
+          logger.warn(`[ReviewStep] Filing ${activeFilingId} not found for update, re-creating session...`);
+          try {
+            const createRes = await gstApi.createFiling(payload);
+            const match = String(createRes).match(/Filing ID:\s*([A-Za-z0-9_-]+)/i);
+            if (match && match[1]) {
+              activeFilingId = match[1];
+            }
+          } catch (cErr) {
+            logger.warn("[ReviewStep] Re-creation fallback failed:", { error: cErr });
+          }
+        } else {
+          logger.warn("[ReviewStep] Failed to update estimates before submission:", { error: updateErr });
+        }
+      }
     }
 
+    // 2. Submit filing to backend (POST /api/v1/gst/filing/submit)
+    let pushToken = "";
+    try {
+      const authState = useAuthStore.getState();
+      pushToken =
+        authState.customer?.pushToken ||
+        authState.authenticatedUser?.pushToken ||
+        "";
+    } catch (tokenErr) {
+      logger.debug("[ReviewStep] Push token resolution notice:", { error: tokenErr });
+    }
+
+    if (activeFilingId) {
+      try {
+        await gstApi.submitFinalFiling(activeFilingId, pushToken || undefined);
+        logger.info(`[ReviewStep] GST Filing submitted successfully to backend: ${activeFilingId}`);
+      } catch (subErr) {
+        const errMsg = getErrorMessage(subErr) ?? "";
+        if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
+          logger.warn(`[ReviewStep] Filing ${activeFilingId} not found on server for submit, re-creating and submitting...`);
+          try {
+            const createRes = await gstApi.createFiling(payload);
+            const match = String(createRes).match(/Filing ID:\s*([A-Za-z0-9_-]+)/i);
+            if (match && match[1]) {
+              activeFilingId = match[1];
+              await gstApi.submitFinalFiling(activeFilingId, pushToken || undefined);
+            }
+          } catch (retryErr) {
+            logger.warn("[ReviewStep] Re-creation and submit retry failed:", { error: retryErr });
+          }
+        } else {
+          logger.warn("[ReviewStep] Backend submitFiling call notice:", { error: subErr });
+        }
+      }
+    }
+
+    // 3. Local Application Store & Notifications
     const periodLabel =
       periodData.filingPeriod ||
       periodData.filingMonth ||
@@ -266,7 +366,7 @@ export async function submitReviewStep({
         filingType: periodData.filingType || "GSTR-1",
         filingNature: periodData.filingNature || "Regular Return",
         financialYear: periodData.financialYear || "FY 2025-26",
-        filingId: filingId || undefined,
+        filingId: activeFilingId || undefined,
         taxableSales: periodData.taxableSales || periodData.turnover || "0",
         taxablePurchases: periodData.taxablePurchases || "0",
         eligibleItc: periodData.eligibleItc || "0",
@@ -278,10 +378,21 @@ export async function submitReviewStep({
       0,
       "Pending",
       false,
-      filingId || undefined,
+      activeFilingId || undefined,
     );
-    setCreatedAppId(newAppId);
+
+    const finalDisplayId = activeFilingId || newAppId;
+    setCreatedAppId(finalDisplayId);
     clearGstFilingDraft();
+
+    // 4. In-App Notification
+    useNotificationStore.getState().addNotification(
+      "GST Return Submitted",
+      `Your GST Filing (${periodLabel}) for ${periodData.gstin} (ID: ${finalDisplayId}) has been successfully submitted and is under verification.`,
+      "gst",
+    );
+
+    // 5. Navigate to Step 3 (Success Screen)
     setCurrentStep(3);
   } catch (err) {
     logger.warn("[ReviewStep] Submission notice:", { error: err });

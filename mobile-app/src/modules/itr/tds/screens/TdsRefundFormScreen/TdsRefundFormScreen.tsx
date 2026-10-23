@@ -3,10 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  ScrollView,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
@@ -23,16 +20,14 @@ import {
   BusinessDetailsSection,
   RefundBankAccountSection,
   TdsFormInputRefs,
-  SectionHeader,
 } from "./TdsRefundFormSections";
-import { TdsDocumentCard } from "../../components/documents";
 import { useTdsProgressStore } from "../../store/tdsProgressStore";
 import { styles } from "./TdsRefundFormScreen.styles";
 import { useTdsRefundForm } from "./useTdsRefundForm";
 
 export const TdsRefundFormScreen: React.FC = () => {
   const router = useRouter();
-  const maxStepReached = useTdsProgressStore((s) => s.maxStepReached);
+  const _maxStepReached = useTdsProgressStore((s) => s.maxStepReached);
   const insets = useSafeAreaInsets();
 
   const {
@@ -46,7 +41,7 @@ export const TdsRefundFormScreen: React.FC = () => {
     handleSaveProfile,
     updateBusiness,
     updateBank,
-    updateIncome,
+    updateIncome: _updateIncome,
     handleIfscChange,
     handleContinue,
     draftGuard,

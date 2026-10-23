@@ -104,6 +104,6 @@ export const styles = StyleSheet.create({
   },
 });
 
-export const getScaleTransformStyle = (scaleAnim: Animated.Value): any => ({
+export const getScaleTransformStyle = (scaleAnim: Animated.Value): { transform: { scale: Animated.Value }[] } => ({
   transform: [{ scale: scaleAnim }],
 });

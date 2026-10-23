@@ -12,7 +12,7 @@ import {
 } from "../../modules/loans/constants/loanFlow";
 import { LOAN_CATEGORIES, resolveLoanCategory } from "../../modules/loans/constants/loanCategories";
 import { useLoansStore } from "../../modules/loans/store/loansStore";
-import { createInitialKycData, createInitialBusinessFormData } from "../../modules/loans/store/loansStore.types";
+import { createInitialBusinessFormData } from "../../modules/loans/store/loansStore.types";
 import type { LoanKycData } from "../../modules/loans/types/loanKyc.types";
 import { validateLoanKyc } from "../../modules/loans/validation/loanKycValidation";
 import { loanKycService } from "../../modules/loans/services/loanKycService";

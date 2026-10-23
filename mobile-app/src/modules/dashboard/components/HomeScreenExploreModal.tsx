@@ -10,23 +10,27 @@ import {
 } from "react-native";
 import type { EdgeInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import type { ComponentProps } from "react";
 import { styles } from "../styles/home.styles";
+import type { UseThemeResult } from "../../../hooks/use-theme";
 import type { CatalogueItem, ServiceCategoryId } from "../../../shared/types/domain";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
 interface HomeScreenExploreModalProps {
   visible: boolean;
   onClose: () => void;
   moreQuery: string;
   setMoreQuery: (query: string) => void;
-  filteredCatalogue: Array<{
+  filteredCatalogue: {
     id: ServiceCategoryId;
     title: string;
-    icon: any;
+    icon: IoniconName;
     items: CatalogueItem[];
-  }>;
+  }[];
   openCatalogueItem: (item: CatalogueItem, categoryId: ServiceCategoryId) => void;
   isDark: boolean;
-  colors: any;
+  colors: UseThemeResult;
   insets: EdgeInsets;
 }
 
@@ -172,7 +176,7 @@ export function HomeScreenExploreModal({
                   color={colors.textSecondary}
                 />
                 <Text style={[styles.sheetEmptyText, { color: colors.text }]}>
-                  No services match "{moreQuery.trim()}"
+                  {'No services match "'}{moreQuery.trim()}{'"'}
                 </Text>
               </View>
             )}

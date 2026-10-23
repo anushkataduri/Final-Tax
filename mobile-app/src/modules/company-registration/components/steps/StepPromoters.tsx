@@ -95,14 +95,14 @@ export const StepPromoters: React.FC = () => {
   };
 
   const handleNomineeChange = (key: keyof OpcNomineeInfo, val: string, validator?: (v: string) => string | null) => {
-    setOpcNominee({ ...opcNominee, [key]: val } as any);
+    setOpcNominee({ ...opcNominee, [key]: val } as OpcNomineeInfo);
     if (validator && !validator(val)) clearFieldError(`nominee_${key}`);
   };
 
   const handleNomineeBlur = (key: keyof OpcNomineeInfo, validator: (v: string) => string | null) => {
     const raw = (opcNominee?.[key] as string) || '';
     const trimmed = raw.trim();
-    if (trimmed !== raw) setOpcNominee({ ...opcNominee, [key]: trimmed } as any);
+    if (trimmed !== raw) setOpcNominee({ ...opcNominee, [key]: trimmed } as OpcNomineeInfo);
     const err = validator(trimmed);
     if (err) {
       setFieldErrors({ ...fieldErrors, [`nominee_${key}`]: err });
@@ -259,21 +259,43 @@ export const StepPromoters: React.FC = () => {
               </View>
             </View>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Nominee Aadhaar (Optional)</Text>
-              <TextInput
-                style={[styles.input, !!fieldErrors.nominee_aadhaar && styles.inputError]}
-                value={opcNominee?.aadhaar || ''}
-                onChangeText={(v) => handleNomineeChange('aadhaar', v, validateNomineeAadhaar)}
-                onBlur={() => handleNomineeBlur('aadhaar', validateNomineeAadhaar)}
-                placeholder="12-digit Aadhaar number"
-                placeholderTextColor="#94A3B8"
-                keyboardType="numeric"
-                maxLength={12}
-              />
-              {!!fieldErrors.nominee_aadhaar && (
-                <Text style={styles.errorText}>{fieldErrors.nominee_aadhaar}</Text>
-              )}
+            <View style={styles.row}>
+              <View style={[styles.fieldGroup, styles.halfField]}>
+                <Text style={styles.label}>Nominee DOB (DD-MM-YYYY) *</Text>
+                <TextInput
+                  style={[styles.input, !!fieldErrors.nominee_dob && styles.inputError]}
+                  value={opcNominee?.dob || ''}
+                  onChangeText={(v) => {
+                    const cleaned = v.replace(/[^\d-]/g, '').slice(0, 10);
+                    handleNomineeChange('dob', cleaned);
+                  }}
+                  onBlur={() => handleNomineeBlur('dob', (v) => (!v?.trim() ? 'Date of birth is required.' : null))}
+                  placeholder="15-08-1995"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="numeric"
+                  maxLength={10}
+                />
+                {!!fieldErrors.nominee_dob && (
+                  <Text style={styles.errorText}>{fieldErrors.nominee_dob}</Text>
+                )}
+              </View>
+
+              <View style={[styles.fieldGroup, styles.halfField]}>
+                <Text style={styles.label}>Nominee Aadhaar (Optional)</Text>
+                <TextInput
+                  style={[styles.input, !!fieldErrors.nominee_aadhaar && styles.inputError]}
+                  value={opcNominee?.aadhaar || ''}
+                  onChangeText={(v) => handleNomineeChange('aadhaar', v, validateNomineeAadhaar)}
+                  onBlur={() => handleNomineeBlur('aadhaar', validateNomineeAadhaar)}
+                  placeholder="12-digit Aadhaar"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="numeric"
+                  maxLength={12}
+                />
+                {!!fieldErrors.nominee_aadhaar && (
+                  <Text style={styles.errorText}>{fieldErrors.nominee_aadhaar}</Text>
+                )}
+              </View>
             </View>
           </View>
         </View>

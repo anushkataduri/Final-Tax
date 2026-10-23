@@ -43,7 +43,7 @@ export const NoticeSummaryScreen: React.FC = () => {
   const taxNoticeDraft = useApplicationStore((state) => state.taxNoticeDraft);
   const saveTaxNoticeDraft = useApplicationStore((state) => state.saveTaxNoticeDraft);
 
-  const draftData = taxNoticeDraft?.formData || {};
+  const draftData = (taxNoticeDraft?.formData || {}) as Record<string, string | undefined>;
 
   const noticeNumber = params.noticeNumber || draftData.noticeNumber || "CPC/2526/A3/284419260";
   const noticeDate = params.noticeDate || draftData.noticeDate || "18 Aug 2026";
@@ -64,6 +64,7 @@ export const NoticeSummaryScreen: React.FC = () => {
     try {
       const due = parseStringToDate(dueStr);
       if (!due) return 0;
+      // eslint-disable-next-line react-hooks/purity
       const diff = Math.ceil((due.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       return diff > 0 ? diff : 0;
     } catch {
@@ -89,7 +90,7 @@ export const NoticeSummaryScreen: React.FC = () => {
   const handleContinue = () => {
     // Navigate to Screen 4: Additional Documents Required & Customer Upload
     router.push({
-      pathname: "/service/tax-notice-documents" as any,
+      pathname: "/service/tax-notice-documents" as never,
       params: {
         pan,
         noticeNumber,

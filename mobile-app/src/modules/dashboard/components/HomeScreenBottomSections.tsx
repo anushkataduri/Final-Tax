@@ -2,14 +2,17 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { styles } from "../styles/home.styles";
+import type { Href } from "expo-router";
+import type { UseThemeResult } from "../../../hooks/use-theme";
+import type { Application } from "../../../types/domain";
 import type { Deadline, StatTile } from "../types/dashboard.types";
 
 interface FinancialOverviewProps {
-  colors: any;
+  colors: UseThemeResult;
   isDark: boolean;
   stats: StatTile[];
   deadlines: Deadline[];
-  onNavigate: (route: any) => void;
+  onNavigate: (route: Href) => void;
 }
 
 export function FinancialOverviewSection({
@@ -159,9 +162,9 @@ export function FinancialOverviewSection({
 }
 
 interface RecentApplicationsProps {
-  colors: any;
+  colors: UseThemeResult;
   isDark: boolean;
-  recentApps: any[];
+  recentApps: Application[];
   onViewAll: () => void;
   onSelectApplication: (appId: string) => void;
 }

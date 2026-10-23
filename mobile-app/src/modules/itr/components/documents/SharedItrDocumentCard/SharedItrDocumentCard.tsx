@@ -28,7 +28,7 @@ export interface SharedDocumentItem {
   fileSize?: string;
   mimeType?: string;
   errorMessage?: string;
-  iconType?: any;
+  iconType?: string;
 }
 
 interface SharedItrDocumentCardProps {
@@ -225,7 +225,7 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
           {isUploaded ? (
             <Ionicons name="document-text" size={22} color="#16A34A" />
           ) : (
-            <DocumentUploadIcon type={item.iconType || "business_income"} />
+            <DocumentUploadIcon type={(item.iconType || "business_income") as "pan" | "aadhaar" | "business_income" | "pnl_balance_sheet" | "bank_statements" | "ais" | "tis"} />
           )}
         </View>
 

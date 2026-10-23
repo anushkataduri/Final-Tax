@@ -176,9 +176,10 @@ export async function pickDocumentFromDrive(
       mimeType,
       fileTypeLabel: extension.toUpperCase(),
     };
-  } catch (error: any) {
-    const msg = error?.message || "";
-    if (msg.includes("cancel") || error?.code === "ERR_CANCELLED") {
+  } catch (error: unknown) {
+    const e = error as { message?: string; code?: string };
+    const msg = e?.message || "";
+    if (msg.includes("cancel") || e?.code === "ERR_CANCELLED") {
       return null;
     }
     logger.error("[driveDocumentUploader] Error picking document from drive:", { error });

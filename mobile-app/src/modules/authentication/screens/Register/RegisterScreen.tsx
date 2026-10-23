@@ -16,6 +16,7 @@ import { useCreateProfile } from "@/components/screens/create-profile/useCreateP
 import { FieldLabel, FormField, GenderPickerModal, StatePickerModal } from "@/components/screens/create-profile/CreateProfileModals";
 import { PROFILE_FIELD_LIMITS } from "@/shared/validators/profileValidators";
 import { CUSTOMER_TYPE_OPTIONS } from "@/components/screens/create-profile/types";
+import type { SignupForm } from "@/components/screens/create-profile/types";
 
 export function RegisterScreen() {
   const insets = useSafeAreaInsets();
@@ -48,8 +49,8 @@ export function RegisterScreen() {
     return () => sub.remove();
   }, [currentStep, scrollRef]);
 
-  const yo = (key: string) => ({ onLayout: (e: any) => setFieldOffset(key, e.nativeEvent.layout.y) });
-  const ff = (key: string) => ({ onBlur: () => handleBlur(key as any) });
+  const yo = (key: string) => ({ onLayout: (e: { nativeEvent: { layout: { y: number } } }) => setFieldOffset(key, e.nativeEvent.layout.y) });
+  const ff = (key: keyof SignupForm) => ({ onBlur: () => handleBlur(key) });
 
   // The keyboard gap is added by KeyboardAwareScrollView, measured from what the keyboard covers.
   const scrollBottomPadding = currentStep === 1 ? Spacing.base : Math.max(insets.bottom + Spacing.xl, 40);

@@ -12,6 +12,7 @@ import { useRevisedProgressStore } from "../../store/revisedProgressStore";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RevisedItrApiService } from "../../services/RevisedItrApiService";
+import { logger } from "@/core/logging/logger";
 import { RevisedItrHeader } from "../../components/common";
 import { RevisedFormField } from "../../components/update";
 import { DEFAULT_REVISED_FORM_FIELDS } from "../../mock/revisedItrData";
@@ -25,7 +26,7 @@ import {
 
 export const UpdateRevisedDetailsScreen: React.FC = () => {
   const router = useRouter();
-  const maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
+  const _maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
       acknowledgementNumber?: string;
@@ -46,7 +47,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
     if (params.revisedDetails) {
       try {
         return JSON.parse(params.revisedDetails);
-      } catch (e) {}
+      } catch {}
     }
     return storeFormData || DEFAULT_REVISED_FORM_FIELDS;
   };
@@ -163,7 +164,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
 
       // Navigate to Screen 4: Upload Supporting Documents
       router.push({
-        pathname: "/service/revised-itr-documents" as any,
+        pathname: "/service/revised-itr-documents" as never,
         params: {
           acknowledgementNumber: params.acknowledgementNumber,
           assessmentYear: params.assessmentYear || "AY 2025—26",
@@ -172,7 +173,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
         },
       });
     } catch (e) {
-      console.error("Error saving revised details:", e);
+      logger.error("Error saving revised details", e);
       Alert.alert("Error", "Failed to save revised details.");
     } finally {
       setIsSubmitting(false);
@@ -206,7 +207,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
       
       // Redirect back to Review screen
       router.push({
-        pathname: "/service/revised-itr-review" as any,
+        pathname: "/service/revised-itr-review" as never,
         params: {
           acknowledgementNumber: params.acknowledgementNumber,
           assessmentYear: params.assessmentYear || "AY 2025—26",
@@ -215,7 +216,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
         }
       });
     } catch (e) {
-      console.error("Error updating revised details:", e);
+      logger.error("Error updating revised details", e);
       Alert.alert("Error", "Failed to update revised details.");
     } finally {
       setIsSubmitting(false);

@@ -32,7 +32,7 @@ export const PendingDocumentsScreen: React.FC = () => {
         }));
     }
 
-    const allPending: Array<ApplicationDocument & { appId: string; serviceName: string }> = [];
+    const allPending: (ApplicationDocument & { appId: string; serviceName: string })[] = [];
     for (const app of applications) {
       if (app.status === "Draft") continue; // drafts handled in their own wizard
       for (const doc of app.documents) {

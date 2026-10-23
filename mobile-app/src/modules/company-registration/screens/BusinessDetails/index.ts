@@ -1,2 +1,2 @@
-﻿export { BusinessDetailsScreen } from "./BusinessDetailsScreen";
+export { BusinessDetailsScreen } from "./BusinessDetailsScreen";
 export { default } from "./BusinessDetailsScreen";

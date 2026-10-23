@@ -105,4 +105,17 @@ export const signatoryAmendmentApi = {
       );
     });
   },
+  submitFinalSignatoryAmendment: (
+    gstId?: string,
+    id?: number | string | null,
+    pushToken?: string,
+  ): Promise<string> => {
+    const params = new URLSearchParams();
+    if (gstId) params.append("gstId", gstId);
+    if (id !== undefined && id !== null) params.append("id", String(id));
+    if (pushToken) params.append("pushToken", pushToken);
+    const query = params.toString();
+    const url = `/api/v1/gst/amendments/signatory/submit${query ? `?${query}` : ""}`;
+    return apiClient.post<string>(url);
+  },
 };

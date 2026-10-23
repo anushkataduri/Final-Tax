@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { useTheme } from "../../../../hooks/use-theme";

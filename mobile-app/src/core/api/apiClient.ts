@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ApiError } from "./apiError";
 import { InterceptorManager } from "./interceptors";
-import { tokenManager } from "@/core/authentication/tokenManager";
+import { tokenManager, JwtUtils } from "@/core/authentication/tokenManager";
 import { tokenRefreshManager } from "@/core/authentication/tokenRefreshManager";
 import {
   getDefaultBaseUrl,
@@ -11,63 +11,17 @@ import {
 } from "./apiConfig";
 import { getErrorMessage } from "../error-handling/errorMessage";
 import { logger } from "@/core/logging/logger";
+import {
+  NO_REFRESH_PATHS,
+  isPublicEndpoint,
+  toSeconds,
+  describeTransportError,
+} from "./apiClient.utils";
+import type { RequestOptions, ApiErrorBody } from "./apiClient.utils";
 
 export { getDefaultBaseUrl, SERVER_IP, SERVER_PORT, STORAGE_KEY_SERVER_URL } from "./apiConfig";
-
-/**
- * Paths that should NEVER trigger a silent refresh on 401.
- * These are the auth endpoints themselves — retrying them would cause infinite loops.
- */
-const NO_REFRESH_PATHS = [
-  "/auth/refresh",
-  "/auth/revoke",
-  "/auth/validate",
-  "/otp/generate",
-  "/otp/verify",
-  "/customer/login",
-  "/customer/register",
-];
-
-export interface RequestOptions {
-  headers?: Record<string, string>;
-  params?: Record<string, string | number | boolean>;
-  timeoutMs?: number;
-}
-
-/**
- * Server Network Configuration
- * Change IP and Port here to point the mobile app to your backend.
- */
-/** JSON error body the backend sends with non-2xx responses (all fields optional). */
-interface ApiErrorBody {
-  message?: string;
-  error?: string;
-  code?: string;
-  errors?: Record<string, string[]>;
-  retryAfterSeconds?: number;
-  remainingAttempts?: number;
-}
-
-/** A finite, non-negative number from a JSON field or header, else undefined. */
-const toSeconds = (value: unknown): number | undefined => {
-  const n = typeof value === "string" ? Number(value) : value;
-  return typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : undefined;
-};
-
-/** User-facing message for a request that failed before any HTTP response (timeout, offline, …). */
-const describeTransportError = (error: unknown): string => {
-  let errMessage = getErrorMessage(error) || "Request failed";
-  if (
-    errMessage.includes("canceled") ||
-    errMessage.includes("aborted") ||
-    errMessage.includes("Network request failed") ||
-    errMessage.includes("fetch failed")
-  ) {
-    errMessage =
-      "Unable to connect to server. Please check your internet connection.";
-  }
-  return errMessage;
-};
+export { isPublicEndpoint } from "./apiClient.utils";
+export type { RequestOptions } from "./apiClient.utils";
 
 export class ApiClient {
   private baseUrl: string;
@@ -249,7 +203,23 @@ export class ApiClient {
     try {
       await this.ensureBaseUrlLoaded();
       const initialUrl = this.buildUrl(path, options?.params);
-      const initialHeaders = await this.buildRequestHeaders(body, options);
+      const initialHeaders = await this.buildRequestHeaders(path, body, options, _isRetry);
+
+      // Proactive token refresh: if calling a protected endpoint without an Authorization header
+      // because the access token was expired, try refreshing first.
+      if (!this.isAuthEndpoint(path) && !initialHeaders["Authorization"] && !_isRetry) {
+        const hasRefresh = await tokenManager.getRefreshToken();
+        if (hasRefresh) {
+          logger.info(`🔄 [API] Stored token expired — attempting proactive refresh before calling ${path}...`);
+          const refreshed = await tokenRefreshManager.attemptRefresh();
+          if (refreshed) {
+            const freshToken = await tokenManager.getAccessToken();
+            if (freshToken) {
+              initialHeaders["Authorization"] = `Bearer ${freshToken}`;
+            }
+          }
+        }
+      }
 
       const interceptedConfig = await this.interceptors.runRequestInterceptors({
         url: initialUrl,
@@ -331,10 +301,12 @@ export class ApiClient {
     }
   }
 
-  /** JSON headers plus the caller's headers and, unless supplied, the stored bearer token. */
+  /** JSON headers plus the caller's headers and, unless public/supplied, the stored bearer token. */
   private async buildRequestHeaders(
+    path: string,
     body: unknown,
     options?: RequestOptions,
+    _isRetry = false,
   ): Promise<Record<string, string>> {
     const initialHeaders: Record<string, string> = {
       "Content-Type": "application/json",
@@ -346,11 +318,21 @@ export class ApiClient {
       delete initialHeaders["Content-Type"];
     }
 
-    if (!initialHeaders["Authorization"]) {
+    // Public/auth endpoints must NEVER receive a Bearer token
+    if (isPublicEndpoint(path)) {
+      delete initialHeaders["Authorization"];
+      return initialHeaders;
+    }
+
+    if (!initialHeaders["Authorization"] || _isRetry) {
       try {
         const token = await tokenManager.getAccessToken();
         if (token) {
-          initialHeaders["Authorization"] = `Bearer ${token}`;
+          if (JwtUtils.isStructureAndExpiryValid(token, 0)) {
+            initialHeaders["Authorization"] = `Bearer ${token}`;
+          } else {
+            logger.debug("[API] Stored access token is expired; skipping Authorization header");
+          }
         }
       } catch (tokenErr) {
         logger.warn("Failed to retrieve access token", { error: getErrorMessage(tokenErr) });
@@ -407,6 +389,7 @@ export class ApiClient {
    * NEVER trigger a silent refresh (to prevent infinite loops).
    */
   private isAuthEndpoint(path: string): boolean {
+    if (isPublicEndpoint(path)) return true;
     const cleanPath = path.startsWith("/") ? path : `/${path}`;
     return NO_REFRESH_PATHS.some((p) => cleanPath.startsWith(p));
   }

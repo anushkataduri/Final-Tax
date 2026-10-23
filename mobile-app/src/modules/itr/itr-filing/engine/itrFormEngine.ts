@@ -18,7 +18,7 @@ export function determineApplicableItrForm(
 ): DeterminedFormInfo {
   const isResident = residentialStatus === "Resident" || !residentialStatus;
   const hasSalary = sources.salary.enabled;
-  const hasHouseProperty = sources.houseProperty.enabled;
+  const _hasHouseProperty = sources.houseProperty.enabled;
   const hasBusiness = sources.business.enabled;
   const hasCapitalGains = sources.capitalGains.enabled;
   const hasFnoIntraday = hasCapitalGains && sources.capitalGains.hasFnoIntraday;

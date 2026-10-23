@@ -7,21 +7,24 @@ const isExpoGo =
   Constants.appOwnership === 'expo' ||
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-let Notifications: any = null;
+let Notifications: typeof import("expo-notifications") | null = null;
 
 try {
   if (!isExpoGo) {
     // Only require expo-notifications in development builds or standalone apps
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     Notifications = require('expo-notifications');
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowBanner: true,
-        shouldShowList: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-      }),
-    });
+    const notifs = Notifications;
+    if (notifs) {
+      notifs.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+        }),
+      });
+    }
   }
 } catch {
   // Gracefully ignored in Expo Go

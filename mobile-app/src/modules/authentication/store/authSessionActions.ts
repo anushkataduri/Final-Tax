@@ -1,6 +1,7 @@
 import type { StoreApi } from "zustand";
 import type { CustomerProfile } from "../../../shared/types/domain";
 import type { DevUser, AuthState } from "../types/auth.types";
+import type { CheckUserResponse } from "../services/authApi.types";
 import { authService } from "../services/authService";
 import { authStorage } from "../services/authStorage";
 import { authApi, type CustomerApiRecord } from "../services/authApi";
@@ -11,6 +12,7 @@ import {
   refreshNotificationsForActiveCustomer,
   toCustomer,
 } from "./authStore.helpers";
+import { useApplicationStore } from "../../../store/applicationStore";
 import { logger } from "@/core/logging/logger";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
 
@@ -25,10 +27,10 @@ export const createSessionActions = (
   get: StoreApi<AuthState>["getState"]
 ): AuthSessionActions => ({
   // Check user existence in DB
-  checkUser: async (overrideMobile?: string) => {
+  checkUser: async (overrideMobile?: string): Promise<CheckUserResponse> => {
     const mobileToUse = overrideMobile || get().mobileNumber;
     const cleanMobile = mobileToUse.replace(/\D/g, "");
-    if (cleanMobile.length !== 10) return { exists: false, customerExists: false, profileCompleted: false, hasPasscode: false };
+    if (cleanMobile.length !== 10) return { success: false, exists: false, customerExists: false, profileCompleted: false, hasPasscode: false };
     const res = await authService.checkUser(cleanMobile);
     set({
       customerExists: res.customerExists,
@@ -128,8 +130,8 @@ export const createSessionActions = (
     }
   },
 
-  register: async (profile: CustomerProfile, passcode = "123456", autoLogin = true) => {
-    const mobile = (profile as any).mobileNumber || get().mobileNumber || "9876543210";
+  register: async (profile: CustomerProfile & { mobileNumber?: string }, passcode = "123456", autoLogin = true) => {
+    const mobile = profile.mobileNumber || get().mobileNumber || "9876543210";
     const res = await authService.registerUser(
       {
         ...profile,
@@ -212,7 +214,6 @@ export const createSessionActions = (
       logger.warn("[AuthSession] Background logout error", { error: getErrorMessage(err) });
     });
     try {
-      const { useApplicationStore } = require("../../../store/applicationStore");
       useApplicationStore.getState().resetStore?.();
     } catch (err) {
       logger.debug("[AuthSession] Resetting application store failed", { error: getErrorMessage(err) });

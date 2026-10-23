@@ -11,23 +11,13 @@ import {
   Typography,
 } from "@/shared/theme";
 
-export const CANCELLATION_REASONS = [
-  "Discontinuance / Closure of Business",
-  "Annual Turnover Fell Below GST Exemption Limit (₹40L/₹20L)",
-  "Transfer of Business / Demerger / Amalgamation",
-  "Death of Sole Proprietor",
-  "Change in Legal Constitution",
-  "Other Valid Reason",
-];
+import {
+  CANCELLATION_REASONS,
+  ACCEPTED_PROOFS,
+} from "../../constants/gstCancellation.constants";
+import { reviewStyles } from "./GstCancellationReview.styles";
 
-export const ACCEPTED_PROOFS = [
-  "Business Closure Proof",
-  "Sale / Transfer Agreement",
-  "Merger / Amalgamation Document",
-  "Revised Constitution / Partnership Document",
-  "Death Certificate",
-  "Other Relevant Supporting Document",
-];
+export { CANCELLATION_REASONS, ACCEPTED_PROOFS };
 
 const white = BrandColors.WHITE;
 const primary = BrandColors.TEXT_PRIMARY;
@@ -372,82 +362,7 @@ export const styles = StyleSheet.create({
     color: BrandColors.PRIMARY_ORANGE,
     fontWeight: "700",
   },
-  sectionCard: {
-    backgroundColor: white,
-    borderRadius: 16,
-    padding: Spacing.base,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    gap: 14,
-    shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 2,
-  },
-  sectionIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    backgroundColor: "#FFF7ED",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sectionTitleWrap: {
-    flex: 1,
-  },
-  sectionMainTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#0F172A",
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: "#64748B",
-    marginTop: 1,
-  },
-  secondaryBtnDanger: {
-    marginTop: 4,
-    borderColor: "#EF4444",
-    borderWidth: 1,
-  },
-  secondaryBtnTextDanger: {
-    color: "#EF4444",
-  },
-  successRowValPrimary: {
-    color: BrandColors.PRIMARY_BLUE,
-  },
-  successRowValSuccess: {
-    color: "#16A34A",
-  },
-  // Edit button used in Review screen
-  reviewCardEditRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  editOptionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#FFF1E8",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#FED7AA",
-  },
-  editOptionText: {
-    fontSize: 12.5,
-    fontWeight: "700" as const,
-    color: BrandColors.PRIMARY_ORANGE,
-  },
+  ...reviewStyles,
 });
 
 export const getHeaderBarStyle = (topInset: number) => ({

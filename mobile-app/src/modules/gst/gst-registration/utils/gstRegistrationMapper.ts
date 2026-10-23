@@ -1,4 +1,6 @@
 import { GstBusinessFormData } from "@/modules/gst/gst-registration/components/GstBusinessStep/GstBusinessStep";
+import type { DocumentItem } from "@/modules/gst/gst-registration/components/GstUnifiedDocumentStep/GstUnifiedDocumentStep.types";
+import type { GstBusinessDto, GstDocumentsDto } from "@/modules/gst/services/gstApiTypes";
 import { logger } from "@/core/logging/logger";
 
 /**
@@ -243,7 +245,7 @@ const REVERSE_PLACE_MAP: Record<string, string> = {
  * Reverse maps backend BusinessDto to frontend form fields.
  */
 export const mapDtoToGstBusinessFormData = (
-  dto: any,
+  dto: GstBusinessDto,
 ): Partial<GstBusinessFormData> => {
   if (!dto) return {};
   const rawConst = String(dto.constitutionOfBusiness || "").toUpperCase();
@@ -301,9 +303,9 @@ export const mapDtoToGstBusinessFormData = (
  * Maps backend DocumentsDto onto DocumentItem array
  */
 export const mapDtoToDocuments = (
-  dto: any,
-  currentDocs: any[],
-): any[] => {
+  dto: GstDocumentsDto,
+  currentDocs: DocumentItem[],
+): DocumentItem[] => {
   if (!dto || !Array.isArray(currentDocs)) return currentDocs;
   return currentDocs.map((doc) => {
     const key = `${doc.id} ${doc.name || ""}`.toLowerCase();

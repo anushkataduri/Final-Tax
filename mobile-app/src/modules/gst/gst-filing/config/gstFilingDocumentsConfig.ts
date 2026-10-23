@@ -29,6 +29,7 @@ export interface FilingDocItem {
   fileName?: string;
   fileSize?: string;
   uploadedAt?: string;
+  uploadedToBackend?: boolean;
 }
 
 export const INITIAL_FILING_DOCS: FilingDocItem[] = [

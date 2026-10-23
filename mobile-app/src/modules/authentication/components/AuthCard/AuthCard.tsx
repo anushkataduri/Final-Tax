@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { View, ViewProps } from 'react-native';
 import { useTheme } from '../../../../hooks/use-theme';
 import { styles, getThemedStyles } from './AuthCard.styles';

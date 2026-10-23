@@ -1,5 +1,4 @@
 import {
-  generateFinancialYears,
   getCurrentFinancialYear,
 } from "@/modules/gst/utils/gstDateUtils";
 

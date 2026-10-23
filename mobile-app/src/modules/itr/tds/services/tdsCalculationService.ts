@@ -1,6 +1,7 @@
 import { TdsCustomerIncomeFormData } from "../types/customerIncome.types";
 import { TaxCalculationBreakdown } from "../types/estimate.types";
 import { parsePositiveNumber } from "../utils/tdsValidation";
+import { logger } from "@/core/logging/logger";
 
 export const CA_DISCLAIMER_TEXT =
   "Preliminary estimate based on the information provided. Final refund/tax payable will be determined after CA verification, ITR filing and Income Tax Department processing.";
@@ -126,7 +127,7 @@ export const tdsCalculationService = {
         disclaimer: CA_DISCLAIMER_TEXT,
       };
     } catch (error) {
-      console.error("Calculation Error:", error);
+      logger.error("Calculation Error", error);
       // Return safe fallback to prevent crashes
       return {
         grossTotalIncome: 0, standardDeduction: 0, chapterVIAEligibleDeductions: 0, totalEligibleDeductions: 0,

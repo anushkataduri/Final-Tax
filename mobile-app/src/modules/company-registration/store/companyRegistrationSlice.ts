@@ -8,6 +8,10 @@ import { getSuffixForType, isOpcCompanyType } from '../validation/companySchema'
 import { getInitialDraft } from './initialDraft';
 
 interface CompanyRegistrationState {
+  registrationId: string | null;
+  setRegistrationId: (id: string | null) => void;
+  registeredOfficeId: string | null;
+  setRegisteredOfficeId: (id: string | null) => void;
   draft: CompanyRegistrationDraft;
   fieldErrors: Record<string, string>;
   editingStep: number | null;
@@ -33,6 +37,10 @@ interface CompanyRegistrationState {
 }
 
 export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set) => ({
+  registrationId: null,
+  setRegistrationId: (registrationId) => set({ registrationId }),
+  registeredOfficeId: null,
+  setRegisteredOfficeId: (registeredOfficeId) => set({ registeredOfficeId }),
   draft: getInitialDraft(),
   fieldErrors: {},
   editingStep: null,
@@ -211,11 +219,11 @@ export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set
           companyType: state.draft.company.companyType,
           proposedName: state.draft.company.proposedName1,
         },
-        documents: state.draft.documents.map(d => ({ name: d.name, status: d.status as any, fileUri: d.fileUri })),
+        documents: state.draft.documents.map(d => ({ name: d.name, status: d.status, fileUri: d.fileUri })),
         timeline: state.draft.trackingStages?.map((stg) => ({
           title: stg.title,
           description: stg.description,
-          status: stg.status as "completed" | "current" | "pending",
+          status: stg.status,
           date: stg.updatedAt || 'Today',
         })) || [],
         chatHistory: [],
@@ -236,19 +244,26 @@ export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set
         serviceId: 'company-registration',
         serviceName: 'Company Registration',
         category: 'BUSINESS',
-        status: (statusText as any) || 'Under Verification',
+        status: statusText || 'Under Verification',
         progress: 100,
         assignedExecutive: 'TaxEdge Compliance Team',
         paymentAmount: state.draft.feeBreakdown.totalAmount,
         paymentStatus: 'Pending',
         createdAt: dateStr,
         formData: { companyType: state.draft.company.companyType, proposedName: state.draft.company.proposedName1 },
-        documents: state.draft.documents.map(d => ({ name: d.name, status: d.status as any, fileUri: d.fileUri })),
-        timeline: state.draft.trackingStages?.map((stg) => ({ title: stg.title, description: stg.description, status: stg.status as any, date: stg.updatedAt || 'Today' })) || [],
+        documents: state.draft.documents.map(d => ({ name: d.name, status: d.status, fileUri: d.fileUri })),
+        timeline: state.draft.trackingStages?.map((stg) => ({ title: stg.title, description: stg.description, status: stg.status, date: stg.updatedAt || 'Today' })) || [],
         chatHistory: [],
       };
       useApplicationStore.getState().addApplication(mappedApp);
       return { draft: { ...state.draft, id: realId, status: 'Submitted', createdAt: dateStr, currentStep: 7 }, editingStep: null };
     }),
-  resetRegistration: () => set({ draft: getInitialDraft(), fieldErrors: {}, editingStep: null }),
+  resetRegistration: () =>
+    set({
+      registrationId: null,
+      registeredOfficeId: null,
+      draft: getInitialDraft(),
+      fieldErrors: {},
+      editingStep: null,
+    }),
 }));

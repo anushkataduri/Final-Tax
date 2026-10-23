@@ -12,22 +12,32 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { SecondaryButton } from "@/shared/components/Button/SecondaryButton";
 import { styles } from "@/styles/app/(main)/profile.styles";
 import type { PersonalFormState } from "./useProfileManager";
+import { isPlaceholderCustomerName } from "@/modules/authentication/store/authStore.helpers";
+import { useTheme } from "@/hooks/use-theme";
+import type { Customer, CustomerProfile } from "@/types/domain";
+
+const isMockEmail = (email?: string | null): boolean => {
+  if (!email || email.trim() === "") return true;
+  return /^\d{10}@taxedge\.in$/i.test(email.trim()) || email.toLowerCase().endsWith("@taxedge.in");
+};
 
 interface PersonalDetailsModalProps {
   visible: boolean;
   onClose: () => void;
-  colors: any;
+  colors: ReturnType<typeof useTheme>;
   fetchingPersonal: boolean;
   isEditingPersonal: boolean;
   setIsEditingPersonal: (val: boolean) => void;
   savingPersonal: boolean;
-  personalDetails: any;
-  customer: any;
+  personalDetails: (Partial<CustomerProfile> & { mobileNumber?: string }) | null;
+  customer: Customer | null;
   personalForm: PersonalFormState;
   personalErrors: Record<string, string>;
   updatePersonalField: (field: keyof PersonalFormState, value: string) => void;
   handleSavePersonal: () => void;
   onCancelEdit: () => void;
+  isProfileComplete?: boolean;
+  onCompleteProfile?: () => void;
 }
 
 const EDITABLE_FIELDS: {
@@ -82,6 +92,8 @@ export function PersonalDetailsModal({
   updatePersonalField,
   handleSavePersonal,
   onCancelEdit,
+  isProfileComplete = true,
+  onCompleteProfile,
 }: PersonalDetailsModalProps) {
   const displayAddress =
     personalDetails?.address ||
@@ -94,16 +106,21 @@ export function PersonalDetailsModal({
     ]
       .filter(Boolean)
       .join(", ") ||
-    "N/A";
+    "Not provided";
+
+  const rawEmail = personalDetails?.email || customer?.email;
+  const cleanEmail = isMockEmail(rawEmail) ? "Not provided" : rawEmail;
+  const rawName = personalDetails?.name || customer?.name;
+  const cleanName = isPlaceholderCustomerName(rawName) ? "Not provided" : rawName;
 
   const readOnlyItems: [string, string][] = [
-    ["Full Name", personalDetails?.name || customer?.name || "N/A"],
+    ["Full Name", cleanName ?? "Not provided"],
     ["Mobile", personalDetails?.mobileNumber || customer?.mobile || "N/A"],
-    ["Email", personalDetails?.email || customer?.email || "N/A"],
-    ["Date of Birth", personalDetails?.dob || customer?.dob || "N/A"],
+    ["Email", cleanEmail ?? ""],
+    ["Date of Birth", personalDetails?.dob || customer?.dob || "Not provided"],
     [
       "Customer Type",
-      personalDetails?.customerType || customer?.customerType || "N/A",
+      personalDetails?.customerType || customer?.customerType || "Individual",
     ],
     ["Address", displayAddress],
   ];
@@ -134,6 +151,93 @@ export function PersonalDetailsModal({
               >
                 Fetching personal details...
               </Text>
+            </View>
+          ) : !isProfileComplete ? (
+            <View style={styles.incompleteModalBox}>
+              <View style={[styles.incompleteIconCircle, { backgroundColor: "#FEF0E6" }]}>
+                <Ionicons name="person-circle-outline" size={30} color={colors.orange} />
+              </View>
+              <Text style={[styles.incompleteTitle, { color: colors.text }]}>
+                Profile Setup Incomplete
+              </Text>
+              <Text style={[styles.incompleteSubtitle, { color: colors.textSecondary }]}>
+                You haven&apos;t completed your profile setup yet. Complete your profile to set up your personal details, access loans, and file taxes.
+              </Text>
+
+              {/* Progress Indicator */}
+              <View style={styles.progressContainer}>
+                <View style={styles.progressHeader}>
+                  <Text style={[styles.progressLabel, { color: colors.text }]}>
+                    Setup Progress • Step 1 of 2 Complete
+                  </Text>
+                  <Text style={[styles.progressPercent, { color: colors.orange }]}>
+                    50%
+                  </Text>
+                </View>
+                <View style={styles.progressBarBg}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      { backgroundColor: colors.orange, width: "50%" },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <View
+                style={[
+                  styles.incompleteCard,
+                  {
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <View style={styles.incompleteRow}>
+                  <Text style={[styles.infoKey, { color: colors.textSecondary }]}>Mobile Number</Text>
+                  <View style={styles.verifiedBadge}>
+                    <Text style={styles.verifiedText}>
+                      {personalDetails?.mobileNumber || customer?.mobile || "Registered"} ✓
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.incompleteRow}>
+                  <Text style={[styles.infoKey, { color: colors.textSecondary }]}>Full Name</Text>
+                  <View style={styles.pendingBadge}>
+                    <Text style={styles.pendingText}>Pending Setup</Text>
+                  </View>
+                </View>
+                <View style={styles.incompleteRow}>
+                  <Text style={[styles.infoKey, { color: colors.textSecondary }]}>Email Address</Text>
+                  <View style={styles.pendingBadge}>
+                    <Text style={styles.pendingText}>Pending Setup</Text>
+                  </View>
+                </View>
+                <View style={styles.incompleteRow}>
+                  <Text style={[styles.infoKey, { color: colors.textSecondary }]}>Profile Status</Text>
+                  <View style={styles.pendingBadge}>
+                    <Text style={styles.pendingText}>Action Required</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.personalActions}>
+                <SecondaryButton
+                  title="Close"
+                  onPress={onClose}
+                  style={styles.modalActionBtn}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.completeActionBtn,
+                    { backgroundColor: colors.orange },
+                  ]}
+                  onPress={onCompleteProfile}
+                >
+                  <Ionicons name="shield-checkmark-outline" size={16} color="#FFFFFF" />
+                  <Text style={styles.completeActionBtnText}>Complete Profile</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : (
             <KeyboardAwareScrollView
@@ -249,21 +353,25 @@ export function PersonalDetailsModal({
             </KeyboardAwareScrollView>
           )}
 
-          {!isEditingPersonal && (
+          {isProfileComplete && !isEditingPersonal ? (
             <View style={styles.personalActions}>
-              <SecondaryButton title="Close" onPress={onClose} />
+              <SecondaryButton
+                title="Close"
+                onPress={onClose}
+                style={styles.modalActionBtn}
+              />
               <TouchableOpacity
                 style={[
-                  styles.saveEditButton,
+                  styles.completeActionBtn,
                   { backgroundColor: colors.orange },
                 ]}
                 onPress={() => setIsEditingPersonal(true)}
               >
                 <Ionicons name="pencil" size={16} color="#FFFFFF" />
-                <Text style={styles.saveEditText}>Edit</Text>
+                <Text style={styles.completeActionBtnText}>Edit</Text>
               </TouchableOpacity>
             </View>
-          )}
+          ) : null}
         </View>
       </View>
     </Modal>

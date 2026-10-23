@@ -1,2 +1,2 @@
-﻿export { RegistrationTypeScreen } from "./RegistrationTypeScreen";
+export { RegistrationTypeScreen } from "./RegistrationTypeScreen";
 export { default } from "./RegistrationTypeScreen";

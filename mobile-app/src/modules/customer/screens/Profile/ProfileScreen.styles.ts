@@ -12,6 +12,8 @@ import {
   Spacing,
   Typography,
 } from "@/shared/theme";
+import type { UseThemeResult } from "@/hooks/use-theme";
+import { modalStyles } from "./ProfileModal.styles";
 
 export const styles = StyleSheet.create({
   /* Hero */
@@ -183,136 +185,7 @@ export const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.bold,
   },
 
-  /* Modals */
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(5,39,80,0.45)",
-    justifyContent: "center",
-    padding: Spacing.xl,
-  },
-  modalContainer: {
-    borderRadius: 18,
-    padding: Spacing.lg,
-    maxHeight: "85%",
-  },
-  modalTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.extraBold,
-    marginBottom: 6,
-  },
-  modalBody: {
-    paddingVertical: Spacing.sm,
-  },
-  modalScroll: {
-    flexGrow: 0,
-  },
-  readOnlyNote: {
-    fontSize: Typography.fontSize.xs,
-    marginBottom: Spacing.sm,
-  },
-  editField: {
-    marginBottom: Spacing.sm,
-  },
-  editLabel: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semiBold,
-    marginBottom: 5,
-  },
-  editInput: {
-    minHeight: 44,
-    borderWidth: BorderWidth.thin,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: Typography.fontSize.base,
-    backgroundColor: BrandColors.WHITE,
-  },
-  fieldError: {
-    color: "#DC2626",
-    fontSize: Typography.fontSize.xs,
-    marginTop: 4,
-  },
-  formError: {
-    color: "#DC2626",
-    fontSize: Typography.fontSize.sm,
-    marginBottom: Spacing.sm,
-  },
-  personalActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  cancelEditButton: {
-    flex: 1,
-    minHeight: 46,
-    borderRadius: BorderRadius.md,
-    borderWidth: BorderWidth.thin,
-    borderColor: "#CBD5E1",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelEditText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-  },
-  saveEditButton: {
-    flex: 1,
-    minHeight: 46,
-    borderRadius: BorderRadius.md,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  saveEditText: {
-    color: BrandColors.WHITE,
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-  },
-  modalNote: {
-    fontSize: Typography.fontSize.xs - 0.5,
-    fontWeight: Typography.fontWeight.medium,
-    lineHeight: 17,
-    marginBottom: 14,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: Spacing.base,
-    paddingVertical: 9,
-  },
-  infoKey: {
-    fontSize: Typography.fontSize.sm + 1,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  infoValue: {
-    flex: 1,
-    fontSize: Typography.fontSize.sm + 1,
-    fontWeight: Typography.fontWeight.bold,
-    textAlign: "right",
-  },
-  statusLabelContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  statusLabelText: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.extraBold,
-  },
-  fetchingContainer: {
-    paddingVertical: 24,
-    alignItems: "center",
-  },
-  fetchingText: {
-    marginTop: 12,
-    fontSize: 13,
-  },
-  profileScrollContent: {
-    paddingBottom: 0, // placeholder — actual value injected via SCREEN_BOTTOM_PADDING
-  },
+  ...modalStyles,
 });
 
 /** paddingBottom for the profile ScrollView. Pass SCREEN_BOTTOM_PADDING at call-site. */
@@ -321,7 +194,7 @@ export const getProfileScrollStyle = (bottomPadding: number) => ({
 });
 
 /** Dynamic border and text colour for the KYC status pill. */
-export const getKycPillStyle = (kycVerified: boolean, colors: any) => ({
-  borderColor: kycVerified ? "#7BE0A8" : (colors.orange as string),
-  color:       kycVerified ? "#7BE0A8" : (colors.orange as string),
+export const getKycPillStyle = (kycVerified: boolean, colors: UseThemeResult) => ({
+  borderColor: kycVerified ? "#7BE0A8" : colors.orange,
+  color:       kycVerified ? "#7BE0A8" : colors.orange,
 });

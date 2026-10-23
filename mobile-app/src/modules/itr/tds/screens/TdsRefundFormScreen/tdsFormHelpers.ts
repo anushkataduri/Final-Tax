@@ -11,5 +11,5 @@ export const describeSaveError = (err: unknown): string => {
     }
     return err.message;
   }
-  return (err as any)?.message || "Failed to save your TDS details. Please try again.";
+  return (err as { message?: string })?.message || "Failed to save your TDS details. Please try again.";
 };

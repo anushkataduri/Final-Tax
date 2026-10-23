@@ -1,9 +1,6 @@
 import { tokenManager } from "@/core/authentication/tokenManager";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   getActiveBaseUrl,
-  SERVER_PORT,
-  STORAGE_KEY_SERVER_URL,
 } from "@/core/api/apiConfig";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
 import { logger } from "@/core/logging/logger";

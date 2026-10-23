@@ -73,8 +73,8 @@ export default function PaymentScreen() {
   const handlePay = async () => {
     if (!hasValidAmount) {
       Alert.alert(
-        "Payment unavailable",
-        "The payment amount for this application is unavailable."
+        "Fee Pending",
+        "The payment amount for this application is being calculated or verified. Payment will be enabled once your application is reviewed."
       );
       return;
     }

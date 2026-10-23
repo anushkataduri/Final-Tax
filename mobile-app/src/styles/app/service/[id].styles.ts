@@ -6,6 +6,7 @@
 
 import { StyleSheet, Platform } from "react-native";
 import type { ThemeTokens } from "@/shared/constants/theme";
+import type { UseThemeResult } from "@/hooks/use-theme";
 import {
   BrandColors,
   BorderRadius,
@@ -177,7 +178,7 @@ export const styles = StyleSheet.create({
 });
 
 /** Dynamic styles for wizard header */
-export const getWizardTopStyle = (colors: any, topInset: number) => ({
+export const getWizardTopStyle = (colors: UseThemeResult, topInset: number) => ({
   backgroundColor: colors.primaryDark as string,
   paddingTop: topInset,
 });

@@ -13,6 +13,7 @@ import {
   MissingInfoItem,
 } from "../../types/itrFiling.types";
 import { MissingInfoBanner } from "../../../components/MissingInfoBanner";
+import { ItrTaxCalculationCard } from "./ItrTaxCalculationCard";
 import { styles } from "./Step5TaxSummaryReview.styles";
 
 interface Step5TaxSummaryReviewProps {
@@ -250,125 +251,13 @@ export const Step5TaxSummaryReview: React.FC<Step5TaxSummaryReviewProps> = ({
         </View>
       </View>
 
-      {/* 2. Transparent Tax Calculation Card */}
-      <View style={styles.taxHeroCard}>
-        <View style={styles.taxHeroHeader}>
-          <View style={styles.taxHeroHeaderLeft}>
-            <Ionicons name="calculator-outline" size={20} color="#083B75" />
-            <Text style={styles.taxHeroTitle}>Estimated Tax Summary</Text>
-          </View>
-          <View style={styles.regimeBadge}>
-            <Text style={styles.regimeBadgeText}>
-              {regime === "new" ? "New Tax Regime" : "Old Tax Regime"}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.calcRow}>
-          <Text style={styles.calcLabel}>1. Gross Total Income</Text>
-          <Text style={styles.calcValue}>
-            ₹ {calculation.grossTotalIncome.toLocaleString("en-IN")}
-          </Text>
-        </View>
-
-        <View style={styles.calcRow}>
-          <Text style={styles.calcLabel}>2. Less: Standard Deduction</Text>
-          <Text style={styles.calcValueDeduction}>
-            - ₹ {calculation.standardDeduction.toLocaleString("en-IN")}
-          </Text>
-        </View>
-
-        {regime === "old" && calculation.totalChapterVIA > 0 && (
-          <View style={styles.calcRow}>
-            <Text style={styles.calcLabel}>3. Less: Chapter VI-A Deductions</Text>
-            <Text style={styles.calcValueDeduction}>
-              - ₹ {calculation.totalChapterVIA.toLocaleString("en-IN")}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.calcDivider} />
-
-        <View style={styles.calcRow}>
-          <Text style={styles.calcValueTaxable}>Net Taxable Income</Text>
-          <Text style={styles.calcValueTaxable}>
-            ₹ {calculation.taxableIncome.toLocaleString("en-IN")}
-          </Text>
-        </View>
-
-        <View style={styles.calcDivider} />
-
-        <View style={styles.calcRow}>
-          <Text style={styles.calcLabel}>Gross Income Tax (per Slabs)</Text>
-          <Text style={styles.calcValue}>
-            ₹ {calculation.grossTaxLiability.toLocaleString("en-IN")}
-          </Text>
-        </View>
-
-        {calculation.rebate87A > 0 && (
-          <View style={styles.calcRow}>
-            <Text style={styles.calcLabel}>Less: Section 87A Rebate</Text>
-            <Text style={styles.calcValueDeduction}>
-              - ₹ {calculation.rebate87A.toLocaleString("en-IN")}
-            </Text>
-          </View>
-        )}
-
-        <View style={styles.calcRow}>
-          <Text style={styles.calcLabel}>Health & Education Cess (4%)</Text>
-          <Text style={styles.calcValue}>
-            ₹ {calculation.cess.toLocaleString("en-IN")}
-          </Text>
-        </View>
-
-        <View style={styles.calcRow}>
-          <Text style={styles.calcLabel}>Total Tax Liability</Text>
-          <Text style={styles.calcValue}>
-            ₹ {calculation.totalTaxLiability.toLocaleString("en-IN")}
-          </Text>
-        </View>
-
-        <View style={styles.calcRow}>
-          <Text style={styles.calcLabel}>Less: Taxes Already Paid (TDS Credits)</Text>
-          <Text style={styles.calcValueDeduction}>
-            - ₹ {calculation.totalTaxesPaid.toLocaleString("en-IN")}
-          </Text>
-        </View>
-
-        {/* Net Result Highlight */}
-        <View
-          style={[
-            styles.netResultBox,
-            isRefund ? styles.netResultBoxRefund : styles.netResultBoxPayable,
-          ]}
-        >
-          <View>
-            <Text style={styles.netResultLabel}>
-              {isRefund ? "Net Estimated Refund" : "Net Tax Payable"}
-            </Text>
-            <Text style={styles.netResultSub}>
-              {isRefund
-                ? `Directly credited to ${bankDetails.bankName || "Bank Account"} (${maskedBankNumber})`
-                : "Payable before return filing"}
-            </Text>
-          </View>
-          <Text
-            style={
-              isRefund ? styles.netResultAmountRefund : styles.netResultAmountPayable
-            }
-          >
-            ₹ {calculation.finalAmount.toLocaleString("en-IN")}
-          </Text>
-        </View>
-
-        {/* CA Review Disclaimer */}
-        <View style={styles.disclaimerBox}>
-          <Ionicons name="information-circle" size={16} color="#92400E" />
-          <Text style={styles.disclaimerText}>
-            This is an initial estimation based on your declared figures. Your assigned CA will thoroughly review your documents, verify TDS credits with the Income Tax Department, and prepare the final return for your confirmation before e-filing.
-          </Text>
-        </View>
-      </View>
+      <ItrTaxCalculationCard
+        calculation={calculation}
+        regime={regime}
+        isRefund={isRefund}
+        bankName={bankDetails.bankName}
+        maskedBankNumber={maskedBankNumber}
+      />
 
       {/* 3. Filing Details Summary */}
       <View style={styles.card}>

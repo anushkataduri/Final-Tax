@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import NoticeSummaryScreen from "@/modules/itr/taxNotice/screens/NoticeSummaryScreen";
 
 export default function TaxNoticeSummaryRoute() {

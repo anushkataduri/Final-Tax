@@ -18,7 +18,7 @@ export const SERVICE_CATALOGUE: CatalogueSection[] = [
       { label: "GST Registration", serviceId: "gst-registration" },
       { label: "GST Filing", serviceId: "gst-filing" },
       { label: "GST Compliance", serviceId: "gst-compliance" },
-      { label: "GST Cancellation" },
+      // { label: "GST Cancellation" },
       { label: "GST Amendment" },
       { label: "GST Certificate" },
     ],

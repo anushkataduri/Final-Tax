@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { BrandColors } from "@/shared/theme";
 import { ItrDocumentItem } from "../../types/itrFiling.types";
 import {
   DocumentUploadModal,
@@ -50,7 +49,7 @@ export const Step4DocumentChecklist: React.FC<Step4DocumentChecklistProps> = ({
   const totalCount = documents.length;
   const progressPercent = totalCount > 0 ? Math.round((uploadedCount / totalCount) * 100) : 0;
 
-  const handleUploadClick = (doc: ItrDocumentItem) => {
+  const _handleUploadClick = (doc: ItrDocumentItem) => {
     setActiveUploadDoc(doc);
   };
 
@@ -60,7 +59,7 @@ export const Step4DocumentChecklist: React.FC<Step4DocumentChecklistProps> = ({
     setActiveUploadDoc(null);
   };
 
-  const handleRemoveDoc = (docId: string) => {
+  const _handleRemoveDoc = (docId: string) => {
     Alert.alert(
       "Remove Document",
       "Are you sure you want to remove this uploaded file?",
@@ -105,7 +104,7 @@ export const Step4DocumentChecklist: React.FC<Step4DocumentChecklistProps> = ({
           fileSize: doc.fileSize,
           iconType: doc.iconName || "business_income",
         }}
-        onUploadSuccess={(id: string, fileInfo: any) => {
+        onUploadSuccess={(id: string, fileInfo: UploadedFileInfo) => {
           onUpdateDocument(id, fileInfo);
         }}
         onRemove={(id: string) => {

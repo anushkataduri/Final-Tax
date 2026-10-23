@@ -3,7 +3,6 @@ import { View, Text } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import {
-  DocumentBadgeType,
   FilingDocItem,
   INITIAL_FILING_DOCS,
 } from "@/modules/gst/gst-filing/config/gstFilingDocumentsConfig";

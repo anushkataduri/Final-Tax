@@ -52,7 +52,7 @@ export const getValueTextThemeStyle = (value: string, isDark: boolean): TextStyl
     : "#94A3B8",
 });
 
-export const getWebInputStyle = (isDark: boolean): any => ({
+export const getWebInputStyle = (isDark: boolean): Record<string, string | number> => ({
   flex: 1,
   background: "transparent",
   border: "none",

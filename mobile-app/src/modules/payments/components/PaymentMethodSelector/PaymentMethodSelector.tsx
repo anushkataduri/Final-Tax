@@ -10,7 +10,6 @@ import { CardDetailsForm, CardFormData } from "../CardDetailsForm/CardDetailsFor
 import { NetBankingForm, NetBankingFormData } from "../NetBankingForm/NetBankingForm";
 import { styles, getIconBoxBgStyle } from "./PaymentMethodSelector.styles";
 
-export type { CardFormData, NetBankingFormData };
 export type PaymentMethodType = "upi" | "debit" | "credit" | "netbanking";
 
 const UPI_APPS = [
@@ -74,7 +73,7 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
             onPress={() => onSelectMethod(m.id)}
           >
             <View style={[styles.iconBox, getIconBoxBgStyle(m.iconBg)]}>
-              <Ionicons name={m.icon as any} size={20} color={m.iconColor} />
+              <Ionicons name={m.icon as never} size={20} color={m.iconColor} />
             </View>
             <View style={styles.infoCol}>
               <Text style={styles.title}>{m.title}</Text>

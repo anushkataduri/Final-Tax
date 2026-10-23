@@ -49,5 +49,5 @@ export interface CancellationDto {
   closingStockAndInputTaxReversal: string;
   pendingDuesLiabilities: string;
   lastGstr3bFiledArnPeriod: string;
-  supportingProofDocument?: any;
+  supportingProofDocument?: { uri?: string; name?: string; type?: string } | null;
 }

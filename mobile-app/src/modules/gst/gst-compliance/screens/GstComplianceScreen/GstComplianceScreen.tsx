@@ -345,7 +345,7 @@ export function GstComplianceScreen() {
           {currentStep === 1 && (
             <GstComplianceReviewStep
               formData={formData}
-              dbData={dbReviewData}
+              dbData={dbReviewData ?? undefined}
               complianceId={complianceId}
               onEditStep={handleEditStep}
             />

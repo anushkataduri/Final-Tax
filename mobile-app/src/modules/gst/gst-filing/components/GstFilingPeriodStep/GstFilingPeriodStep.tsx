@@ -1,20 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import { gstApi } from "@/modules/gst/services/gstApi";
-import { GstValidators } from "@/modules/gst/utils/gstValidators";
 import { getCurrentFinancialYear } from "@/modules/gst/utils/gstDateUtils";
 import { dismissKeyboardThen } from "@/shared/components/KeyboardAwareFormLayout";
 import { styles } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstFilingPeriodStep.styles";
 import { GstFilingSelectModal } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstFilingSelectModal";
 import { GstCalculationMethodSection } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstCalculationMethodSection";
+import { GstFilingTaxpayerCard } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstFilingTaxpayerCard";
 import { RecursivePills } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/RecursivePills";
 import {
   validateGstin,
@@ -228,7 +222,7 @@ export const GstFilingPeriodStep: React.FC<GstFilingPeriodStepProps> = ({
             <RecursivePills
               items={FILING_PERIODS}
               selectedValue={data.periodType}
-              onSelect={(period) => {
+              onSelect={(period: string) => {
                 onChange({
                   periodType: period,
                   filingPeriod: "",
@@ -305,118 +299,16 @@ export const GstFilingPeriodStep: React.FC<GstFilingPeriodStepProps> = ({
         </View>
       </View>
 
-      {/* CARD 2: Taxpayer & Return Details */}
-      <View style={styles.sectionCard}>
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionIconBox}>
-            <Ionicons name="document-text-outline" size={18} color={BrandColors.PRIMARY_ORANGE} />
-          </View>
-          <View style={styles.sectionTitleWrap}>
-            <Text style={styles.sectionMainTitle}>Taxpayer & Return Details</Text>
-            <Text style={styles.sectionSubtitle}>Enter 15-character GSTIN & return type</Text>
-          </View>
-        </View>
-
-        {/* 4. GSTIN (15-Character) */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>GSTIN (15-Character) *</Text>
-          <TextInput
-            style={[styles.input, errors.gstin && styles.inputError]}
-            placeholder="Enter GSTIN"
-            placeholderTextColor="#94A3B8"
-            value={data.gstin}
-            onChangeText={handleGstinChange}
-            onBlur={() => {
-              if (data.gstin) {
-                const err = validateGstin(data.gstin, true);
-                onError?.("gstin", err || "");
-              }
-              onBlurField?.("gstin");
-            }}
-            onSubmitEditing={() => {
-              if (data.gstin) {
-                const err = validateGstin(data.gstin, true);
-                onError?.("gstin", err || "");
-              }
-            }}
-            returnKeyType="done"
-            autoCapitalize="characters"
-            autoCorrect={false}
-            maxLength={15}
-          />
-          {isLookingUp ? (
-            <ActivityIndicator
-              size="small"
-              color={BrandColors.PRIMARY_ORANGE}
-              style={styles.lookupIndicator}
-            />
-          ) : null}
-          {errors.gstin ? (
-            <Text style={styles.errorText}>{errors.gstin}</Text>
-          ) : null}
-
-          {/* Backend-Verified Entity Card (auto-resolved from GST portal) */}
-          {data.isVerifiedEntity ? (
-            <View style={styles.verifiedCard}>
-              <View style={styles.verifiedTopRow}>
-                <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark-circle" size={15} color="#059669" />
-                  <Text style={styles.verifiedBadgeText}>
-                    Verified from GST Portal
-                  </Text>
-                </View>
-                <Text style={styles.verifiedStateText}>
-                  {data.state || "Active"}
-                </Text>
-              </View>
-              <Text style={styles.verifiedTradeName}>
-                {data.tradeName || data.businessName}
-              </Text>
-              <Text style={styles.verifiedLegalName}>{data.businessName}</Text>
-              <View style={styles.schemePill}>
-                <Text style={styles.schemePillText}>
-                  {data.taxpayerScheme || "Regular Scheme"}
-                </Text>
-              </View>
-            </View>
-          ) : null}
-        </View>
-
-        {/* 5. Filing Return Type Dropdown */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Filing Return Type *</Text>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => dismissKeyboardThen(() => setShowTypeModal(true))}
-            style={[styles.selectInput, errors.filingType && styles.inputError]}
-          >
-            <Text
-              style={[styles.selectText, !data.filingType && styles.placeholderText]}
-              numberOfLines={1}
-            >
-              {data.filingType || "Select return type"}
-            </Text>
-            <Ionicons name="chevron-down" size={18} color="#64748B" />
-          </TouchableOpacity>
-          {errors.filingType ? (
-            <Text style={styles.errorText}>{errors.filingType}</Text>
-          ) : null}
-        </View>
-
-        {/* 6. Filing Type (Regular vs Nil) */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Filing Type *</Text>
-          <View style={styles.periodPillsRow}>
-            <RecursivePills
-              items={FILING_NATURE_OPTIONS}
-              selectedValue={data.filingNature || "Regular Return"}
-              onSelect={(type) =>
-                onChange({ filingNature: type as "Regular Return" | "Nil Return" })
-              }
-            />
-          </View>
-        </View>
-      </View>
+      <GstFilingTaxpayerCard
+        data={data}
+        errors={errors}
+        isLookingUp={isLookingUp}
+        onGstinChange={handleGstinChange}
+        onBlurField={onBlurField}
+        onError={onError}
+        onChange={onChange}
+        onOpenTypeModal={() => setShowTypeModal(true)}
+      />
 
       {/* 7. Tax Calculation Method */}
       {data.filingNature !== "Nil Return" ? (

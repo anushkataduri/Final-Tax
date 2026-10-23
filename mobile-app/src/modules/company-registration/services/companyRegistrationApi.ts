@@ -35,7 +35,7 @@ export const companyRegistrationApi = {
         id: DOCUMENT_ID_MAP[doc.id],
       }));
 
-    const payload: any = {
+    const payload: CompanyRegistrationDraft & { status: string } = {
       ...draft,
       status: 'Submitted',
       documents: mappedDocuments,

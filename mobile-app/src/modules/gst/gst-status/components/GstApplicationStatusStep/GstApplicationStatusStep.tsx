@@ -4,8 +4,8 @@
  * Uses shared design tokens from src/shared/theme.ts.
  */
 
-import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import React, { useEffect } from "react";
+import { View, Text, TouchableOpacity, BackHandler } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
@@ -38,22 +38,50 @@ export const GstApplicationStatusStep: React.FC<GstApplicationStatusStepProps> =
   appId = "Not available",
   appliedDate = "Today",
   businessName = "Your Business",
-  serviceName = "GST Registration",
-  estCompletion = "3-5 Business Days",
+  serviceName = "GST Filing",
+  estCompletion = "1-2 Business Days",
   isFilingWorkflow,
   onReuploadDocuments,
+  showTimeline = false,
+  onGoHome,
+  onGoApplications,
+  onContactSupport,
 }) => {
   const router = useRouter();
   const isFiling = Boolean(isFilingWorkflow || serviceName.toLowerCase().includes("filing"));
   const timelineSteps = isFiling ? GST_FILING_TIMELINE : GST_REGISTRATION_TIMELINE;
 
   const handleGoHome = () => {
-    router.replace("/(main)/home");
+    if (onGoHome) {
+      onGoHome();
+    } else {
+      router.replace("/(main)/home");
+    }
   };
 
   const handleGoApplications = () => {
-    router.replace("/(main)/applications");
+    if (onGoApplications) {
+      onGoApplications();
+    } else {
+      router.replace("/(main)/applications");
+    }
   };
+
+  const handleContactSupport = () => {
+    if (onContactSupport) {
+      onContactSupport();
+    } else {
+      router.push("/chat/support");
+    }
+  };
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      handleGoHome();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleGoHome]);
 
   return (
     <View style={styles.container}>
@@ -73,83 +101,106 @@ export const GstApplicationStatusStep: React.FC<GstApplicationStatusStepProps> =
       {/* Hero Application Status Card */}
       <View style={styles.heroCard}>
         <View style={styles.heroTopRow}>
-          <View>
-            <Text style={styles.heroAppIdLabel}>APPLICATION ID</Text>
-            <Text style={styles.heroAppIdValue}>{appId}</Text>
-          </View>
+          <Text style={styles.heroAppIdLabel}>APPLICATION ID</Text>
           <View style={styles.statusBadge}>
             <Text style={styles.statusBadgeText}>Under Verification</Text>
           </View>
         </View>
 
-        <View style={styles.heroDetailsRow}>
-          <View style={styles.heroCol}>
-            <Text style={styles.colLabel}>Business</Text>
-            <Text style={styles.colValue} numberOfLines={1}>
-              {businessName}
-            </Text>
-          </View>
-          <View style={styles.heroCol}>
-            <Text style={styles.colLabel}>Applied On</Text>
-            <Text style={styles.colValue}>{appliedDate}</Text>
-          </View>
-          <View style={styles.heroCol}>
-            <Text style={styles.colLabel}>Est. Completion</Text>
-            <Text style={styles.colValue}>{estCompletion}</Text>
-          </View>
+        <Text
+          style={styles.heroAppIdValue}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+        >
+          {appId}
+        </Text>
+
+        <View style={styles.heroDivider} />
+
+        <View style={styles.heroRow}>
+          <Text style={styles.rowLabel}>Business</Text>
+          <Text style={styles.rowValue} numberOfLines={1}>
+            {businessName}
+          </Text>
+        </View>
+
+        <View style={styles.heroDivider} />
+
+        <View style={styles.heroRow}>
+          <Text style={styles.rowLabel}>Service</Text>
+          <Text style={styles.rowValue} numberOfLines={1}>
+            {serviceName}
+          </Text>
+        </View>
+
+        <View style={styles.heroDivider} />
+
+        <View style={styles.heroRow}>
+          <Text style={styles.rowLabel}>Applied On</Text>
+          <Text style={styles.rowValue}>{appliedDate}</Text>
+        </View>
+
+        <View style={styles.heroDivider} />
+
+        <View style={styles.heroRow}>
+          <Text style={styles.rowLabel}>Est. Completion</Text>
+          <Text style={styles.rowValue}>{estCompletion}</Text>
         </View>
       </View>
 
-      {/* Application Progress Timeline */}
-      <Text style={styles.sectionHeading}>Application Progress</Text>
-      <View style={styles.timelineList}>
-        {timelineSteps.map((step, idx) => {
-          const isLast = idx === timelineSteps.length - 1;
-          return (
-            <View key={step.id} style={styles.timelineRow}>
-              {/* Timeline Indicator Column */}
-              <View style={styles.timelineLeftCol}>
-                {step.status === "completed" && (
-                  <View style={styles.circleCompleted}>
-                    <Ionicons name="checkmark" size={14} color={BrandColors.PRIMARY_ORANGE} />
+      {/* Optional Application Progress Timeline */}
+      {showTimeline && (
+        <>
+          <Text style={styles.sectionHeading}>Application Progress</Text>
+          <View style={styles.timelineList}>
+            {timelineSteps.map((step, idx) => {
+              const isLast = idx === timelineSteps.length - 1;
+              return (
+                <View key={step.id} style={styles.timelineRow}>
+                  <View style={styles.timelineLeftCol}>
+                    {step.status === "completed" && (
+                      <View style={styles.circleCompleted}>
+                        <Ionicons name="checkmark" size={14} color={BrandColors.PRIMARY_ORANGE} />
+                      </View>
+                    )}
+                    {step.status === "active" && (
+                      <View style={styles.circleActive}>
+                        <View style={styles.innerDotActive} />
+                      </View>
+                    )}
+                    {step.status === "pending" && (
+                      <View style={styles.circlePending}>
+                        <View style={styles.innerDotPending} />
+                      </View>
+                    )}
+                    {!isLast && (
+                      <View
+                        style={[
+                          styles.timelineTrack,
+                          step.status === "completed" && styles.timelineTrackCompleted,
+                        ]}
+                      />
+                    )}
                   </View>
-                )}
-                {step.status === "active" && (
-                  <View style={styles.circleActive}>
-                    <View style={styles.innerDotActive} />
-                  </View>
-                )}
-                {step.status === "pending" && (
-                  <View style={styles.circlePending}>
-                    <View style={styles.innerDotPending} />
-                  </View>
-                )}
-                {!isLast && (
-                  <View
-                    style={[
-                      styles.timelineTrack,
-                      step.status === "completed" && styles.timelineTrackCompleted,
-                    ]}
-                  />
-                )}
-              </View>
 
-              {/* Timeline Content */}
-              <View style={styles.timelineRightCol}>
-                <Text
-                  style={[
-                    styles.stepTitle,
-                    step.status === "pending" && styles.stepTitlePending,
-                  ]}
-                >
-                  {step.title}
-                </Text>
-                <Text style={styles.stepSubtitle}>{step.subtitle}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
+                  <View style={styles.timelineRightCol}>
+                    <Text
+                      style={[
+                        styles.stepTitle,
+                        step.status === "pending" && styles.stepTitlePending,
+                      ]}
+                    >
+                      {step.title}
+                    </Text>
+                    <Text style={styles.stepSubtitle}>{step.subtitle}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </>
+      )}
 
       {/* Navigation & Action Buttons */}
       <View style={styles.actionButtonsCol}>
@@ -158,7 +209,7 @@ export const GstApplicationStatusStep: React.FC<GstApplicationStatusStepProps> =
           activeOpacity={0.85}
           onPress={handleGoHome}
         >
-          <Ionicons name="home" size={18} color="#FFFFFF" />
+          <Ionicons name="home" size={19} color="#FFFFFF" />
           <Text style={styles.primaryHomeBtnText}>Go to Home Dashboard</Text>
         </TouchableOpacity>
 
@@ -167,16 +218,16 @@ export const GstApplicationStatusStep: React.FC<GstApplicationStatusStepProps> =
           activeOpacity={0.8}
           onPress={handleGoApplications}
         >
-          <Ionicons name="folder-open-outline" size={18} color={BrandColors.PRIMARY_BLUE} />
+          <Ionicons name="folder-outline" size={19} color={BrandColors.PRIMARY_BLUE} />
           <Text style={styles.secondaryAppBtnText}>Track in My Applications</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.contactSupportBtn}
           activeOpacity={0.8}
-          onPress={() => router.push("/chat/support")}
+          onPress={handleContactSupport}
         >
-          <Ionicons name="chatbubbles-outline" size={17} color="#64748B" />
+          <Ionicons name="chatbubble-outline" size={18} color="#64748B" />
           <Text style={styles.contactSupportBtnText}>Contact Support / CA</Text>
         </TouchableOpacity>
       </View>

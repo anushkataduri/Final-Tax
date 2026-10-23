@@ -1,2 +1,2 @@
-﻿export { ReviewApplicationScreen } from "./ReviewApplicationScreen";
+export { ReviewApplicationScreen } from "./ReviewApplicationScreen";
 export { default } from "./ReviewApplicationScreen";

@@ -1,10 +1,10 @@
 export interface ContainerService {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 class DependencyContainer {
-  private services = new Map<string, any>();
-  private factories = new Map<string, () => any>();
+  private services = new Map<string, unknown>();
+  private factories = new Map<string, () => unknown>();
 
   register<T>(key: string, instance: T): void {
     this.services.set(key, instance);

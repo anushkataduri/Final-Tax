@@ -5,21 +5,14 @@ import path from "node:path";
 import { beforeEach, describe, test } from "node:test";
 import {
   getLoanDetailsStep,
-  getLoanEntryStep,
-  getLoanFlowDefinition,
-  getLoanFlowTotalSteps,
-  resolveLoanActiveStep,
 } from "../../modules/loans/constants/loanFlow";
 import { LOAN_CATEGORIES } from "../../modules/loans/constants/loanCategories";
 import { useLoansStore } from "../../modules/loans/store/loansStore";
 import {
-  createInitialMsmeLoanAddress,
-  createInitialMsmeLoanFormData,
   type MsmeLoanFormData,
 } from "../../modules/loans/msme/types/msmeLoan.types";
 import {
   MSME_DOCUMENT_IDS,
-  getMsmeLoanDocuments,
   isUdyamRegistered,
   isGstRegistered,
 } from "../../modules/loans/msme/constants/msmeDocuments";
@@ -35,7 +28,7 @@ import { useAuthStore } from "../../modules/authentication/store/authStore";
 import type { LoanKycData } from "../../modules/loans/types/loanKyc.types";
 import type { LoanDocumentUpload } from "../../modules/loans/types/loanReview.types";
 
-const msmeCategory = LOAN_CATEGORIES.find((c) => c.id === "msme-loan")!;
+const _msmeCategory = LOAN_CATEGORIES.find((c) => c.id === "msme-loan")!;
 
 const createValidKycData = (): LoanKycData => ({
   fullName: "Ananya Sharma",

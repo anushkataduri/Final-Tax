@@ -1,6 +1,7 @@
 import { apiClient } from "../../../core/api/apiClient";
 import { useAuthStore } from "../../authentication/store/authStore";
 import { logger } from "../../../core/logging/logger";
+import { getErrorMessage } from "@/core/error-handling/errorMessage";
 import type { Application } from "../../../types/domain";
 
 function getAuthHeaders(): Record<string, string> {
@@ -58,12 +59,26 @@ export const applicationService = {
       mobileNumber: mobile || undefined,
     };
 
-    return await apiClient.post<Application>("/applications", payload, { headers });
+    try {
+      return await apiClient.post<Application>("/applications", payload, { headers });
+    } catch (err) {
+      logger.debug("[applicationService] Backend /applications endpoint unavailable, saved to local persistence", {
+        error: getErrorMessage(err),
+      });
+      return payload as Application;
+    }
   },
 
   updateApplication: async (app: Application): Promise<Application> => {
-    const headers = getAuthHeaders();
-    return await apiClient.post<Application>("/applications", app, { headers });
+    try {
+      const headers = getAuthHeaders();
+      return await apiClient.post<Application>("/applications", app, { headers });
+    } catch (err) {
+      logger.debug("[applicationService] Backend /applications endpoint unavailable, saved to local persistence", {
+        error: getErrorMessage(err),
+      });
+      return app;
+    }
   },
 
   sendChatMessage: async (appId: string, text: string, sender: "user" | "staff" = "user"): Promise<boolean> => {

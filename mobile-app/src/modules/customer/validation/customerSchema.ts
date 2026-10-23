@@ -1,4 +1,4 @@
-import { validatePan, validateAadhaar, validateEmail, validatePhone } from "../../../shared/validators/indianTaxValidators";
+import { validatePan, validateAadhaar, validateEmail } from "../../../shared/validators/indianTaxValidators";
 import type { ProfileFormValues, ProfileFormErrors } from "../types/customer.types";
 
 export function validateProfile(values: Partial<ProfileFormValues>): ProfileFormErrors {

@@ -72,7 +72,7 @@ export const ServerConfigModal: React.FC<ServerConfigModalProps> = ({
       } else {
         setTestResult({ success: false, message: `Server returned status ${res.status}` });
       }
-    } catch (_err) {
+    } catch {
       setTestResult({
         success: false,
         message: "Cannot reach server. Verify IP and Wi-Fi connection.",

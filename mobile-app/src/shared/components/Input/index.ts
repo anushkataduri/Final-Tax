@@ -1,2 +1,2 @@
 export * from "./FormInput";
-export * from "./Input";
+export { FormInput as Input } from "./FormInput";

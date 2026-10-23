@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Animated } from "react-native";
 import type { AuthFlowState } from "../types/auth.types";
 
@@ -18,8 +18,8 @@ export function useAuthFlowTransition({
   decrementTimer,
 }: UseAuthFlowTransitionOptions) {
   // ─── Standard Animated.Value for flow transitions ─────────────────────────
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  const [fadeAnim] = useState(() => new Animated.Value(1));
+  const [slideAnim] = useState(() => new Animated.Value(0));
 
   // ─── Timer interval ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -32,7 +32,7 @@ export function useAuthFlowTransition({
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [authFlowState, otpTimer]);
+  }, [authFlowState, otpTimer, decrementTimer]);
 
   // ─── Animate on non-biometric state transitions ───────────────────────────
   useEffect(() => {
@@ -51,7 +51,7 @@ export function useAuthFlowTransition({
         useNativeDriver: true,
       }),
     ]).start();
-  }, [authFlowState]);
+  }, [authFlowState, fadeAnim, slideAnim]);
 
   return { fadeAnim, slideAnim };
 }

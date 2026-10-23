@@ -1,143 +1,43 @@
 import { apiClient } from "../../../core/api/apiClient";
 import { ApiError } from "../../../core/api/apiError";
 import { tokenManager } from "../../../core/authentication/tokenManager";
-import type { DevUser, RegistrationData } from "../types/auth.types";
+import type { RegistrationData } from "../types/auth.types";
 import { buildRegisterPayload } from "./customerRegistrationPayload";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
 import { logger } from "@/core/logging/logger";
+import type {
+  CustomerApiRecord,
+  CustomerDetailsResult,
+  CustomerLoginResponse,
+  CustomerProfileUpdate,
+  CustomerStatusResponse,
+  CheckUserResponse,
+  PasscodeResponse,
+  RegisterResponse,
+  SendOtpResponse,
+  UpdatePasswordResponse,
+  VerifyOtpApiResponse,
+  VerifyOtpResponse,
+} from "./authApi.types";
+
+export type {
+  CustomerApiRecord,
+  CustomerDetailsResult,
+  CustomerLoginResponse,
+  CustomerProfileUpdate,
+  CheckUserResponse,
+  PasscodeResponse,
+  RegisterResponse,
+  SendOtpResponse,
+  UpdatePasswordResponse,
+  VerifyOtpResponse,
+};
 
 const maskMobile = (mobile: string): string => {
   if (!mobile) return "";
   const clean = mobile.replace(/\D/g, "");
   return clean.length >= 4 ? clean.slice(-4).padStart(clean.length, "*") : "****";
 };
-
-export interface SendOtpResponse {
-  success: boolean;
-  message?: string;
-  /** Server limit code ("OTP_LOCKED" / "OTP_RESEND_LIMITED") when the request was refused with HTTP 429. */
-  code?: string;
-  retryAfterSeconds?: number;
-}
-
-/** Customer record as returned by the customer endpoints (backend CustomerDto; legacy aliases included). */
-export interface CustomerApiRecord {
-  custId?: string;
-  customerId?: string;
-  name?: string;
-  fullName?: string;
-  email?: string;
-  mobileNumber?: string;
-  mobile?: string;
-  customerType?: string;
-  custType?: string;
-  pan?: string;
-  aadhaar?: string;
-  adhar?: string;
-  dob?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  fatherSpouseName?: string;
-  address?: string;
-  addressLine1?: string;
-  addressLine2?: string;
-  city?: string;
-  state?: string;
-  pincode?: string;
-  pinCode?: string;
-  avatarUri?: string | null;
-  profileCompleted?: boolean;
-  registrationCompleted?: boolean;
-}
-
-/** `POST /otp/verify` body. The embedded customer is present only for registered numbers. */
-interface VerifyOtpApiResponse {
-  customerExists?: boolean;
-  isExistingUser?: boolean;
-  profileCompleted?: boolean;
-  hasPasscode?: boolean;
-  message?: string;
-  customer?: CustomerApiRecord & { custId: string; name: string; email: string };
-  /** Single-use proof that a new number passed OTP; required by `POST /customer/register`. */
-  registrationProof?: string;
-  registrationProofExpiresInSeconds?: number;
-}
-
-/** `GET /customer/exists/:mobile` body. */
-interface CustomerStatusResponse {
-  exists?: boolean;
-  customerExists?: boolean;
-  profileCompleted?: boolean;
-  hasPasscode?: boolean;
-}
-
-/** Token pair and identity returned by `/customer/login` and `/customer/register`. */
-export interface CustomerLoginResponse {
-  accessToken?: string;
-  refreshToken?: string;
-  custId: string;
-  mobileNumber: string;
-  name: string;
-}
-
-/** Result of `getCustomerDetails`. */
-export type CustomerDetailsResult =
-  | { success: true; data: CustomerApiRecord }
-  | { success: false; message: string };
-
-/** Fields sent to `PUT /customer/update`; other profile fields pass through unchanged. */
-export interface CustomerProfileUpdate {
-  mobileNumber?: string;
-  dob?: string;
-  [field: string]: unknown;
-}
-
-export interface VerifyOtpResponse {
-  success: boolean;
-  isExistingUser?: boolean;
-  customerExists?: boolean;
-  profileCompleted?: boolean;
-  hasPasscode?: boolean;
-  message?: string;
-  user?: DevUser;
-  customer?: CustomerApiRecord;
-  registrationProof?: string;
-  registrationProofExpiresInSeconds?: number;
-  /** Server limit code ("OTP_LOCKED") when verification was refused with HTTP 429. */
-  code?: string;
-  retryAfterSeconds?: number;
-  remainingAttempts?: number;
-}
-
-export interface CheckUserResponse {
-  success: boolean;
-  exists: boolean;
-  customerExists?: boolean;
-  profileCompleted?: boolean;
-  hasPasscode?: boolean;
-  user?: DevUser;
-}
-
-export interface RegisterResponse {
-  success: boolean;
-  user: DevUser;
-  token?: string;
-  message?: string;
-  /** Server error code, e.g. "REGISTRATION_PROOF_EXPIRED". */
-  code?: string;
-}
-
-export interface PasscodeResponse {
-  success: boolean;
-  user?: DevUser;
-  token?: string;
-  message?: string;
-}
-
-export interface UpdatePasswordResponse {
-  success: boolean;
-  message?: string;
-}
 
 export const authApi = {
   sendOtp: async (mobileNumber: string): Promise<SendOtpResponse> => {
@@ -186,7 +86,7 @@ export const authApi = {
       const profileCompleted = res?.profileCompleted === true;
       const hasPasscode = res?.hasPasscode === true;
 
-      let devUser: DevUser | undefined;
+      let devUser: VerifyOtpResponse["user"];
       if (res?.customer) {
         devUser = {
           customerId: res.customer.custId,
@@ -312,7 +212,7 @@ export const authApi = {
         success: false,
         message: getErrorMessage(error) || "Registration failed on backend",
         code: error instanceof ApiError ? error.code : undefined,
-        user: {} as DevUser,
+        user: {} as RegisterResponse["user"],
       };
     }
   },
@@ -458,11 +358,10 @@ export const authApi = {
 
   updateCustomerProfile: async (customerData: CustomerProfileUpdate): Promise<{ success: boolean; message?: string }> => {
     try {
-      // Format DOB from DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD for Spring Boot LocalDate if needed
       let formattedDob = customerData.dob || "";
       if (formattedDob && typeof formattedDob === "string") {
-        if (/^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test(formattedDob)) {
-          const parts = formattedDob.split(/[-\/]/);
+        if (/^\d{2}[-/]\d{2}[-/]\d{4}$/.test(formattedDob)) {
+          const parts = formattedDob.split(/[-/]/);
           formattedDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
         }
       }
@@ -485,4 +384,3 @@ export const authApi = {
 };
 
 export default authApi;
-

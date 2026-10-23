@@ -163,4 +163,28 @@ export const gstAmendmentRecordApi = {
         throw new Error(`Unsupported amendment section: ${sectionId}`);
     }
   },
+
+  submitFinalAmendmentRecord: async (
+    sectionId: string,
+    gstId?: string,
+    id?: number | string | null,
+    pushToken?: string,
+  ): Promise<string> => {
+    switch (sectionId) {
+      case "legal-name":
+        return legalNameAmendmentApi.submitFinalLegalNameAmendment(gstId, id, pushToken);
+      case "principal-place":
+        return principalPlaceAmendmentApi.submitFinalPrincipalPlaceAmendment(gstId, id, pushToken);
+      case "additional-place":
+        return additionalPlaceAmendmentApi.submitFinalAdditionalPlaceAmendment(gstId, id, pushToken);
+      case "bank-accounts":
+        return bankAccountAmendmentApi.submitFinalBankAccountAmendment(gstId, id, pushToken);
+      case "contact-details":
+        return contactAmendmentApi.submitFinalContactAmendment(gstId, id, pushToken);
+      case "authorised-signatories":
+        return signatoryAmendmentApi.submitFinalSignatoryAmendment(gstId, id, pushToken);
+      default:
+        throw new Error(`Unsupported amendment section: ${sectionId}`);
+    }
+  },
 };

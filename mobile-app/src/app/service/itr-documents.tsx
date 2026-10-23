@@ -6,6 +6,6 @@ export default function ItrDocumentsRoute() {
   const setStep = useITRStore((state) => state.setStep);
   useEffect(() => {
     setStep(3);
-  }, []);
+  }, [setStep]);
   return <ItrFilingScreen />;
 }

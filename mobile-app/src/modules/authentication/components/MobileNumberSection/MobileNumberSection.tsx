@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { useTheme } from "../../../../hooks/use-theme";
 import { PrimaryButton } from "../../../../shared/components/Button/PrimaryButton";

@@ -2,7 +2,7 @@ export function generateId(prefix: string = "id"): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 }
 
-export function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
+export function debounce<F extends (...args: unknown[]) => unknown>(func: F, waitFor: number) {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
   const debounced = (...args: Parameters<F>) => {

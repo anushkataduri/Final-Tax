@@ -5,7 +5,6 @@ import assert from "node:assert/strict";
 import { getInitialDraft } from "../../modules/company-registration/store/initialDraft";
 import {
   isOpcCompanyType,
-  isPublicCompanyType,
   getMinRequiredPromoters,
 } from "../../modules/company-registration/validation/companySchema";
 import { validateRegistrationStep } from "../../modules/company-registration/validation/companyStepValidation";

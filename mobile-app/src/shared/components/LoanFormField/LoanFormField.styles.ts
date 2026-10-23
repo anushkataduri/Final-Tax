@@ -1,5 +1,4 @@
 import { StyleSheet } from "react-native";
-import { BrandColors } from "../../theme";
 
 export const styles = StyleSheet.create({
   fieldGroup: {

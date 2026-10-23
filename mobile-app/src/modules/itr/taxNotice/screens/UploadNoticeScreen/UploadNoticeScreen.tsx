@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -16,11 +16,10 @@ import {
   TaxNoticeHeader,
   TaxNoticeDatePickerInput,
 } from "../../components/common";
-import { NoticeUploadCard } from "../../components/upload";
 import { TaxNoticeFormData } from "../../types/taxNotice.types";
+import { logger } from "@/core/logging/logger";
 import {
   INITIAL_TAX_NOTICE_FORM_DATA,
-  NOTICE_TYPE_OPTIONS,
 } from "../../mock/taxNoticeData";
 import { useApplicationStore } from "@/store/applicationStore";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
@@ -96,7 +95,7 @@ export const UploadNoticeScreen: React.FC = () => {
       ),
     onSaveDraft: () => {
       saveTaxNoticeDraft({
-        formData,
+        formData: { ...formData } as unknown as Record<string, unknown>,
         step: currentStep === 1 ? "DETAILS" : "UPLOAD",
         updatedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       });
@@ -117,7 +116,7 @@ export const UploadNoticeScreen: React.FC = () => {
     }
   };
 
-  const handleUploadSuccess = (fileInfo: {
+  const _handleUploadSuccess = (fileInfo: {
     uri: string;
     name: string;
     size: string;
@@ -139,14 +138,14 @@ export const UploadNoticeScreen: React.FC = () => {
 
   const validateStep1 = (): boolean => validateStep1Data(formData, setErrors);
 
-  const validateStep2 = (): boolean => validateStep2Data(formData, setErrors);
+  const _validateStep2 = (): boolean => validateStep2Data(formData, setErrors);
   const handleStep1Continue = async () => {
     if (!validateStep1()) return;
 
     try {
       setIsSubmitting(true);
       
-      let noticeId = taxNoticeDraft?.formData?.noticeId;
+      let noticeId = taxNoticeDraft?.formData?.noticeId as string | undefined;
       const payload = {
         pan: formData.pan,
         assessmentYear: formData.assessmentYear,
@@ -167,13 +166,13 @@ export const UploadNoticeScreen: React.FC = () => {
       }
 
       saveTaxNoticeDraft({
-        formData,
+        formData: { ...formData } as unknown as Record<string, unknown>,
         step: taxNoticeDraft?.step === "REVIEW" ? "REVIEW" : "DOCUMENTS",
         updatedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       });
 
       router.push({
-        pathname: (taxNoticeDraft?.step === "REVIEW" ? "/service/tax-notice-preview" : "/service/tax-notice-documents") as any,
+        pathname: (taxNoticeDraft?.step === "REVIEW" ? "/service/tax-notice-preview" : "/service/tax-notice-documents") as never,
         params: {
           noticeId,
           pan: formData.pan,
@@ -184,9 +183,9 @@ export const UploadNoticeScreen: React.FC = () => {
           assessmentYear: formData.assessmentYear,
         },
       });
-    } catch (err: any) {
-      console.error("API Error: ", err);
-      Alert.alert("Registration Failed", err.message || "Could not register tax notice.");
+    } catch (err: unknown) {
+      logger.error("API Error", err);
+      Alert.alert("Registration Failed", (err as { message?: string })?.message || "Could not register tax notice.");
     } finally {
       setIsSubmitting(false);
     }

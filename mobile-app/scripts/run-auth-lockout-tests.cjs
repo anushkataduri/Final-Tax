@@ -130,6 +130,28 @@ const tokens = { access: null, refresh: null };
 const userStore = new Map();
 const calls = { sessionCleared: false, session: null };
 
+const JwtUtilsStub = {
+  decodePayload(token) {
+    try {
+      const parts = token.split(".");
+      if (parts.length !== 3) return null;
+      const base64Url = parts[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+      return JSON.parse(atob(padded));
+    } catch {
+      return null;
+    }
+  },
+  isStructureAndExpiryValid(token, bufferSeconds = 30) {
+    if (!token || token.trim().length === 0) return false;
+    const payload = this.decodePayload(token);
+    if (!payload || typeof payload.exp !== "number") return false;
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    return payload.exp > nowSeconds + bufferSeconds;
+  },
+};
+
 const stubs = {
   "core/logging/logger": { logger: noopLogger, default: noopLogger },
   "core/authentication/tokenManager": {
@@ -139,10 +161,37 @@ const stubs = {
       setAccessToken: async (t) => void (tokens.access = t),
       setRefreshToken: async (t) => void (tokens.refresh = t),
       clearTokens: async () => void (tokens.access = tokens.refresh = null),
+      hasValidToken: async () => {
+        if (!tokens.access) return false;
+        return JwtUtilsStub.isStructureAndExpiryValid(tokens.access);
+      },
     },
+    JwtUtils: JwtUtilsStub,
   },
   "core/authentication/tokenRefreshManager": {
-    tokenRefreshManager: { attemptRefresh: async () => false },
+    tokenRefreshManager: {
+      attemptRefresh: async () => {
+        if (!tokens.refresh) return false;
+        try {
+          const res = await globalThis.fetch("http://backend.test/auth/refresh", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken: tokens.refresh }),
+          });
+          if (!res.ok) return false;
+          const data = JSON.parse(await res.text());
+          if (data.accessToken && data.refreshToken) {
+            tokens.access = data.accessToken;
+            tokens.refresh = data.refreshToken;
+            return true;
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      },
+      onSessionExpired: () => {},
+    },
   },
   "modules/authentication/services/authStorage": {
     authStorage: {

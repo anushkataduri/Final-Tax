@@ -8,7 +8,6 @@ import {
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { LateFilingHeaderBanner } from "../../components/charges/LateFilingHeaderBanner";
 import { GovernmentChargesCard } from "../../components/charges/GovernmentChargesCard";
 import { ServiceFeeCard } from "../../components/charges/ServiceFeeCard";
@@ -33,7 +32,7 @@ export const PreviousYearChargesScreen: React.FC = () => {
   const assessmentYear =
     params.assessmentYear || DEFAULT_PREVIOUS_YEAR_CHARGES.assessmentYear;
 
-  const handleBack = () => {
+  const _handleBack = () => {
     router.back();
   };
 
@@ -57,7 +56,7 @@ export const PreviousYearChargesScreen: React.FC = () => {
     );
 
     router.push({
-      pathname: "/service/previous-year-success" as any,
+      pathname: "/service/previous-year-success" as never,
       params: {
         applicationId: createdAppId,
         assessmentYear: assessmentYear,

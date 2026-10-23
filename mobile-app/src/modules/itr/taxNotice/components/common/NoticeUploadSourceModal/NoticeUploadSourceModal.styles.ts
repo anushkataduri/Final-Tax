@@ -1,5 +1,4 @@
 import { StyleSheet, Platform } from "react-native";
-import { BrandColors, BorderRadius, Typography } from "@/shared/theme";
 
 export const styles = StyleSheet.create({
   overlay: {

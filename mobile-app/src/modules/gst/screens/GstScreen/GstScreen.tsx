@@ -6,7 +6,6 @@
 
 import React, { useEffect, useState } from "react";
 import { View } from "react-native";
-import { useRouter } from "expo-router";
 import { ServiceHeader } from "@/shared/components/ServiceHeader";
 import { ServiceList } from "@/shared/components/ServiceList";
 import { useServiceAccessGuard } from "@/shared/hooks/useServiceAccessGuard";
@@ -16,7 +15,6 @@ import { styles } from "./GstScreen.styles";
 import { toHref } from "@/shared/utils/navigation";
 
 export const GstScreen: React.FC = () => {
-  const router = useRouter();
   const { accessService } = useServiceAccessGuard();
   const [services, setServices] = useState<GstServiceItem[]>([]);
 

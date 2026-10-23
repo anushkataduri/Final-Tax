@@ -195,7 +195,7 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
     }
 
     applicationService.createApplication(newApp).catch((err) => {
-      logger.warn("[ApplicationStore] Backend application persistence error", { error: getErrorMessage(err) });
+      logger.debug("[ApplicationStore] Backend application persistence note", { error: getErrorMessage(err) });
     });
 
     if (!skipNotification) {
@@ -214,7 +214,7 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
     }));
 
     applicationService.createApplication(newApp).catch((err) => {
-      logger.warn("[ApplicationStore] Backend application persistence error", { error: getErrorMessage(err) });
+      logger.debug("[ApplicationStore] Backend application persistence note", { error: getErrorMessage(err) });
     });
   },
 

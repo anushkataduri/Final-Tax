@@ -6,6 +6,6 @@ export default function ItrIncomeInfoRoute() {
   const setStep = useITRStore((state) => state.setStep);
   useEffect(() => {
     setStep(1);
-  }, []);
+  }, [setStep]);
   return <ItrFilingScreen />;
 }

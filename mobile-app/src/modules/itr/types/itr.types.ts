@@ -1,13 +1,13 @@
 import { ServiceCardData } from "../../../shared/components/ServiceCard";
 
-export interface ItrServiceItem extends ServiceCardData {}
+export type ItrServiceItem = ServiceCardData;
 
 export interface ItrFilingDraft {
   assessmentYear?: string;
   profession?: string;
-  incomeDetails?: Record<string, any>;
-  deductions?: Record<string, any>;
+  incomeDetails?: Record<string, unknown>;
+  deductions?: Record<string, unknown>;
   documents?: string[];
   status?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }

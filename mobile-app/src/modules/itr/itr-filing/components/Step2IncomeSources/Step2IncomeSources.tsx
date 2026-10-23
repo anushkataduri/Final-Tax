@@ -1,7 +1,7 @@
 import { Step2SalaryIncome } from "./components/Step2SalaryIncome";
 import { Step2HousePropertyIncome } from "./components/Step2HousePropertyIncome";
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import {
@@ -15,7 +15,6 @@ import {
   GstReconciliationSummary,
   ItrCategoryType,
 } from "../../types/itrFiling.types";
-import { GstReconciliationCard } from "../../../components/GstReconciliationCard";
 import { styles } from "./Step2IncomeSources.styles";
 import {
   BusinessIncomeForm,

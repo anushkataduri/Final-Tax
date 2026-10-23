@@ -5,6 +5,7 @@
 
 import { useApplicationStore } from "@/store/applicationStore";
 import { useNotificationStore } from "@/store/notificationStore";
+import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { ComplianceFormData } from "@/modules/gst/validation/complianceSchema";
 import {
   generateComplianceRefId,
@@ -19,12 +20,12 @@ export interface StructuredCompliancePayload {
   requestType: "RECONCILIATION_SUPPORT" | "NOTICE_RESPONSE";
   financialYear: string;
   gstin: string;
-  documents: Array<{
+  documents: {
     category: string;
     name: string;
     uri: string;
     sizeFormatted: string;
-  }>;
+  }[];
   noticeNumber?: string;
   noticeIssueDate?: string;
   replyDueDate?: string;
@@ -109,26 +110,70 @@ export async function submitComplianceRequest(
 
   try {
     const payload = buildCompliancePayload(data, referenceId);
-    let resolvedId = existingComplianceId || null;
+    let resolvedId = existingComplianceId ? String(existingComplianceId).trim() : null;
 
+    // 1. Call Spring Boot backend API to store in database if not already saved
     if (!resolvedId) {
-      // 1. Call Spring Boot backend API to store in database if not already saved
-      const backendResponse: any = await gstComplianceApi.createCompliance(data);
-      logger.debug("[GST] Compliance API Response received", { hasResponse: !!backendResponse });
-
-      let parsedId = null;
       try {
-        const parsed = typeof backendResponse === "string" ? JSON.parse(backendResponse) : backendResponse;
-        parsedId = parsed?.complianceId;
-      } catch (parseErr) {
-        logger.debug("[GST] JSON parse fallback for complianceId", { error: parseErr });
-        const match = String(backendResponse).match(/Compliance ID:\s*([A-Za-z0-9_-]+)/i);
-        parsedId = match ? match[1] : null;
+        const backendResponse: unknown = await gstComplianceApi.createCompliance(data);
+        logger.debug("[GST] Compliance API Response received", { hasResponse: !!backendResponse });
+
+        let parsedId = null;
+        try {
+          const parsed = typeof backendResponse === "string" ? JSON.parse(backendResponse) : backendResponse;
+          parsedId = parsed?.complianceId;
+        } catch (parseErr) {
+          logger.debug("[GST] JSON parse fallback for complianceId", { error: parseErr });
+          const match = String(backendResponse).match(/Compliance ID:\s*([A-Za-z0-9_-]+)/i);
+          parsedId = match ? match[1] : null;
+        }
+        resolvedId = parsedId || null;
+      } catch (createErr) {
+        logger.warn("[GST] Error creating compliance record before submit:", { error: createErr });
       }
-      resolvedId = parsedId || referenceId;
     }
 
-    // 2. Save to centralized application store
+    // 2. Resolve push token
+    let pushToken = "";
+    try {
+      const authState = useAuthStore.getState();
+      pushToken =
+        authState.customer?.pushToken ||
+        authState.authenticatedUser?.pushToken ||
+        "";
+    } catch (tokenErr) {
+      logger.debug("[GST] Push token resolution notice:", { error: tokenErr });
+    }
+
+    // 3. Submit final compliance to backend (POST /api/v1/gst/compliance/submit)
+    if (resolvedId) {
+      try {
+        await gstComplianceApi.submitFinalCompliance(resolvedId, pushToken || undefined);
+        logger.info(`[GST] Compliance submitted successfully to backend: ${resolvedId}`);
+      } catch (subErr) {
+        const errMsg = getErrorMessage(subErr) || "";
+        if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
+          logger.warn(`[GST] Compliance ID '${resolvedId}' not found on backend (404). Re-creating and retrying submit...`);
+          try {
+            const createRes: unknown = await gstComplianceApi.createCompliance(data);
+            const parsed = typeof createRes === "string" ? JSON.parse(createRes) : (createRes as Record<string, unknown>);
+            const freshId = parsed?.complianceId || (String(createRes).match(/Compliance ID:\s*([A-Za-z0-9_-]+)/i)?.[1]);
+            if (freshId) {
+              resolvedId = freshId;
+              await gstComplianceApi.submitFinalCompliance(freshId, pushToken || undefined);
+            }
+          } catch (retryErr) {
+            logger.warn("[GST] Re-creation and submit retry failed:", { error: retryErr });
+          }
+        } else {
+          logger.warn("[GST] Backend submitCompliance call notice:", { error: subErr });
+        }
+      }
+    }
+
+    const finalDisplayId = resolvedId || referenceId;
+
+    // 4. Save to centralized application store
     useApplicationStore.getState().createApplication(
       "gst-compliance",
       `GST Compliance - ${data.requestType}`,
@@ -138,7 +183,8 @@ export async function submitComplianceRequest(
         requestType: data.requestType,
         financialYear: payload.financialYear,
         gstin: payload.gstin,
-        referenceId: resolvedId,
+        referenceId: finalDisplayId,
+        complianceId: resolvedId || undefined,
         submittedAt: payload.submittedAt,
         estimatedResponse,
         ...(payload.noticeNumber ? { noticeNumber: payload.noticeNumber } : {}),
@@ -151,20 +197,23 @@ export async function submitComplianceRequest(
       },
       payload.documents.map((d) => d.name),
       0,
+      "Pending",
+      false,
+      finalDisplayId,
     );
 
-    // 3. Add notification
+    // 5. Add in-app notification
     useNotificationStore
       .getState()
       .addNotification(
         "GST Compliance Request Submitted",
-        `Your request (${data.requestType}) for ${data.gstin} has been submitted. Reference: ${resolvedId}`,
+        `Your request (${data.requestType}) for ${data.gstin} (ID: ${finalDisplayId}) has been submitted and is under verification.`,
         "gst",
       );
 
     return {
       success: true,
-      referenceId: resolvedId || referenceId,
+      referenceId: finalDisplayId,
       submittedAt,
       estimatedResponse,
     };

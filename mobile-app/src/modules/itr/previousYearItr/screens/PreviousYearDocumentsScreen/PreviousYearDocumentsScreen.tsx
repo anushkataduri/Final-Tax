@@ -8,7 +8,6 @@ import {
   Alert,
 } from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
-import { useApplicationStore } from "@/store/applicationStore";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -83,7 +82,7 @@ export const PreviousYearDocumentsScreen: React.FC = () => {
     }
 
     router.push({
-      pathname: "/service/previous-year-charges" as any,
+      pathname: "/service/previous-year-charges" as never,
       params: {
         assessmentYear,
       },

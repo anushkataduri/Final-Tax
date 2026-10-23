@@ -5,13 +5,14 @@ import { BusinessDetails } from "../../types/customerIncome.types";
 import { styles } from "./TdsRefundFormScreen.styles";
 import { SectionHeader } from "./TdsRefundFormSections.types";
 import { TdsDocumentCard } from "../../components/documents";
+import type { TdsDocumentItem, DocumentUploadPayload } from "../../types/tdsDocuments.types";
 
 interface BusinessDetailsSectionProps {
   business: BusinessDetails;
   errors: CustomerFormErrors;
   updateBusiness: (field: string, value: string) => void;
-  documents?: any[];
-  onUploadSuccess?: (id: string, payload: any) => void;
+  documents?: TdsDocumentItem[];
+  onUploadSuccess?: (id: string, payload: DocumentUploadPayload) => void;
   onUploadError?: (id: string, errorMessage: string) => void;
   onRemove?: (id: string) => void;
 }

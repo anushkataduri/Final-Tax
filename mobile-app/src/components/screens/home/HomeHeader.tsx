@@ -17,7 +17,7 @@ interface HomeHeaderProps {
   unreadCount: number;
   colors: ReturnType<typeof useTheme>;
   topInset: number;
-  onMenuPress: () => void;
+  onMenuPress?: () => void;
   onNotificationsPress: () => void;
 }
 
@@ -26,7 +26,6 @@ export function HomeHeader({
   unreadCount,
   colors,
   topInset,
-  onMenuPress,
   onNotificationsPress,
 }: HomeHeaderProps) {
   return (
@@ -36,34 +35,16 @@ export function HomeHeader({
         { backgroundColor: colors.primaryDark, paddingTop: topInset + Spacing.sm },
       ]}
     >
-      {/* Top row: menu | logo+brand | notification bell */}
+      {/* Top row: logo+brand | notification bell */}
       <View style={styles.topHeaderRow}>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={onMenuPress}
-          style={styles.menuBtn}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel="Open profile"
-        >
-          <Ionicons name="menu" size={26} color="#FFFFFF" />
-        </TouchableOpacity>
-
         <View style={styles.brandContainer}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={onMenuPress}
-            style={styles.logoBox}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Open profile"
-          >
+          <View style={styles.logoBox}>
             <Image
               source={require("@/../assets/images/icon.png")}
               style={styles.logo}
               resizeMode="contain"
             />
-          </TouchableOpacity>
+          </View>
           <View>
             <Text style={styles.brandText}>TAXEDGE</Text>
             <Text style={styles.brandSubText}>FIN SOLUTIONS</Text>

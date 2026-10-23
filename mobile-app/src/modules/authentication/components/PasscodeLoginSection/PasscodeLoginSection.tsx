@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "../../../../hooks/use-theme";
 import { PrimaryButton } from "../../../../shared/components/Button/PrimaryButton";

@@ -84,7 +84,7 @@ export function OrderSummaryCard({
           Total Amount
         </Text>
         <Text style={[styles.totalValue, { color: colors.primary }]}>
-          {hasValidAmount ? formatIndianCurrency(total) : "Amount unavailable"}
+          {hasValidAmount ? formatIndianCurrency(total) : "Fee pending calculation"}
         </Text>
       </View>
     </View>
