@@ -83,7 +83,10 @@
         {
           "faceIDPermission": "TaxEdge uses Face ID to securely authenticate and access your account."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-secure-store",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,
