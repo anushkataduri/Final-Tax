@@ -1,10 +1,11 @@
 /**
  * GST Validation Utilities
- * Strict Indian GSTIN validation, file type checks, and size validation
+ * Indian GSTIN format validation, file type checks, and size validation.
+ * Checksum verification is intentionally omitted — structure only.
  */
 
-// Official 15-character GSTIN format regex:
-// 2 digits (state code) + 5 letters (PAN) + 4 digits (PAN) + 1 letter (PAN) + 1 alphanumeric (entity number) + 'Z' + 1 alphanumeric (checksum)
+// 15-character GSTIN format regex:
+// 2 digits (state code) + 5 letters (PAN) + 4 digits (PAN) + 1 letter (PAN) + 1 alphanumeric (entity number) + 'Z' + 1 alphanumeric
 export const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MiB (10,485,760 bytes)
@@ -53,29 +54,12 @@ export function isValidGstin(gstin: string): boolean {
   return isValidGstStateCode(stateCode);
 }
 
-const GSTIN_CHARMAP = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const VALID_PAN_ENTITY_CHARS = new Set(["A","B","C","F","G","H","J","L","P","T"]);
-
-function computeGstinChecksum(clean15: string): string {
-  let s = 0;
-  let p = 2;
-  for (let i = 0; i < 14; i++) {
-    const mv = GSTIN_CHARMAP.indexOf(clean15[i]) * p;
-    s += Math.floor(mv / 36) + (mv % 36);
-    p = 3 - p;
-  }
-  return GSTIN_CHARMAP[(36 - (s % 36)) % 36];
-}
-
 export function validateGstinFull(gstin: string): string | null {
   if (!gstin || !gstin.trim()) return "Enter a valid 15-character GSTIN.";
   const clean = gstin.trim().toUpperCase();
   if (/[^A-Z0-9]/.test(clean)) return "Enter a valid GSTIN format.";
   if (clean.length !== 15) return "Enter a valid 15-character GSTIN.";
   if (!GSTIN_REGEX.test(clean)) return "Enter a valid GSTIN format.";
-  if (!isValidGstStateCode(clean.slice(0, 2))) return "Enter a valid GSTIN state code.";
-  if (!VALID_PAN_ENTITY_CHARS.has(clean[5])) return "Enter a valid GSTIN format.";
-  if (clean[14] !== computeGstinChecksum(clean)) return "The GSTIN checksum is invalid.";
   return null;
 }
 

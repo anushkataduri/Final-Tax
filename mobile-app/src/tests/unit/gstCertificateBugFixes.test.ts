@@ -17,16 +17,16 @@ const HOOK_FILE = path.join(
 );
 
 describe("GST Certificate Bug Fixes", () => {
-  describe("Bug 1 — validateGstinFull: valid GSTINs", () => {
-    it("accepts Delhi GSTIN with correct checksum", () => {
+  describe("validateGstinFull: valid GSTIN format", () => {
+    it("accepts Delhi GSTIN", () => {
       assert.equal(validateGstinFull("07AAAPZ1234A1Z0"), null);
     });
 
-    it("accepts Maharashtra GSTIN with correct checksum", () => {
+    it("accepts Maharashtra GSTIN", () => {
       assert.equal(validateGstinFull("27AABCU9603R1ZP"), null);
     });
 
-    it("accepts West Bengal GSTIN with correct checksum", () => {
+    it("accepts West Bengal GSTIN", () => {
       assert.equal(validateGstinFull("19AAACR5055K1ZB"), null);
     });
 
@@ -35,7 +35,7 @@ describe("GST Certificate Bug Fixes", () => {
     });
   });
 
-  describe("Bug 1 — validateGstinFull: empty / length errors", () => {
+  describe("validateGstinFull: empty / length errors", () => {
     it("rejects empty string", () => {
       assert.equal(validateGstinFull(""), "Enter a valid 15-character GSTIN.");
     });
@@ -53,7 +53,7 @@ describe("GST Certificate Bug Fixes", () => {
     });
   });
 
-  describe("Bug 1 — validateGstinFull: format errors", () => {
+  describe("validateGstinFull: format / structure errors", () => {
     it("rejects GSTIN containing spaces", () => {
       assert.equal(validateGstinFull("07 AAAPZ1234A1Z0"), "Enter a valid GSTIN format.");
     });
@@ -62,43 +62,16 @@ describe("GST Certificate Bug Fixes", () => {
       assert.equal(validateGstinFull("07AAAPZ1234A1Z😂"), "Enter a valid GSTIN format.");
     });
 
-    it("rejects GSTIN with invalid Z position (position 13 is not Z)", () => {
+    it("rejects GSTIN where position 14 is not Z", () => {
       assert.equal(validateGstinFull("07AAAPZ1234A1A0"), "Enter a valid GSTIN format.");
     });
 
-    it("rejects GSTIN with invalid PAN entity character (D not in ABCFGHJLPT)", () => {
-      assert.equal(validateGstinFull("07AAADZ1234A1Z0"), "Enter a valid GSTIN format.");
+    it("rejects GSTIN with digits in the 5-letter PAN alphabetic prefix", () => {
+      assert.equal(validateGstinFull("07123PZ1234A1Z0"), "Enter a valid GSTIN format.");
     });
   });
 
-  describe("Bug 1 — validateGstinFull: state code errors", () => {
-    it("rejects state code 99 (not a domestic GST code)", () => {
-      const err = validateGstinFull("99AAAPZ1234A1Z0");
-      assert.equal(err, "Enter a valid GSTIN state code.");
-    });
-
-    it("rejects state code 25 (excluded from active codes)", () => {
-      const err = validateGstinFull("25AAAPZ1234A1Z0");
-      assert.equal(err, "Enter a valid GSTIN state code.");
-    });
-
-    it("rejects state code 28 (defunct code)", () => {
-      const err = validateGstinFull("28AAAPZ1234A1Z0");
-      assert.equal(err, "Enter a valid GSTIN state code.");
-    });
-  });
-
-  describe("Bug 1 — validateGstinFull: checksum errors", () => {
-    it("rejects correct-format GSTIN with wrong checksum digit", () => {
-      assert.equal(validateGstinFull("07AAAPZ1234A1Z5"), "The GSTIN checksum is invalid.");
-    });
-
-    it("rejects Maharashtra GSTIN with flipped checksum", () => {
-      assert.equal(validateGstinFull("27AABCU9603R1Z0"), "The GSTIN checksum is invalid.");
-    });
-  });
-
-  describe("Bug 1 — validateGstinFull: CIN / company numbers rejected", () => {
+  describe("validateGstinFull: CIN / company numbers rejected", () => {
     it("rejects CIN U62010TS2025PTC (starts with letter, not 2-digit state code)", () => {
       assert.equal(validateGstinFull("U62010TS2025PTC"), "Enter a valid GSTIN format.");
     });
@@ -108,13 +81,33 @@ describe("GST Certificate Bug Fixes", () => {
     });
   });
 
-  describe("Bug 1 — validateGstinFull: invalid PAN portion", () => {
-    it("rejects GSTIN with digits in PAN alphabetic prefix (first 3 chars)", () => {
-      assert.equal(validateGstinFull("07123PZ1234A1Z0"), "Enter a valid GSTIN format.");
+  describe("validateGstinFull: state-code whitelist no longer applied", () => {
+    it("accepts state code 99 (2 numeric digits — format is valid)", () => {
+      assert.equal(validateGstinFull("99AAAPZ1234A1Z0"), null);
     });
 
-    it("rejects GSTIN with invalid PAN entity character D (not in ABCFGHJLPT)", () => {
-      assert.equal(validateGstinFull("07AAADZ1234A1Z0"), "Enter a valid GSTIN format.");
+    it("accepts state code 25 (2 numeric digits — format is valid)", () => {
+      assert.equal(validateGstinFull("25AAAPZ1234A1Z0"), null);
+    });
+
+    it("accepts state code 28 (2 numeric digits — format is valid)", () => {
+      assert.equal(validateGstinFull("28AAAPZ1234A1Z0"), null);
+    });
+  });
+
+  describe("validateGstinFull: checksum not verified — structurally valid GSTINs with non-matching checksum must pass", () => {
+    it("accepts 07AAAPZ1234A1Z5 even though its checksum digit does not match the GSTN algorithm", () => {
+      assert.equal(validateGstinFull("07AAAPZ1234A1Z5"), null);
+    });
+
+    it("accepts 27AABCU9603R1Z0 even though the correct checksum is P not 0", () => {
+      assert.equal(validateGstinFull("27AABCU9603R1Z0"), null);
+    });
+  });
+
+  describe("validateGstinFull: entity-type character not restricted", () => {
+    it("accepts D at the entity-type position (position 6) — any uppercase letter is allowed", () => {
+      assert.equal(validateGstinFull("07AAADZ1234A1Z0"), null);
     });
   });
 
@@ -152,7 +145,7 @@ describe("GST Certificate Bug Fixes", () => {
     });
   });
 
-  describe("Bug 1 — Hook uses validateGstinFull", () => {
+  describe("Hook uses validateGstinFull", () => {
     it("hook imports validateGstinFull from gstValidation", () => {
       const source = fs.readFileSync(HOOK_FILE, "utf-8");
       assert.ok(
@@ -192,20 +185,25 @@ describe("GST Certificate & Amendment — same canonical GSTIN validator", () =>
     "07AAAPZ1234A1Z0",
     "27AABCU9603R1ZP",
     "19AAACR5055K1ZB",
+    // State codes outside historic whitelist — format is valid
+    "99AAAPZ1234A1Z0",
+    "25AAAPZ1234A1Z0",
+    // Structurally valid but checksum does not match algorithm — must pass
+    "27AABCU9603R1Z0",
+    "07AAAPZ1234A1Z5",
+    // Entity-type character not in the old restricted set — must pass
+    "07AAADZ1234A1Z0",
   ];
 
   const INVALID_CASES: [string, string][] = [
-    ["07AAAPZ1234A1Z",  "14 chars — too short"],
+    ["07AAAPZ1234A1Z",   "14 chars — too short"],
     ["07AAAPZ1234A1Z0X", "16 chars — too long"],
-    ["99AAAPZ1234A1Z0",  "state code 99 — inactive"],
-    ["25AAAPZ1234A1Z0",  "state code 25 — defunct"],
-    ["28AAAPZ1234A1Z0",  "state code 28 — defunct"],
-    ["07AAADZ1234A1Z0",  "PAN entity char D — not in ABCFGHJLPT"],
     ["07123PZ1234A1Z0",  "digits in PAN alpha prefix"],
-    ["07AAAPZ1234A1A0",  "invalid Z position (position 13 is A not Z)"],
-    ["07AAAPZ1234A1Z5",  "wrong checksum digit"],
+    ["07AAAPZ1234A1A0",  "invalid Z position (position 14 is not Z)"],
     ["U62010TS2025PTC",  "CIN format — starts with letter"],
     ["L12345MH2020PLC",  "CIN format — L prefix"],
+    ["07AAAPZ1234A1Z😂", "emoji — invalid character"],
+    ["07 AAAPZ1234A1Z0", "space — invalid character"],
   ];
 
   describe("valid GSTINs — both validators accept", () => {

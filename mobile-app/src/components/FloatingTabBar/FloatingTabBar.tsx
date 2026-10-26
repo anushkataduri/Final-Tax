@@ -102,7 +102,8 @@ function TabItem({
 export function FloatingTabBar({
   state,
   descriptors,
-  navigation,
+  emitter,
+  navigateToTab,
 }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const colors = useTheme();
@@ -166,19 +167,19 @@ export function FloatingTabBar({
               const label = meta.label ?? options.title ?? route.name;
 
               const onPress = () => {
-                const event = navigation.emit({
+                const event = emitter.emit({
                   type: "tabPress",
                   target: route.key,
                   canPreventDefault: true,
                 });
 
-                !isFocused &&
-                  !event.defaultPrevented &&
-                  navigation.navigate(route.name, route.params);
+                if (!isFocused && !event.defaultPrevented) {
+                  navigateToTab(route.key);
+                }
               };
 
               const onLongPress = () => {
-                navigation.emit({ type: "tabLongPress", target: route.key });
+                emitter.emit({ type: "tabLongPress", target: route.key });
               };
 
               return (
