@@ -6,9 +6,14 @@
 
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { styles, getCategoryTabLabelStyle } from "@/styles/app/(main)/applications.styles";
+import { styles as appStyles } from "@/styles/app/(main)/applications.styles";
 import { CategoryTabIcon } from "./ApplicationIcons";
 import type { ServiceCategoryId } from "@/types/domain";
+
+const styles = appStyles as any;
+const getCategoryTabLabelStyle = (isActive: boolean) => ({
+  color: isActive ? "#FF5722" : "#94A3B8",
+});
 
 export const CATEGORY_TABS: { id: "ALL" | ServiceCategoryId; label: string }[] = [
   { id: "ALL",   label: "All"   },

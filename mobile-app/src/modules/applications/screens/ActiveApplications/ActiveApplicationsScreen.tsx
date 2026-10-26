@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Modal,
+  TextInput,
+  ScrollView,
 } from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -16,83 +17,39 @@ import { useTheme } from "@/hooks/use-theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useResponsive } from "@/hooks/use-responsive";
 import { useApplicationStore } from "@/store/applicationStore";
-import { useNotificationStore } from "@/store/notificationStore";
 import { SCREEN_BOTTOM_PADDING } from "@/shared/components/ScreenLayout";
-import type { Application, ServiceCategoryId } from "@/types/domain";
+import type { Application } from "@/types/domain";
 import { styles } from "./ActiveApplicationsScreen.styles";
 import { ApplicationCardItem } from "@/components/screens/applications/ApplicationCardItem";
 import { OverviewCard, type StatusFilterType, type OverviewItem } from "@/components/screens/applications/OverviewCard";
+import { CategoryFilterModal, CATEGORY_FILTER_OPTIONS } from "@/components/screens/applications/CategoryFilterModal";
+import {
+  normalizeApplicationStatus,
+  matchesStatusFilter,
+  matchesCategoryFilter,
+  matchesSearchQuery,
+  getResumeRoute,
+  deduplicateApplications,
+  getApplicationEmptyState,
+} from "@/modules/applications/utils/applicationStatusUtils";
 import { toHref } from "@/shared/utils/navigation";
 import { logger } from "@/core/logging/logger";
 
-const CATEGORY_FILTER_OPTIONS: { id: "ALL" | ServiceCategoryId; label: string; icon: string }[] = [
-  { id: "ALL", label: "All Applications", icon: "grid-outline" },
-  { id: "GST", label: "GST Services", icon: "document-text-outline" },
-  { id: "ITR", label: "ITR & TDS", icon: "receipt-outline" },
-  { id: "LOANS", label: "Loans", icon: "cash-outline" },
-  { id: "BUSINESS", label: "Business", icon: "briefcase-outline" },
-];
-
-// ── Category & Status matchers ────────────────────────────────────────────────
-
-const CATEGORY_MATCHERS: Record<string, (app: Application) => boolean> = {
-  GST: (app) =>
-    (app.category || "").toUpperCase() === "GST" ||
-    (app.serviceId || "").toLowerCase().startsWith("gst"),
-  ITR: (app) => {
-    const cat = (app.category || "").toUpperCase();
-    const sid = (app.serviceId || "").toLowerCase();
-    return (
-      cat === "ITR" ||
-      ["itr-filing", "tds-refund", "previous-year-itr", "revised-itr", "tax-notice-assistance"].includes(sid)
-    );
-  },
-  LOANS: (app) =>
-    (app.category || "").toUpperCase() === "LOANS" ||
-    (app.serviceId || "").toLowerCase().startsWith("loan"),
-  BUSINESS: (app) => {
-    const cat = (app.category || "").toUpperCase();
-    const sid = (app.serviceId || "").toLowerCase();
-    return cat === "BUSINESS" || sid.startsWith("business") || sid.startsWith("company");
-  },
-  INSURANCE: (app) =>
-    (app.category || "").toUpperCase() === "INSURANCE" ||
-    (app.serviceId || "").toLowerCase().startsWith("insurance"),
-};
-
-const STATUS_FILTER_MATCHERS: Record<StatusFilterType, (status: string) => boolean> = {
-  ALL:                () => true,
-  IN_PROGRESS:        (s) => s.includes("progress") || (!s.includes("complete") && !s.includes("approved") && !s.includes("verification") && !s.includes("reject")),
-  COMPLETED:          (s) => s.includes("complete") || s.includes("approved") || s.includes("disbursed"),
-  UNDER_VERIFICATION: (s) => s.includes("verification") || s.includes("review"),
-};
-
-function getResumeRoute(app: Application): string {
-  return (
-    (app.formData?.resumeRoute as string) ||
-    (app.serviceId === "tds-refund"
-      ? "/service/tds-form"
-      : `/service/${app.serviceId || "itr"}`)
-  );
-}
-
-// ── Screen ────────────────────────────────────────────────────────────────────
-
 export function ActiveApplicationsScreen() {
-  const colors  = useTheme();
-  const isDark  = useColorScheme() === "dark";
-  const router  = useRouter();
-  const insets  = useSafeAreaInsets();
+  const colors = useTheme();
+  const isDark = useColorScheme() === "dark";
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   useResponsive();
 
-  const applications    = useApplicationStore((s) => s.applications);
-  const isLoading       = useApplicationStore((s) => s.isLoading);
-  const error           = useApplicationStore((s) => s.error);
+  const applications = useApplicationStore((s) => s.applications);
+  const isLoading = useApplicationStore((s) => s.isLoading);
+  const error = useApplicationStore((s) => s.error);
   const loadApplications = useApplicationStore((s) => s.loadApplications);
-  useNotificationStore((s) => s.unreadCount);
 
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<"ALL" | ServiceCategoryId>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFilterKey, setSelectedFilterKey] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("ALL");
   const [showCategoryFilterModal, setShowCategoryFilterModal] = useState(false);
 
@@ -125,71 +82,127 @@ export function ActiveApplicationsScreen() {
     }
   }, [loadApplications]);
 
-  // ── Derived counts ──────────────────────────────────────────────────────────
+  // Stable deduplicated applications to guarantee consistent counts
+  const uniqueApplications = useMemo(
+    () => deduplicateApplications(applications),
+    [applications]
+  );
 
-  const totalCount            = applications.length;
-  const inProgressCount       = useMemo(() => applications.filter((a) => STATUS_FILTER_MATCHERS.IN_PROGRESS((a.status || "").toLowerCase())).length, [applications]);
-  const completedCount        = useMemo(() => applications.filter((a) => STATUS_FILTER_MATCHERS.COMPLETED((a.status || "").toLowerCase())).length, [applications]);
-  const underVerificationCount = useMemo(() => applications.filter((a) => STATUS_FILTER_MATCHERS.UNDER_VERIFICATION((a.status || "").toLowerCase())).length, [applications]);
+  // Derived counts calculated strictly from real store records
+  const totalCount = uniqueApplications.length;
+  const inProgressCount = useMemo(
+    () =>
+      uniqueApplications.filter(
+        (a) => normalizeApplicationStatus(a.status) === "IN_PROGRESS"
+      ).length,
+    [uniqueApplications]
+  );
+  const completedCount = useMemo(
+    () =>
+      uniqueApplications.filter(
+        (a) => normalizeApplicationStatus(a.status) === "COMPLETED"
+      ).length,
+    [uniqueApplications]
+  );
+  const underVerificationCount = useMemo(
+    () =>
+      uniqueApplications.filter(
+        (a) => normalizeApplicationStatus(a.status) === "UNDER_VERIFICATION"
+      ).length,
+    [uniqueApplications]
+  );
 
   const filteredApplications = useMemo(
     () =>
-      applications
-        .filter((app) => {
-          const matchesCategory =
-            selectedCategory === "ALL" ||
-            Boolean(CATEGORY_MATCHERS[selectedCategory]?.(app));
-          const matchesStatus = STATUS_FILTER_MATCHERS[statusFilter]((app.status || "").toLowerCase());
-          return matchesCategory && matchesStatus;
-        })
+      uniqueApplications
+        .filter(
+          (app) =>
+            matchesCategoryFilter(app, selectedFilterKey) &&
+            matchesStatusFilter(app.status, statusFilter) &&
+            matchesSearchQuery(app, searchQuery)
+        )
         .sort((a, b) => {
           const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return timeB - timeA;
         }),
-    [applications, selectedCategory, statusFilter]
+    [uniqueApplications, selectedFilterKey, statusFilter, searchQuery]
   );
 
   const overviewItems: OverviewItem[] = [
-    { key: "ALL",                count: totalCount,             label: "Total\nApplications",  color: isDark ? colors.text : "#083B75", isAll: true },
-    { key: "IN_PROGRESS",        count: inProgressCount,        label: "In Progress",          color: "#EA580C" },
-    { key: "COMPLETED",          count: completedCount,         label: "Completed",            color: isDark ? colors.text : "#083B75" },
-    { key: "UNDER_VERIFICATION", count: underVerificationCount, label: "Under\nVerification",  color: "#EA580C" },
+    { key: "ALL", count: totalCount, label: "Total\nApplications", color: isDark ? colors.text : "#083B75", isAll: true },
+    { key: "IN_PROGRESS", count: inProgressCount, label: "In Progress", color: "#EA580C" },
+    { key: "COMPLETED", count: completedCount, label: "Completed", color: isDark ? colors.text : "#083B75" },
+    { key: "UNDER_VERIFICATION", count: underVerificationCount, label: "Under\nVerification", color: "#EA580C" },
   ];
 
-  const handleApplicationPress = useCallback((item: Application) => {
-    const isDraft = item.status === "Draft" || Boolean(item.formData?.isDraft);
-    if (isDraft) {
-      router.push(toHref(getResumeRoute(item)));
-    } else {
-      useApplicationStore.getState().setSelectedApplicationId(item.id);
-      router.push(`/application/${item.id}`);
+  const handleApplicationPress = useCallback(
+    (item: Application) => {
+      const isDraft = item.status === "Draft" || Boolean(item.formData?.isDraft);
+      if (isDraft) {
+        router.push(toHref(getResumeRoute(item)));
+      } else {
+        useApplicationStore.getState().setSelectedApplicationId(item.id);
+        router.push(`/application/${item.id}`);
+      }
+    },
+    [router]
+  );
+
+  const cardBg = isDark ? colors.backgroundElement : "#FFFFFF";
+  const cardBorder = isDark ? colors.border : "#E2E8F0";
+
+  const emptyState = getApplicationEmptyState(
+    uniqueApplications.length,
+    statusFilter,
+    searchQuery
+  );
+
+  const handleEmptyReset = useCallback(() => {
+    if (emptyState.resetType === "STATUS") {
+      setStatusFilter("ALL");
+    } else if (emptyState.resetType === "SEARCH") {
+      setSearchQuery("");
+    } else if (emptyState.resetType === "ALL") {
+      setStatusFilter("ALL");
+      setSelectedFilterKey("ALL");
+      setSearchQuery("");
     }
-  }, [router]);
-
-  const cardBg     = isDark ? colors.backgroundElement : "#FFFFFF";
-  const cardBorder = isDark ? colors.border : "#F1F5F9";
-
-  // ── Render ──────────────────────────────────────────────────────────────────
+  }, [emptyState.resetType]);
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? colors.background : "#F8FAFC" }]}>
       <FocusAwareStatusBar barStyle="light-content" backgroundColor="#0A2346" />
 
-      {/* Navy header */}
-      <View style={[styles.navyHeader, { paddingTop: insets.top + 12 }]}>
+      {/* ── Navy Header (Screen 1 Reference) ── */}
+      <View style={[styles.navyHeader, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerTopRow}>
-          <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerTitle}>My Applications</Text>
-            <Text style={styles.headerSubtitle}>Track all your service applications</Text>
+          <View style={styles.taxedgeLogoRow}>
+            <Text style={styles.taxedgeLogoText}>
+              Tax<Text style={styles.taxedgeLogoAccent}>Edge</Text>
+            </Text>
           </View>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => router.push("/notifications")}
+            style={styles.bellButton}
+          >
+            <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
 
-        {/* Unified Overview card floating at top header */}
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerTitle}>My Applications</Text>
+          <Text style={styles.headerSubtitle}>Track all your service applications</Text>
+        </View>
+      </View>
+
+      {/* ── 4-Column Overview KPI Card (Floating) ── */}
+      <View style={styles.overviewCardWrapper}>
         <OverviewCard
           items={overviewItems}
           statusFilter={statusFilter}
-          selectedCategory={selectedCategory}
+          selectedCategory={selectedFilterKey}
           isDark={isDark}
           colors={colors}
           onSelect={setStatusFilter}
@@ -199,7 +212,74 @@ export function ActiveApplicationsScreen() {
         />
       </View>
 
-      {/* Scrollable body */}
+      {/* ── Search Bar & Filter Button Row ── */}
+      <View style={styles.searchFilterRow}>
+        <View style={[styles.searchContainer, isDark && styles.searchContainerDark]}>
+          <Ionicons name="search-outline" size={18} color="#94A3B8" />
+          <TextInput
+            style={[styles.searchInput, isDark && styles.searchInputDark]}
+            placeholder="Search by application ID or service..."
+            placeholderTextColor="#94A3B8"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            clearButtonMode="while-editing"
+          />
+          {searchQuery.trim().length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery("")}
+              style={styles.clearSearchBtn}
+            >
+              <Ionicons name="close-circle" size={16} color="#94A3B8" />
+            </TouchableOpacity>
+          )}
+        </View>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setShowCategoryFilterModal(true)}
+          style={[styles.filterBtn, isDark && styles.filterBtnDark]}
+        >
+          <Ionicons name="funnel-outline" size={18} color="#0A2346" />
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Category Filter Pills ── */}
+      <View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryPillsScroll}
+        >
+          {CATEGORY_FILTER_OPTIONS.map((opt) => {
+            const isActive = selectedFilterKey === opt.filterKey;
+            return (
+              <TouchableOpacity
+                key={opt.id}
+                onPress={() => setSelectedFilterKey(opt.filterKey)}
+                style={[
+                  styles.categoryPill,
+                  isActive && styles.activeCategoryPill,
+                  isDark && {
+                    backgroundColor: isActive ? "#EA580C" : colors.backgroundElement,
+                    borderColor: isActive ? "#EA580C" : colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.categoryPillText,
+                    isActive && styles.activeCategoryPillText,
+                    isDark && !isActive && { color: colors.textSecondary },
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* ── Applications List ── */}
       <FlatList
         data={filteredApplications}
         keyExtractor={(item) => item.id}
@@ -212,13 +292,6 @@ export function ActiveApplicationsScreen() {
             tintColor="#FF5722"
             colors={["#FF5722"]}
           />
-        }
-        ListHeaderComponent={
-          <View style={styles.recentHeaderRow}>
-            <Text style={[styles.sectionTitle, { color: isDark ? colors.text : "#0F172A" }]}>
-              Recent Applications
-            </Text>
-          </View>
         }
         ListEmptyComponent={
           isLoading && applications.length === 0 ? (
@@ -247,13 +320,25 @@ export function ActiveApplicationsScreen() {
                 color={colors.textSecondary}
                 style={styles.emptyIcon}
               />
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {applications.length === 0 ? "No applications yet" : "No applications match this filter"}
+              <Text
+                style={[
+                  styles.emptyText,
+                  { color: isDark ? colors.text : "#0F172A", fontWeight: "600" },
+                ]}
+              >
+                {emptyState.title}
               </Text>
-              {applications.length === 0 && (
-                <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                  Your real-time submitted applications will appear here
-                </Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+                {emptyState.subtitle}
+              </Text>
+              {emptyState.buttonText && (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handleEmptyReset}
+                  style={[styles.retryButton, { marginTop: 14 }]}
+                >
+                  <Text style={styles.retryButtonText}>{emptyState.buttonText}</Text>
+                </TouchableOpacity>
               )}
             </View>
           )
@@ -270,64 +355,12 @@ export function ActiveApplicationsScreen() {
         )}
       />
 
-      {/* Service Category Filter Modal */}
-      <Modal
+      <CategoryFilterModal
         visible={showCategoryFilterModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowCategoryFilterModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.categoryModalBackdrop}
-          activeOpacity={1}
-          onPress={() => setShowCategoryFilterModal(false)}
-        >
-          <TouchableOpacity activeOpacity={1} style={styles.categoryModalCard}>
-            <Text style={styles.categoryModalTitle}>Filter Applications</Text>
-            {CATEGORY_FILTER_OPTIONS.map((opt) => {
-              const isActive = selectedCategory === opt.id;
-              return (
-                <TouchableOpacity
-                  key={opt.id}
-                  style={[
-                    styles.categoryModalOption,
-                    isActive && styles.categoryModalOptionActive,
-                  ]}
-                  onPress={() => {
-                    setSelectedCategory(opt.id);
-                    setShowCategoryFilterModal(false);
-                  }}
-                >
-                  <View style={styles.categoryModalOptionLeft}>
-                    <Ionicons
-                      name={opt.icon as any}
-                      size={20}
-                      color={isActive ? "#EA580C" : "#64748B"}
-                    />
-                    <Text
-                      style={[
-                        styles.categoryModalOptionLabel,
-                        isActive && styles.categoryModalOptionLabelActive,
-                      ]}
-                    >
-                      {opt.label}
-                    </Text>
-                  </View>
-                  {isActive && (
-                    <Ionicons name="checkmark-circle" size={20} color="#EA580C" />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-            <TouchableOpacity
-              style={styles.categoryModalCloseBtn}
-              onPress={() => setShowCategoryFilterModal(false)}
-            >
-              <Text style={styles.categoryModalCloseText}>Close</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+        selectedFilterKey={selectedFilterKey}
+        onSelect={setSelectedFilterKey}
+        onClose={() => setShowCategoryFilterModal(false)}
+      />
     </View>
   );
 }

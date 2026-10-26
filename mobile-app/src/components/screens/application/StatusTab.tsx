@@ -1,91 +1,102 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { styles } from "@/styles/app/application/[id].styles";
 import type { TimelineStep } from "@/types/domain";
 
 interface StatusTabProps {
   timelineSteps: TimelineStep[];
-  assignedCA: string;
-  onChatPress: () => void;
-  onWithdraw: () => void;
+  currentStatus: string;
 }
 
 export function StatusTab({
   timelineSteps,
-  assignedCA,
-  onChatPress,
-  onWithdraw,
+  currentStatus,
 }: StatusTabProps) {
+  const isCompleted = currentStatus.toLowerCase().includes("complete") ||
+    currentStatus.toLowerCase().includes("approved");
+
+  const statusSubtext = isCompleted
+    ? "Your application has been processed and approved."
+    : "Your application is under review.";
+
   return (
-    <View style={styles.tabContentGap}>
+    <>
+      {/* ── Main Timeline Card (Screen 3 Reference) ── */}
       <View style={styles.card}>
-        <View style={styles.cardHeaderRow}>
-          <Ionicons name="git-branch-outline" size={20} color="#083B75" />
-          <Text style={styles.cardHeaderTitle}>Status Timeline</Text>
-        </View>
-        <View style={styles.timelineWrap}>
+        <View style={styles.timelineContainer}>
           {timelineSteps.map((step, index) => {
             const isLast = index === timelineSteps.length - 1;
-            const isCompleted = step.status === "completed";
-            const isCurrent = step.status === "current";
+            const isStepCompleted = step.status === "completed";
+            const isStepCurrent = step.status === "current";
+
             return (
-              <View key={index} style={styles.timelineRow}>
+              <View key={index} style={styles.timelineStepRow}>
+                {/* Left Column: Icon Circle + Connecting Line */}
                 <View style={styles.timelineLeftCol}>
-                  {isCompleted ? (
-                    <View style={styles.completedCircle}>
-                      <Ionicons name="checkmark" size={12} color="#FFF" />
+                  {isStepCompleted ? (
+                    <View style={styles.circleCompleted}>
+                      <Ionicons name="checkmark" size={14} color="#FFFFFF" />
                     </View>
-                  ) : isCurrent ? (
-                    <View style={styles.currentCircle}>
-                      <Text style={styles.currentCircleText}>
-                        {index + 1}
-                      </Text>
+                  ) : isStepCurrent ? (
+                    <View style={styles.circleCurrent}>
+                      <Ionicons name="shield-outline" size={14} color="#0284C7" />
                     </View>
                   ) : (
-                    <View style={styles.pendingCircle}>
-                      <Text style={styles.pendingCircleText}>
-                        {index + 1}
-                      </Text>
+                    <View style={styles.circlePending}>
+                      <Ionicons name="checkmark" size={14} color="#94A3B8" />
                     </View>
                   )}
+
                   {!isLast && (
                     <View
                       style={[
-                        styles.timelineConnectingLine,
+                        styles.timelineLine,
                         {
-                          backgroundColor: isCompleted
+                          backgroundColor: isStepCompleted
                             ? "#16A34A"
-                            : isCurrent
-                              ? "#FED7AA"
-                              : "#E2E8F0",
+                            : "#E2E8F0",
                         },
                       ]}
                     />
                   )}
                 </View>
-                <View style={styles.timelineContentCol}>
-                  <View style={styles.timelineStepTopRow}>
+
+                {/* Right Column: Title, Date/Badge, Description */}
+                <View style={styles.timelineRightCol}>
+                  <View style={styles.timelineStepTitleRow}>
                     <Text
                       style={[
                         styles.timelineStepTitle,
                         {
-                          color: isCurrent
-                            ? "#EA580C"
-                            : isCompleted
+                          color: isStepCurrent
+                            ? "#0F172A"
+                            : isStepCompleted
                               ? "#0F172A"
                               : "#64748B",
-                          fontWeight: isCurrent || isCompleted ? "700" : "600",
                         },
                       ]}
                     >
                       {step.title}
                     </Text>
-                    {step.date && (
+                    {step.date && isStepCompleted && (
                       <Text style={styles.timelineStepDate}>{step.date}</Text>
                     )}
                   </View>
-                  <Text style={styles.timelineStepSub}>{step.description}</Text>
+
+                  {!isStepCompleted && (
+                    <View style={styles.timelinePendingBadge}>
+                      <Text style={styles.timelinePendingBadgeText}>
+                        {isStepCurrent ? "Pending" : "Pending"}
+                      </Text>
+                    </View>
+                  )}
+
+                  {step.description && (
+                    <Text style={styles.timelineStepDesc}>
+                      {step.description}
+                    </Text>
+                  )}
                 </View>
               </View>
             );
@@ -93,35 +104,19 @@ export function StatusTab({
         </View>
       </View>
 
-      {/* Status Discussion Shortcut */}
-      <TouchableOpacity
-        activeOpacity={0.85}
-        onPress={onChatPress}
-        style={[styles.card, styles.statusDiscussionCard]}
-      >
-        <View style={styles.statusDiscussionLeft}>
-          <Ionicons name="chatbubbles" size={24} color="#EA580C" />
-          <View style={styles.flex1}>
-            <Text style={styles.statusDiscussionTitle}>
-              Need clarification on this status?
-            </Text>
-            <Text style={styles.statusDiscussionSubtitle}>
-              Discuss directly with {assignedCA}
-            </Text>
-          </View>
+      {/* ── Current Status Card (Screen 3 Bottom Reference) ── */}
+      <View style={styles.currentStatusCard}>
+        <View style={styles.currentStatusIconBox}>
+          <Ionicons name="time-outline" size={24} color="#0284C7" />
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#EA580C" />
-      </TouchableOpacity>
-
-      {/* Withdraw Application Button */}
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={onWithdraw}
-        style={styles.withdrawBtn}
-      >
-        <Ionicons name="trash-outline" size={18} color="#EF4444" />
-        <Text style={styles.withdrawBtnText}>Withdraw Application</Text>
-      </TouchableOpacity>
-    </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.currentStatusLabel}>Current Status</Text>
+          <Text style={styles.currentStatusValue}>
+            {currentStatus || "Submitted"}
+          </Text>
+          <Text style={styles.currentStatusSub}>{statusSubtext}</Text>
+        </View>
+      </View>
+    </>
   );
 }

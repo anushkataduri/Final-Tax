@@ -1,21 +1,12 @@
-/**
- * OverviewCard
- * The four-column summary card at the top of the Applications screen.
- * Shows Total, In Progress, Completed, and Under Verification counts.
- * Tapping a column filters the list below.
- */
-
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/hooks/use-theme";
-import { styles, getOverviewValColor, getOverviewSubStyle } from "@/styles/app/(main)/applications.styles";
+import { styles } from "@/styles/app/(main)/applications.styles";
 
-export type StatusFilterType =
-  | "ALL"
-  | "IN_PROGRESS"
-  | "COMPLETED"
-  | "UNDER_VERIFICATION";
+import type { StatusCategory } from "@/modules/applications/utils/applicationStatusUtils";
+
+export type StatusFilterType = StatusCategory;
 
 export interface OverviewItem {
   key: StatusFilterType;
@@ -28,7 +19,7 @@ export interface OverviewItem {
 interface OverviewCardProps {
   items: OverviewItem[];
   statusFilter: StatusFilterType;
-  selectedCategory: string;
+  selectedCategory?: string;
   isDark: boolean;
   colors: ReturnType<typeof useTheme>;
   onSelect: (key: StatusFilterType) => void;
@@ -40,20 +31,16 @@ interface OverviewCardProps {
 export function OverviewCard({
   items,
   statusFilter,
-  selectedCategory,
   isDark,
   colors,
   onSelect,
-  onOpenCategoryFilter,
   cardBg,
   cardBorder,
 }: OverviewCardProps) {
   return (
     <View style={[styles.overviewCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
       {items.map((item, idx) => {
-        const isSelected = item.isAll
-          ? statusFilter === "ALL" && selectedCategory === "ALL"
-          : statusFilter === item.key;
+        const isSelected = statusFilter === item.key;
 
         return (
           <React.Fragment key={item.key}>
@@ -66,44 +53,42 @@ export function OverviewCard({
               />
             )}
             <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => {
-                if (item.key === "ALL") {
-                  onSelect("ALL");
-                  onOpenCategoryFilter?.();
-                } else {
-                  onSelect(statusFilter === item.key ? "ALL" : item.key);
-                }
-              }}
+              activeOpacity={0.75}
+              onPress={() => onSelect(item.key)}
               style={[
                 styles.overviewCol,
-                isSelected &&
-                  (isDark
-                    ? { backgroundColor: "#1E293B", borderWidth: 1, borderColor: "#FF5722" }
-                    : styles.activeOverviewCol),
+                isSelected && (isDark ? styles.activeOverviewColDark : styles.activeOverviewCol),
               ]}
             >
-              <Text style={[styles.overviewVal, getOverviewValColor(isSelected, isDark, item)]}>
-                {item.count}
-              </Text>
-              <Text style={[styles.overviewSub, getOverviewSubStyle(isSelected, isDark, colors)]}>
-                {item.label}
-              </Text>
-              {item.key === "ALL" && (
-                <View style={styles.filterBadge}>
-                  <Ionicons name="filter" size={10} color="#EA580C" />
-                  <Text style={styles.filterBadgeText}>
-                    {selectedCategory === "ALL" ? "All" : selectedCategory}
+              {item.key === "ALL" ? (
+                <Text style={styles.overviewTotalNum}>{item.count}</Text>
+              ) : item.key === "IN_PROGRESS" ? (
+                <View style={styles.circleIconInProgress}>
+                  <Text style={[styles.circleNumVerification, { color: "#0284C7" }]}>
+                    {item.count}
                   </Text>
                 </View>
+              ) : item.key === "COMPLETED" ? (
+                <View style={styles.circleIconCompleted}>
+                  <Text style={[styles.circleNumVerification, { color: "#16A34A" }]}>
+                    {item.count}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.circleIconVerification}>
+                  <Text style={styles.circleNumVerification}>{item.count}</Text>
+                </View>
               )}
-              <View
-                style={
-                  isSelected
-                    ? styles.activeOverviewIndicator
-                    : styles.inactiveOverviewIndicator
-                }
-              />
+
+              <Text
+                style={[
+                  styles.overviewSub,
+                  { color: isSelected ? "#0A2346" : "#64748B" },
+                  isSelected && { fontWeight: "700" },
+                ]}
+              >
+                {item.label}
+              </Text>
             </TouchableOpacity>
           </React.Fragment>
         );

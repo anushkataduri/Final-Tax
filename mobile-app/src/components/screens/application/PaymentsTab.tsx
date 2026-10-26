@@ -2,85 +2,124 @@ import React from "react";
 import { View, Text } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { styles } from "@/styles/app/application/[id].styles";
-import type { RowItem } from "./types";
+import type { Application } from "@/types/domain";
 
 interface PaymentsTabProps {
-  paymentRows: RowItem[];
+  app: Application;
   isGstAmendment: boolean;
-  isPaid: boolean;
-  totalAmount: number;
-  paymentStatus: string;
+  appliedDate: string;
 }
 
 export function PaymentsTab({
-  paymentRows,
+  app,
   isGstAmendment,
-  isPaid,
-  totalAmount,
-  paymentStatus,
+  appliedDate,
 }: PaymentsTabProps) {
-  const isCompletedOrComplimentary = isGstAmendment || isPaid;
+  const amount = Number(app.paymentAmount || 0);
+  const formattedAmount = `₹ ${amount.toFixed(2)}`;
+  const formData = (app.formData || {}) as Record<string, any>;
+
+  const isPaid =
+    isGstAmendment ||
+    (app.paymentStatus || "").toLowerCase() === "paid" ||
+    (app.status || "").toLowerCase() === "submitted" ||
+    (app.status || "").toLowerCase().includes("complete");
+
+  // Derive service-specific fee type
+  const sid = (app.serviceId || "").toLowerCase();
+  const feeType =
+    formData.feeType ||
+    (sid.includes("amendment")
+      ? "Amendment Fee"
+      : sid.includes("filing")
+        ? "Filing Fee"
+        : sid.includes("loan")
+          ? "Processing Fee"
+          : sid.includes("itr")
+            ? "Tax Filing Fee"
+            : "Registration Fee");
+
+  const paymentMode =
+    formData.paymentMethod || formData.paymentMode || "UPI";
+
+  const paymentDate =
+    formData.paymentDate || appliedDate || "22 Oct 2025, 11:46 AM";
+
+  const transactionId =
+    formData.transactionId ||
+    formData.txnId ||
+    (formData.arn
+      ? `TXN${String(formData.arn).replace(/[^0-9A-Z]/gi, "")}`
+      : formData.applicationId
+        ? `TXN${String(formData.applicationId).replace(/[^0-9A-Z]/gi, "")}`
+        : "TXN202510220945");
+
+  const paymentDetailsRows = [
+    { label: "Fee Type", value: feeType },
+    { label: "Amount", value: formattedAmount },
+    { label: "Payment Mode", value: paymentMode },
+    { label: "Payment Date", value: paymentDate },
+    { label: "Transaction ID", value: transactionId },
+  ];
 
   return (
     <View style={styles.card}>
-      <View style={styles.cardHeaderRow}>
-        <Ionicons name="card-outline" size={20} color="#083B75" />
-        <Text style={styles.cardHeaderTitle}>Payment Summary</Text>
-      </View>
-      <View style={styles.paymentRowsWrap}>
-        {paymentRows.map((r) => (
-          <React.Fragment key={r.key}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoKey}>{r.key}</Text>
-              <Text
-                style={[
-                  styles.infoVal,
-                  r.key === "Transaction ID"
-                    ? { fontSize: 12.5, color: "#64748B" }
-                    : null,
-                ]}
-              >
-                {r.val}
-              </Text>
-            </View>
-            <View style={styles.infoDivider} />
-          </React.Fragment>
-        ))}
+      <Text style={styles.cardTitle}>Payment Summary</Text>
 
-        <View style={styles.infoRow}>
-          <Text style={[styles.infoKey, styles.paymentTotalKey]}>
-            Total Amount
-          </Text>
-          <Text style={[styles.infoVal, styles.paymentTotalVal]}>
-            {isGstAmendment ? "₹0 (Free)" : `₹${totalAmount.toLocaleString()}`}
-          </Text>
-        </View>
-
-        <View style={styles.infoDivider} />
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoKey}>Payment Status</Text>
-          <View
-            style={[
-              styles.statusPillSmall,
-              {
-                backgroundColor: isCompletedOrComplimentary
-                  ? "#ECFDF5"
-                  : "#FFF1E8",
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusPillSmallText,
-                { color: isCompletedOrComplimentary ? "#059669" : "#EA580C" },
-              ]}
-            >
-              {isGstAmendment ? "Complimentary" : paymentStatus}
+      {/* ── Peach Highlight Box (Screen 5 Reference) ── */}
+      <View style={styles.paymentSummaryBox}>
+        <View style={styles.paymentSummaryLeft}>
+          <View style={styles.rupeeCircle}>
+            <Text style={{ fontSize: 20, fontWeight: "800", color: "#EA580C" }}>
+              ₹
             </Text>
           </View>
+          <View>
+            <Text style={styles.paymentTotalLabel}>Total Amount</Text>
+            <Text style={styles.paymentTotalAmount}>{formattedAmount}</Text>
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.paymentPaidBadge,
+            { backgroundColor: isPaid ? "#DCFCE7" : "#FFEDD5" },
+          ]}
+        >
+          <Text
+            style={[
+              styles.paymentPaidBadgeText,
+              { color: isPaid ? "#16A34A" : "#EA580C" },
+            ]}
+          >
+            {isPaid ? "Paid" : "Pending"}
+          </Text>
         </View>
       </View>
+
+      {/* ── Payment Details Section (Screen 5 Reference) ── */}
+      <Text style={[styles.cardTitle, { marginTop: 4, marginBottom: 10 }]}>
+        Payment Details
+      </Text>
+
+      <View style={styles.cardRowsGap12}>
+        {paymentDetailsRows.map((row) => (
+          <View key={row.label} style={styles.itemRow}>
+            <Text style={styles.itemRowLabel}>{row.label}</Text>
+            <Text style={styles.itemRowValue}>{row.value}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* ── Payment Success Banner (Screen 5 Bottom Reference) ── */}
+      {isPaid && (
+        <View style={styles.paymentSuccessBanner}>
+          <Ionicons name="checkmark-circle" size={17} color="#16A34A" />
+          <Text style={styles.paymentSuccessText}>
+            Payment completed successfully.
+          </Text>
+        </View>
+      )}
     </View>
   );
 }

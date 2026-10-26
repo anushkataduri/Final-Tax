@@ -46,7 +46,7 @@ export function ApplicationBottomBar({
       >
         <View
           style={[
-            styles.chatInputBar,
+            (styles as any).chatInputBar || styles.chatInputRow,
             { paddingBottom: Math.max(bottomInset, 12) },
           ]}
         >
@@ -79,7 +79,7 @@ export function ApplicationBottomBar({
   return (
     <View
       style={[
-        styles.bottomActionBar,
+        (styles as any).bottomActionBar || styles.chatInputRow,
         { paddingBottom: Math.max(bottomInset, 12) },
       ]}
     >
