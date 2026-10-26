@@ -173,6 +173,16 @@ export async function submitComplianceRequest(
 
     const finalDisplayId = resolvedId || referenceId;
 
+    const mappedDocs = payload.documents.map((d) => ({
+      name: d.name,
+      status: "Uploaded" as const,
+      fileUri: d.uri,
+      fileName: d.name,
+      fileSize: d.sizeFormatted,
+      category: d.category,
+      uploadedAt: payload.submittedAt,
+    }));
+
     // 4. Save to centralized application store
     useApplicationStore.getState().createApplication(
       "gst-compliance",
@@ -187,6 +197,10 @@ export async function submitComplianceRequest(
         complianceId: resolvedId || undefined,
         submittedAt: payload.submittedAt,
         estimatedResponse,
+        purchaseDoc: data.purchaseDoc || undefined,
+        salesDoc: data.salesDoc || undefined,
+        noticeDoc: data.noticeDoc || undefined,
+        documents: mappedDocs,
         ...(payload.noticeNumber ? { noticeNumber: payload.noticeNumber } : {}),
         ...(payload.noticeIssueDate
           ? { noticeIssueDate: payload.noticeIssueDate }
@@ -195,7 +209,7 @@ export async function submitComplianceRequest(
         ...(payload.gstr2bRef ? { gstr2bRef: payload.gstr2bRef } : {}),
         ...(payload.remarks ? { remarks: payload.remarks } : {}),
       },
-      payload.documents.map((d) => d.name),
+      mappedDocs,
       0,
       "Pending",
       false,

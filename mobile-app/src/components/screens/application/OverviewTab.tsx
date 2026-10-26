@@ -1,41 +1,64 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { styles } from "@/styles/app/application/[id].styles";
 import type { Application } from "@/types/domain";
-import { resolveSubmittedDataRows } from "./overviewDataResolver";
 import { getStatusBadgeStyle } from "@/components/screens/applications/ApplicationCardItem";
+import { formatDisplayDate, getNextStepsMessage } from "./applicationDetailsUtils";
+import type { DetailTab } from "./ApplicationHeader";
+
+export { getNextStepsMessage };
 
 interface OverviewTabProps {
   app: Application;
-  displayId: string;
-  appliedDate: string;
+  displayId?: string;
+  appliedDate?: string;
+  onChatWithCA?: () => void;
+  onNavigateTab?: (tab: DetailTab) => void;
 }
 
 export function OverviewTab({
   app,
   displayId,
   appliedDate,
+  onChatWithCA,
+  onNavigateTab,
 }: OverviewTabProps) {
-  // 1. Resolve submitted user details (real values from GST, ITR, Loans, Business)
-  const submittedRows = resolveSubmittedDataRows(app);
   const statusBadge = getStatusBadgeStyle(app.status);
+  const formData = (app.formData || {}) as Record<string, any>;
+  const isGstAmendment = app.serviceId === "gst-amendment";
 
-  // 2. Fixed Application Details rows matching Screen 2 reference
+  const resolvedDisplayId =
+    displayId ||
+    (isGstAmendment && formData.arn ? String(formData.arn) : null) ||
+    formData.applicationId ||
+    app.id;
+
+  const resolvedServiceName =
+    (isGstAmendment && formData.section
+      ? `GST Amendment — ${formData.section}`
+      : app.serviceName) || "TaxEdge Service";
+
+  const resolvedAppliedDate =
+    appliedDate ||
+    formData.submissionDate ||
+    formData.appliedDate ||
+    formatDisplayDate(app.createdAt);
+
   const applicationDetailsRows = [
     {
       label: "Service",
-      value: app.serviceName,
+      value: resolvedServiceName,
       icon: "document-text-outline" as const,
     },
     {
       label: "Application ID",
-      value: displayId,
+      value: resolvedDisplayId,
       icon: "person-outline" as const,
     },
     {
       label: "Submission Date",
-      value: appliedDate,
+      value: resolvedAppliedDate,
       icon: "calendar-outline" as const,
     },
     {
@@ -46,12 +69,22 @@ export function OverviewTab({
     },
   ];
 
+  const handleChatPress = () => {
+    if (onChatWithCA) {
+      onChatWithCA();
+    } else if (onNavigateTab) {
+      onNavigateTab("CHAT");
+    }
+  };
+
+  const nextStepsMessage = getNextStepsMessage(app.status);
+
   return (
     <>
       {/* ── Screen Heading: Overview ── */}
       <Text style={styles.screenHeading}>Overview</Text>
 
-      {/* ── 1. Application Details Card (Screen 2 Reference) ── */}
+      {/* ── 1. Application Details Card ── */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Application Details</Text>
         <View style={styles.cardRowsGap12}>
@@ -77,45 +110,31 @@ export function OverviewTab({
         </View>
       </View>
 
-      {/* ── 2. Your Submitted Details Card (Screen 2 Reference) ── */}
+      {/* ── 2. What Happens Next? Card ── */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Your Submitted Details</Text>
-        <Text style={styles.cardSubtitle}>
-          Below are the details you filled during the application.
-        </Text>
-        <View style={styles.cardRowsGap12}>
-          {submittedRows.length > 0 ? (
-            submittedRows.map((row) => (
-              <View key={row.label} style={styles.itemRow}>
-                <View style={styles.itemRowLeft}>
-                  <View style={styles.itemRowIconWrap}>
-                    <Ionicons
-                      name={(row.icon || "document-text-outline") as any}
-                      size={15}
-                      color="#475569"
-                    />
-                  </View>
-                  <Text style={styles.itemRowLabel}>{row.label}</Text>
-                </View>
-                <Text style={styles.itemRowValue} numberOfLines={1}>
-                  {row.value}
-                </Text>
-              </View>
-            ))
-          ) : (
-            <Text style={[styles.cardSubtitle, { marginBottom: 0 }]}>
-              No specific form fields recorded for this service.
-            </Text>
-          )}
+        <View style={styles.nextStepTopRow}>
+          <View style={styles.nextStepIconCircle}>
+            <Ionicons name="time-outline" size={24} color="#EA580C" />
+          </View>
+          <View style={styles.nextStepContent}>
+            <Text style={styles.nextStepTitle}>What happens next?</Text>
+            <Text style={styles.nextStepDesc}>{nextStepsMessage}</Text>
+          </View>
         </View>
-      </View>
 
-      {/* ── 3. View-Only Info Banner (Screen 2 Reference) ── */}
-      <View style={styles.infoNoteCard}>
-        <Ionicons name="information-circle-outline" size={18} color="#0284C7" />
-        <Text style={styles.infoNoteText}>
-          This is a view-only summary of your submitted data.
-        </Text>
+        <View style={styles.nextStepDivider} />
+
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={handleChatPress}
+          style={styles.nextStepActionRow}
+          accessibilityRole="button"
+          accessibilityLabel="Have questions? Chat with CA"
+        >
+          <Text style={styles.nextStepActionText}>
+            Have questions? Chat with CA ›
+          </Text>
+        </TouchableOpacity>
       </View>
     </>
   );

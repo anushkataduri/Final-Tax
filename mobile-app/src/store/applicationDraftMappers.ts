@@ -55,25 +55,218 @@ export function getDraftResumeRoute(serviceKey: string, step: unknown): string {
  */
 export function normalizeDraftDocuments(draft: Record<string, unknown>): ApplicationDocument[] {
   try {
-    const rawDocs = Array.isArray(draft.documents)
-      ? draft.documents
-      : draft.formData && typeof draft.formData === "object" && Array.isArray((draft.formData as Record<string, unknown>).documents)
-        ? ((draft.formData as Record<string, unknown>).documents as unknown[])
-        : [];
-
-    return rawDocs.map((item) => {
-      const doc = (item && typeof item === "object") ? (item as Record<string, unknown>) : {};
-      const name = String(doc.name || doc.title || doc.id || "Required Document");
-      const isUploaded =
-        String(doc.status || "").toLowerCase() === "uploaded" || Boolean(doc.fileUri);
-      return {
-        name,
-        status: isUploaded ? ("Uploaded" as const) : ("Pending" as const),
-        fileUri: typeof doc.fileUri === "string" ? doc.fileUri : typeof doc.uri === "string" ? doc.uri : undefined,
-      };
+    return extractAllApplicationDocuments({
+      formData: (draft.formData as Record<string, any>) || draft,
+      documents: Array.isArray(draft.documents) ? (draft.documents as any) : undefined,
     });
   } catch (error) {
     logger.warn("Failed to normalize draft documents", { error: getErrorMessage(error) });
+    return [];
+  }
+}
+
+/**
+ * Normalizes and extracts all uploaded / associated documents for any application type.
+ * Unifies documents from app.documents, app.formData (purchaseDoc, salesDoc, noticeDoc,
+ * supportingDoc, document, uploadedDocuments, savedDocs, checklist, etc.),
+ * and explicit documents props.
+ */
+export function extractAllApplicationDocuments(
+  app?: Partial<Application> | null,
+  fallbackDocs?: (string | ApplicationDocument)[]
+): ApplicationDocument[] {
+  try {
+    const fd = (app?.formData || {}) as Record<string, any>;
+    const rawList: unknown[] = [];
+
+    if (Array.isArray(fallbackDocs)) rawList.push(...fallbackDocs);
+    if (Array.isArray(app?.documents)) rawList.push(...app.documents);
+
+    if (fd.purchaseDoc && typeof fd.purchaseDoc === "object") {
+      rawList.push({
+        name: fd.purchaseDoc.name || "Purchase Register",
+        category: fd.purchaseDoc.category || "Purchase Register",
+        fileUri: fd.purchaseDoc.uri || fd.purchaseDoc.fileUri,
+        fileName: fd.purchaseDoc.name,
+        fileSize: fd.purchaseDoc.sizeFormatted || fd.purchaseDoc.size,
+        status: "Uploaded",
+      });
+    }
+    if (fd.salesDoc && typeof fd.salesDoc === "object") {
+      rawList.push({
+        name: fd.salesDoc.name || "Sales Register",
+        category: fd.salesDoc.category || "Sales Register",
+        fileUri: fd.salesDoc.uri || fd.salesDoc.fileUri,
+        fileName: fd.salesDoc.name,
+        fileSize: fd.salesDoc.sizeFormatted || fd.salesDoc.size,
+        status: "Uploaded",
+      });
+    }
+    if (fd.noticeDoc && typeof fd.noticeDoc === "object") {
+      rawList.push({
+        name: fd.noticeDoc.name || "Notice Copy",
+        category: fd.noticeDoc.category || "Notice Copy",
+        fileUri: fd.noticeDoc.uri || fd.noticeDoc.fileUri,
+        fileName: fd.noticeDoc.name,
+        fileSize: fd.noticeDoc.sizeFormatted || fd.noticeDoc.size,
+        status: "Uploaded",
+      });
+    }
+    if (fd.document && typeof fd.document === "object") {
+      rawList.push({
+        name: fd.document.name || "Supporting Document",
+        category: fd.document.category || fd.section || "Supporting Proof",
+        fileUri: fd.document.uri || fd.document.fileUri,
+        fileName: fd.document.name,
+        fileSize: fd.document.size || fd.document.sizeFormatted,
+        status: "Uploaded",
+      });
+    }
+    if (fd.supportingDoc && typeof fd.supportingDoc === "object") {
+      rawList.push({
+        name: fd.supportingDoc.name || "Supporting Proof",
+        category: fd.supportingDoc.category || "Supporting Proof",
+        fileUri: fd.supportingDoc.uri || fd.supportingDoc.fileUri,
+        fileName: fd.supportingDoc.name,
+        fileSize: fd.supportingDoc.size || fd.supportingDoc.sizeFormatted,
+        status: "Uploaded",
+      });
+    }
+    if (typeof fd.pdfUri === "string" && fd.pdfUri.trim()) {
+      rawList.push({
+        name: fd.fileName || "Registration Certificate",
+        category: "Certificate",
+        fileUri: fd.pdfUri,
+        fileName: fd.fileName || "GST_Certificate.pdf",
+        fileSize: "Generated PDF",
+        status: "Uploaded",
+      });
+    }
+
+    if (Array.isArray(fd.documents)) rawList.push(...fd.documents);
+    if (Array.isArray(fd.uploadedDocuments)) rawList.push(...fd.uploadedDocuments);
+    if (Array.isArray(fd.savedDocs)) rawList.push(...fd.savedDocs);
+    if (Array.isArray(fd.checklist)) rawList.push(...fd.checklist);
+
+    const mergedMap = new Map<string, ApplicationDocument>();
+
+    for (const item of rawList) {
+      if (!item) continue;
+      const isStr = typeof item === "string";
+      const doc = isStr ? {} : (item as Record<string, any>);
+      const name = String(isStr ? item : doc.name || doc.fileName || doc.title || doc.id || "").trim();
+      if (!name) continue;
+
+      const fileUri = typeof doc.fileUri === "string"
+        ? doc.fileUri
+        : typeof doc.uri === "string"
+          ? doc.uri
+          : typeof doc.fileUrl === "string"
+            ? doc.fileUrl
+            : typeof doc.url === "string"
+              ? doc.url
+              : undefined;
+
+      const rawStatus = String(doc.status || "").toLowerCase();
+      const isUploaded =
+        rawStatus === "uploaded" ||
+        rawStatus === "verified" ||
+        rawStatus === "completed" ||
+        Boolean(fileUri);
+
+      const status: ApplicationDocument["status"] = isUploaded
+        ? "Uploaded"
+        : rawStatus === "rejected"
+          ? "Rejected"
+          : "Pending";
+
+      const fileName =
+        typeof doc.fileName === "string" && doc.fileName.trim()
+          ? doc.fileName.trim()
+          : fileUri
+            ? fileUri.split("/").pop()?.split("?")[0]
+            : undefined;
+
+      const rawSize = doc.fileSize || doc.sizeFormatted || doc.size;
+      const fileSize =
+        typeof rawSize === "number"
+          ? `${Math.round(rawSize / 1024)} KB`
+          : typeof rawSize === "string" && rawSize.trim()
+            ? rawSize.trim()
+            : isUploaded && fileUri
+              ? "245 KB"
+              : undefined;
+
+      const category =
+        typeof doc.category === "string" && doc.category.trim()
+          ? doc.category.trim()
+          : typeof doc.documentType === "string" && doc.documentType.trim()
+            ? doc.documentType.trim()
+            : undefined;
+
+      const uploadedAt =
+        typeof doc.uploadedAt === "string" && doc.uploadedAt.trim()
+          ? doc.uploadedAt.trim()
+          : typeof doc.appliedDate === "string" && doc.appliedDate.trim()
+            ? doc.appliedDate.trim()
+            : typeof doc.date === "string" && doc.date.trim()
+              ? doc.date.trim()
+              : typeof fd.submissionDate === "string" && fd.submissionDate.trim()
+                ? fd.submissionDate.trim()
+                : typeof app?.createdAt === "string"
+                  ? app.createdAt
+                  : undefined;
+
+      const itemCandidate: ApplicationDocument = {
+        name,
+        status,
+        ...(fileUri ? { fileUri } : {}),
+        ...(fileName ? { fileName } : {}),
+        ...(fileSize ? { fileSize } : {}),
+        ...(category ? { category } : {}),
+        ...(uploadedAt ? { uploadedAt } : {}),
+      };
+
+      let matchKey: string | undefined;
+      for (const [key, existing] of mergedMap.entries()) {
+        const sameUri = fileUri && existing.fileUri && fileUri === existing.fileUri;
+        const sameName = existing.name.toLowerCase() === name.toLowerCase();
+        const sameCategory =
+          category && existing.category &&
+          existing.category.toLowerCase() === category.toLowerCase();
+        const nameMatchesCategory =
+          (existing.name.toLowerCase() === (category || "").toLowerCase()) ||
+          ((existing.category || "").toLowerCase() === name.toLowerCase());
+
+        if (sameUri || sameName || sameCategory || nameMatchesCategory) {
+          matchKey = key;
+          break;
+        }
+      }
+
+      if (matchKey) {
+        const existing = mergedMap.get(matchKey)!;
+        const preferNew = !existing.fileUri && Boolean(fileUri);
+        const preferNewStatus = existing.status === "Pending" && status === "Uploaded";
+
+        mergedMap.set(matchKey, {
+          name: preferNew ? name : existing.name,
+          status: preferNewStatus || status === "Uploaded" ? "Uploaded" : existing.status,
+          fileUri: fileUri || existing.fileUri,
+          fileName: fileName || existing.fileName,
+          fileSize: fileSize || existing.fileSize,
+          category: category || existing.category,
+          uploadedAt: uploadedAt || existing.uploadedAt,
+        });
+      } else {
+        const uniqueKey = fileUri || `${name.toLowerCase()}#${category?.toLowerCase() || ""}`;
+        mergedMap.set(uniqueKey, itemCandidate);
+      }
+    }
+
+    return Array.from(mergedMap.values());
+  } catch (error) {
+    logger.warn("Failed to extract application documents", { error: getErrorMessage(error) });
     return [];
   }
 }
@@ -128,52 +321,57 @@ export function draftToApplication(
  * Returns service-specific default timeline milestones.
  */
 export function getServiceTimeline(serviceId: string): ApplicationTimelineStep[] {
-  if (serviceId === "gst-filing") {
+  const sid = (serviceId || "").toLowerCase();
+
+  if (sid.includes("amendment")) {
     return [
-      { title: "Customer Request", description: "Filing request initiated", status: "completed", date: "Today" },
-      { title: "Document Upload", description: "Sales & purchase records submitted", status: "completed", date: "Today" },
-      { title: "Staff Verification", description: "CA reviewing invoices & reconciliation", status: "current", date: "Today" },
-      { title: "Data Preparation", description: "Accounting integration & ledger extraction", status: "pending" },
-      { title: "Return Preparation", description: "Tax computation & ITC calculation", status: "pending" },
-      { title: "Customer Review", description: "Return draft shared with customer", status: "pending" },
-      { title: "Customer Approval", description: "Sign-off received from business", status: "pending" },
-      { title: "GST Filing", description: "Submission to GST portal", status: "pending" },
-      { title: "Acknowledgement Receipt", description: "ARN generated & filed copy delivered", status: "pending" },
-      { title: "Completed", description: "Filing process closed", status: "pending" },
+      { title: "Amendment Submitted", description: "Amendment request submitted with supporting documents", status: "completed", date: "Today" },
+      { title: "Document Collection", description: "Verification of amended proofs and business details", status: "current" },
+      { title: "Verification", description: "TaxEdge CA and Assessing Officer review", status: "pending" },
+      { title: "Completed", description: "Updated registration certificate issued", status: "pending" },
     ];
   }
 
-  if (serviceId === "itr-filing") {
+  if (sid.includes("filing") && sid.includes("gst")) {
     return [
-      { title: "Application Submitted", description: "Return information & documents received", status: "completed", date: "Today" },
-      { title: "Staff Verification", description: "Tax Executive verifying documents & Form 26AS/AIS", status: "current", date: "Today" },
-      { title: "ITR Preparation & Tax Calculation", description: "Tax computation & dual-regime optimization", status: "pending" },
-      { title: "Internal Tax Review", description: "Senior CA verification & quality audit", status: "pending" },
-      { title: "Customer Review & Approval", description: "Customer signs off on final computation", status: "pending" },
-      { title: "ITR Submission", description: "Filing return with Income Tax e-Filing portal", status: "pending" },
-      { title: "E-Verification", description: "Aadhaar OTP / EVC verification pending", status: "pending" },
-      { title: "Income Tax Department Processing", description: "Central Processing Center (CPC) return processing & refund/tax closure", status: "pending" },
+      { title: "Filing Data Submitted", description: "Sales, purchase & turnover details received", status: "completed", date: "Today" },
+      { title: "Document Collection", description: "Input Tax Credit & invoice records checked", status: "current" },
+      { title: "Verification", description: "CA reconciliation and return computation", status: "pending" },
+      { title: "Completed", description: "Portal e-filing confirmed and ARN generated", status: "pending" },
     ];
   }
 
-  if (serviceId === "tds-refund") {
+  if (sid.includes("itr") || sid.includes("tds")) {
     return [
-      { title: "New Request Received", description: "TDS refund claim initiated", status: "completed", date: "Today" },
-      { title: "Documents Received", description: "All documents uploaded", status: "completed", date: "Today" },
-      { title: "Under Verification", description: "Documents being verified by CA", status: "current", date: "Today" },
-      { title: "ITR Preparation", description: "Return computation by CA", status: "pending" },
-      { title: "Customer Approval", description: "Review and approve the return", status: "pending" },
-      { title: "ITR Filed", description: "Submitted on IT Department portal", status: "pending" },
-      { title: "E-Verification Pending", description: "Verify using Aadhaar OTP / DSC", status: "pending" },
-      { title: "Processing by IT Dept.", description: "Department processing", status: "pending" },
-      { title: "Refund / Tax Payable", description: "Final status communicated", status: "pending" },
+      { title: "Application Submitted", description: "Income, deductions & personal details received", status: "completed", date: "Today" },
+      { title: "Document Collection", description: "Form 16, 26AS/AIS and financial proofs collected", status: "current" },
+      { title: "Verification", description: "CA computation & dual-regime tax review", status: "pending" },
+      { title: "Completed", description: "ITR filed & CPC acknowledgment generated", status: "pending" },
+    ];
+  }
+
+  if (sid.includes("loan")) {
+    return [
+      { title: "Loan Application Submitted", description: "Borrower details and financial profiles received", status: "completed", date: "Today" },
+      { title: "Document Collection", description: "KYC, income proofs and credit profile checked", status: "current" },
+      { title: "Verification", description: "Credit assessment, bureau check and underwriting", status: "pending" },
+      { title: "Completed", description: "Loan sanction and disbursement confirmation", status: "pending" },
+    ];
+  }
+
+  if (sid.includes("company") || sid.includes("incorporation") || sid.includes("business")) {
+    return [
+      { title: "Application Submitted", description: "Name choices, director details & constitution received", status: "completed", date: "Today" },
+      { title: "Document Collection", description: "DSC, DIN and SPICe+ documents collected", status: "current" },
+      { title: "Verification", description: "ROC filing, name approval & MCA scrutiny", status: "pending" },
+      { title: "Completed", description: "COI, PAN and TAN issuance", status: "pending" },
     ];
   }
 
   return [
-    { title: "Application Submitted", description: "Application filed online", status: "completed", date: "Today" },
-    { title: "Document Collection", description: "Checking uploaded and pending files", status: "current", date: "Today" },
-    { title: "Verification", description: "Verification by executive", status: "pending" },
-    { title: "Completed", description: "Filing/Approval confirmation", status: "pending" },
+    { title: "Application Submitted", description: "Application submitted successfully", status: "completed", date: "Today" },
+    { title: "Document Collection", description: "Documents are being collected or checked", status: "current" },
+    { title: "Verification", description: "Application details are being verified", status: "pending" },
+    { title: "Completed", description: "Final filing, approval, or completion confirmation", status: "pending" },
   ];
 }

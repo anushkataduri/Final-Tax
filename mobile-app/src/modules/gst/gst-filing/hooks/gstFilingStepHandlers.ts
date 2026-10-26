@@ -13,27 +13,17 @@ import { GstFilingPeriodData } from "@/modules/gst/gst-filing/components/GstFili
 import {
   getResolvedCustomerId,
   buildFilingPayload,
-  extractUploadedDocumentNames,
+  extractUploadedDocuments,
 } from "@/modules/gst/gst-filing/hooks/gstFilingHelpers";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
 import { logger } from "@/core/logging/logger";
 
 export async function submitPeriodStep({
-  periodData,
-  targetFilingId,
-  isEditMode,
-  setFilingId,
-  setCurrentStep,
-  setIsEditMode,
-  setIsSubmitting,
+  periodData, targetFilingId, isEditMode, setFilingId, setCurrentStep, setIsEditMode, setIsSubmitting,
 }: {
-  periodData: GstFilingPeriodData;
-  targetFilingId: string;
-  isEditMode: boolean;
-  setFilingId: (id: string) => void;
-  setCurrentStep: (step: number) => void;
-  setIsEditMode: (val: boolean) => void;
-  setIsSubmitting: (val: boolean) => void;
+  periodData: GstFilingPeriodData; targetFilingId: string; isEditMode: boolean;
+  setFilingId: (id: string) => void; setCurrentStep: (step: number) => void;
+  setIsEditMode: (val: boolean) => void; setIsSubmitting: (val: boolean) => void;
 }): Promise<void> {
   setIsSubmitting(true);
   try {
@@ -347,10 +337,8 @@ export async function submitReviewStep({
     }
 
     // 3. Local Application Store & Notifications
-    const periodLabel =
-      periodData.filingPeriod ||
-      periodData.filingMonth ||
-      "Current Period";
+    const periodLabel = periodData.filingPeriod || periodData.filingMonth || "Current Period";
+    const uploadedDocs = extractUploadedDocuments(documents);
 
     const newAppId = useApplicationStore.getState().createApplication(
       "gst-filing",
@@ -358,10 +346,7 @@ export async function submitReviewStep({
       "GST",
       {
         gstin: periodData.gstin,
-        businessName:
-          periodData.tradeName ||
-          periodData.businessName ||
-          "Registered Business",
+        businessName: periodData.tradeName || periodData.businessName || "Registered Business",
         filingPeriod: periodLabel,
         filingType: periodData.filingType || "GSTR-1",
         filingNature: periodData.filingNature || "Regular Return",
@@ -370,11 +355,10 @@ export async function submitReviewStep({
         taxableSales: periodData.taxableSales || periodData.turnover || "0",
         taxablePurchases: periodData.taxablePurchases || "0",
         eligibleItc: periodData.eligibleItc || "0",
-        calculationMethod:
-          periodData.calculationMethod ||
-          (hasEstimates ? "manual_estimates" : "ca_assisted"),
+        calculationMethod: periodData.calculationMethod || (hasEstimates ? "manual_estimates" : "ca_assisted"),
+        documents: uploadedDocs,
       },
-      extractUploadedDocumentNames(documents),
+      uploadedDocs,
       0,
       "Pending",
       false,

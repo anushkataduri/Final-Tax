@@ -1,95 +1,268 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { styles } from "@/styles/app/application/[id].styles";
-import type { TimelineStep } from "@/types/domain";
+import type { Application, TimelineStep } from "@/types/domain";
+import type { DetailTab } from "./ApplicationHeader";
+import {
+  resolveApplicationStatusUI,
+  type StatusVisualVariant,
+} from "./applicationStatusResolver";
 
 interface StatusTabProps {
-  timelineSteps: TimelineStep[];
-  currentStatus: string;
+  app?: Application;
+  timelineSteps?: TimelineStep[];
+  currentStatus?: string;
+  appliedDate?: string;
+  onNavigateTab?: (tab: DetailTab) => void;
 }
 
+const STAGE_DEFAULT_ICONS = [
+  "document-text-outline",
+  "folder-open-outline",
+  "shield-checkmark-outline",
+  "ribbon-outline",
+] as const;
+
+export function getStageIcon(title?: string, index: number = 0): string {
+  const t = (title || "").toLowerCase();
+  if (t.includes("submit") || t.includes("filing") || t.includes("request")) {
+    return "document-text-outline";
+  }
+  if (
+    t.includes("document") ||
+    t.includes("kyc") ||
+    t.includes("collect") ||
+    t.includes("upload")
+  ) {
+    return "folder-open-outline";
+  }
+  if (
+    t.includes("verif") ||
+    t.includes("review") ||
+    t.includes("scrutiny") ||
+    t.includes("underwrit") ||
+    t.includes("officer") ||
+    t.includes("reconciliation")
+  ) {
+    return "shield-checkmark-outline";
+  }
+  if (
+    t.includes("complet") ||
+    t.includes("approv") ||
+    t.includes("certificate") ||
+    t.includes("sanction") ||
+    t.includes("disburse") ||
+    t.includes("order") ||
+    t.includes("arn")
+  ) {
+    return "ribbon-outline";
+  }
+  return STAGE_DEFAULT_ICONS[index % STAGE_DEFAULT_ICONS.length];
+}
+
+const VARIANT_MAP: Record<
+  StatusVisualVariant,
+  {
+    card: any;
+    iconBox: any;
+    iconColor: string;
+    badgeBox: any;
+    badgeText: string;
+    guidanceCard: any;
+    guidanceIconBox: any;
+    guidanceIconColor: string;
+    actionColor: string;
+  }
+> = {
+  blue: {
+    card: styles.summaryBlue, iconBox: styles.iconBoxBlue, iconColor: "#1D4ED8",
+    badgeBox: styles.iconBoxBlue, badgeText: "#1D4ED8",
+    guidanceCard: styles.guidanceBlue, guidanceIconBox: styles.iconBoxBlue, guidanceIconColor: "#1D4ED8", actionColor: "#1D4ED8",
+  },
+  lightBlue: {
+    card: styles.summaryLightBlue, iconBox: styles.iconBoxLightBlue, iconColor: "#0284C7",
+    badgeBox: styles.iconBoxLightBlue, badgeText: "#0284C7",
+    guidanceCard: styles.guidanceLightBlue, guidanceIconBox: styles.iconBoxLightBlue, guidanceIconColor: "#0284C7", actionColor: "#0284C7",
+  },
+  orange: {
+    card: styles.summaryOrange, iconBox: styles.iconBoxOrange, iconColor: "#EA580C",
+    badgeBox: styles.iconBoxOrange, badgeText: "#EA580C",
+    guidanceCard: styles.guidanceOrange, guidanceIconBox: styles.iconBoxOrange, guidanceIconColor: "#EA580C", actionColor: "#EA580C",
+  },
+  green: {
+    card: styles.summaryGreen, iconBox: styles.iconBoxGreen, iconColor: "#16A34A",
+    badgeBox: styles.iconBoxGreen, badgeText: "#16A34A",
+    guidanceCard: styles.guidanceGreen, guidanceIconBox: styles.iconBoxGreen, guidanceIconColor: "#16A34A", actionColor: "#16A34A",
+  },
+  red: {
+    card: styles.summaryRed, iconBox: styles.iconBoxRed, iconColor: "#DC2626",
+    badgeBox: styles.iconBoxRed, badgeText: "#DC2626",
+    guidanceCard: styles.guidanceRed, guidanceIconBox: styles.iconBoxRed, guidanceIconColor: "#DC2626", actionColor: "#DC2626",
+  },
+  gray: {
+    card: styles.summaryGray, iconBox: styles.iconBoxGray, iconColor: "#64748B",
+    badgeBox: styles.iconBoxGray, badgeText: "#64748B",
+    guidanceCard: styles.guidanceGray, guidanceIconBox: styles.iconBoxGray, guidanceIconColor: "#64748B", actionColor: "#64748B",
+  },
+};
+
 export function StatusTab({
+  app,
   timelineSteps,
   currentStatus,
+  appliedDate,
+  onNavigateTab,
 }: StatusTabProps) {
-  const isCompleted = currentStatus.toLowerCase().includes("complete") ||
-    currentStatus.toLowerCase().includes("approved");
+  const statusUI = resolveApplicationStatusUI(app, appliedDate);
+  const resolvedSteps =
+    timelineSteps && timelineSteps.length > 0 && !app
+      ? timelineSteps
+      : statusUI.timelineSteps;
 
-  const statusSubtext = isCompleted
-    ? "Your application has been processed and approved."
-    : "Your application is under review.";
+  const { summary, guidance, normalizedStatus } = statusUI;
+  const isOverallRejected = normalizedStatus === "REJECTED";
+  const isPendingDocs = normalizedStatus === "PENDING_DOCUMENTS";
+  const vTheme = VARIANT_MAP[summary.variant] || VARIANT_MAP.gray;
 
   return (
-    <>
-      {/* ── Main Timeline Card (Screen 3 Reference) ── */}
+    <View style={styles.statusTabWrap}>
+      {/* 1. Dynamic Status Summary Card */}
+      <View style={[styles.statusSummaryCard, vTheme.card]}>
+        <View style={[styles.statusSummaryIconBox, vTheme.iconBox]}>
+          <Ionicons
+            name={summary.iconName as any}
+            size={22}
+            color={vTheme.iconColor}
+          />
+        </View>
+        <View style={styles.statusSummaryContent}>
+          <View style={styles.statusSummaryTitleRow}>
+            <Text style={styles.statusSummaryTitle} numberOfLines={1}>
+              {summary.title}
+            </Text>
+            <View style={[styles.statusSummaryBadge, vTheme.badgeBox]}>
+              <Text
+                style={[
+                  styles.statusSummaryBadgeText,
+                  { color: vTheme.badgeText },
+                ]}
+              >
+                {summary.badgeLabel}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.statusSummaryDesc}>{summary.description}</Text>
+        </View>
+      </View>
+
+      {/* 2. Vertical Timeline Card */}
       <View style={styles.card}>
         <View style={styles.timelineContainer}>
-          {timelineSteps.map((step, index) => {
-            const isLast = index === timelineSteps.length - 1;
-            const isStepCompleted = step.status === "completed";
-            const isStepCurrent = step.status === "current";
+          {resolvedSteps.map((step, index) => {
+            const isLast = index === resolvedSteps.length - 1;
+            const isCompleted = step.status === "completed";
+            const isCurrent = step.status === "current";
+            const isPending = !isCompleted && !isCurrent;
+            const isStepRejected = isCurrent && isOverallRejected;
+            const iconName = isStepRejected
+              ? "close-circle-outline"
+              : getStageIcon(step.title, index);
 
             return (
               <View key={index} style={styles.timelineStepRow}>
                 {/* Left Column: Icon Circle + Connecting Line */}
                 <View style={styles.timelineLeftCol}>
-                  {isStepCompleted ? (
-                    <View style={styles.circleCompleted}>
-                      <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-                    </View>
-                  ) : isStepCurrent ? (
-                    <View style={styles.circleCurrent}>
-                      <Ionicons name="shield-outline" size={14} color="#0284C7" />
-                    </View>
-                  ) : (
-                    <View style={styles.circlePending}>
-                      <Ionicons name="checkmark" size={14} color="#94A3B8" />
-                    </View>
-                  )}
+                  <View
+                    style={
+                      isCompleted
+                        ? styles.circleCompleted
+                        : isStepRejected
+                          ? styles.circleRejected
+                          : isCurrent
+                            ? styles.circleCurrent
+                            : styles.circlePending
+                    }
+                  >
+                    <Ionicons
+                      name={iconName as any}
+                      size={17}
+                      color={
+                        isCompleted
+                          ? "#16A34A"
+                          : isStepRejected
+                            ? "#DC2626"
+                            : isCurrent
+                              ? "#EA580C"
+                              : "#94A3B8"
+                      }
+                    />
+                  </View>
 
                   {!isLast && (
                     <View
                       style={[
                         styles.timelineLine,
                         {
-                          backgroundColor: isStepCompleted
-                            ? "#16A34A"
-                            : "#E2E8F0",
+                          backgroundColor: isCompleted ? "#16A34A" : "#E2E8F0",
                         },
                       ]}
                     />
                   )}
                 </View>
 
-                {/* Right Column: Title, Date/Badge, Description */}
-                <View style={styles.timelineRightCol}>
+                {/* Right Column: Title Row, Date, Description */}
+                <View
+                  style={[
+                    styles.timelineRightCol,
+                    isLast ? { paddingBottom: 6 } : null,
+                  ]}
+                >
                   <View style={styles.timelineStepTitleRow}>
                     <Text
                       style={[
                         styles.timelineStepTitle,
                         {
-                          color: isStepCurrent
-                            ? "#0F172A"
-                            : isStepCompleted
-                              ? "#0F172A"
-                              : "#64748B",
+                          color: isPending ? "#64748B" : "#0F172A",
                         },
                       ]}
+                      numberOfLines={1}
                     >
                       {step.title}
                     </Text>
-                    {step.date && isStepCompleted && (
-                      <Text style={styles.timelineStepDate}>{step.date}</Text>
+
+                    {isCompleted ? (
+                      <View style={styles.timelineBadgeCompleted}>
+                        <Text style={styles.timelineBadgeCompletedText}>
+                          Completed
+                        </Text>
+                      </View>
+                    ) : isStepRejected ? (
+                      <View style={styles.timelineBadgeRejected}>
+                        <Text style={styles.timelineBadgeRejectedText}>
+                          Rejected
+                        </Text>
+                      </View>
+                    ) : isCurrent ? (
+                      <View style={styles.timelineBadgeCurrent}>
+                        <Text
+                          style={styles.timelineBadgeCurrentText}
+                          numberOfLines={1}
+                        >
+                          {isPendingDocs ? "Action Needed" : "In Progress"}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.timelineBadgePending}>
+                        <Text style={styles.timelineBadgePendingText}>
+                          Pending
+                        </Text>
+                      </View>
                     )}
                   </View>
 
-                  {!isStepCompleted && (
-                    <View style={styles.timelinePendingBadge}>
-                      <Text style={styles.timelinePendingBadgeText}>
-                        {isStepCurrent ? "Pending" : "Pending"}
-                      </Text>
-                    </View>
+                  {step.date && (
+                    <Text style={styles.timelineStepDate}>{step.date}</Text>
                   )}
 
                   {step.description && (
@@ -104,19 +277,50 @@ export function StatusTab({
         </View>
       </View>
 
-      {/* ── Current Status Card (Screen 3 Bottom Reference) ── */}
-      <View style={styles.currentStatusCard}>
-        <View style={styles.currentStatusIconBox}>
-          <Ionicons name="time-outline" size={24} color="#0284C7" />
+      {/* 3. Dynamic Bottom Guidance Card */}
+      <View style={[styles.statusGuidanceCard, vTheme.guidanceCard]}>
+        <View style={styles.statusGuidanceTopRow}>
+          <View style={[styles.statusGuidanceIconBox, vTheme.guidanceIconBox]}>
+            <Ionicons
+              name={guidance.iconName as any}
+              size={20}
+              color={vTheme.guidanceIconColor}
+            />
+          </View>
+          <View style={styles.statusGuidanceContent}>
+            <Text style={styles.statusGuidanceTitle}>{guidance.heading}</Text>
+            <Text style={styles.statusGuidanceDesc}>{guidance.description}</Text>
+          </View>
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.currentStatusLabel}>Current Status</Text>
-          <Text style={styles.currentStatusValue}>
-            {currentStatus || "Submitted"}
-          </Text>
-          <Text style={styles.currentStatusSub}>{statusSubtext}</Text>
-        </View>
+
+        {guidance.action && (
+          <>
+            <View style={styles.statusGuidanceDivider} />
+            <TouchableOpacity
+              style={styles.statusGuidanceActionRow}
+              onPress={() =>
+                onNavigateTab
+                  ? onNavigateTab(guidance.action!.tab as DetailTab)
+                  : undefined
+              }
+            >
+              <Text
+                style={[
+                  styles.statusGuidanceActionText,
+                  { color: vTheme.actionColor },
+                ]}
+              >
+                {guidance.action.label}
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color={vTheme.actionColor}
+              />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
-    </>
+    </View>
   );
 }

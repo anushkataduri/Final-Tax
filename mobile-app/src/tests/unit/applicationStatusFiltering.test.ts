@@ -71,11 +71,11 @@ test("normalizeApplicationStatus maps Under Verification variants correctly", ()
     "Officer Review",
     "Officer Scrutiny",
     "Verification",
-    "Submitted",
-    "SUBMITTED",
-    "KYC Pending",
     "Documents Under Verification",
-    "New Request Received",
+    "CA Review",
+    "Internal Tax Review",
+    "Scrutiny",
+    "Underwriting",
   ];
 
   verificationCases.forEach((status) => {
@@ -83,6 +83,31 @@ test("normalizeApplicationStatus maps Under Verification variants correctly", ()
       normalizeApplicationStatus(status),
       "UNDER_VERIFICATION",
       `Expected status '${status}' to map to UNDER_VERIFICATION`
+    );
+  });
+});
+
+test("normalizeApplicationStatus maps Submitted variants correctly to SUBMITTED and excludes from Under Verification", () => {
+  const submittedCases = [
+    "Submitted",
+    "submitted",
+    "SUBMITTED",
+    "New Request",
+    "New Request Received",
+    "Application Submitted",
+    "Application Received",
+  ];
+
+  submittedCases.forEach((status) => {
+    assert.equal(
+      normalizeApplicationStatus(status),
+      "SUBMITTED",
+      `Expected status '${status}' to map to SUBMITTED`
+    );
+    assert.equal(
+      matchesStatusFilter(status, "UNDER_VERIFICATION"),
+      false,
+      `Submitted status '${status}' must be excluded from UNDER_VERIFICATION`
     );
   });
 });
@@ -145,7 +170,7 @@ test("matchesStatusFilter filters accurately", () => {
   const sampleStatuses = [
     { status: "Completed", isCompleted: true, isInProgress: false, isUnderVerification: false },
     { status: "Approved", isCompleted: true, isInProgress: false, isUnderVerification: false },
-    { status: "Submitted", isCompleted: false, isInProgress: false, isUnderVerification: true },
+    { status: "Submitted", isCompleted: false, isInProgress: false, isUnderVerification: false },
     { status: "Under Verification", isCompleted: false, isInProgress: false, isUnderVerification: true },
     { status: "In Progress", isCompleted: false, isInProgress: true, isUnderVerification: false },
     { status: "Processing", isCompleted: false, isInProgress: true, isUnderVerification: false },
@@ -158,6 +183,15 @@ test("matchesStatusFilter filters accurately", () => {
     assert.equal(matchesStatusFilter(status, "IN_PROGRESS"), isInProgress);
     assert.equal(matchesStatusFilter(status, "UNDER_VERIFICATION"), isUnderVerification);
   });
+
+  // Verify specific filters
+  assert.equal(matchesStatusFilter("Submitted", "SUBMITTED"), true);
+  assert.equal(matchesStatusFilter("Under Verification", "SUBMITTED"), false);
+  assert.equal(matchesStatusFilter("Pending Documents", "PENDING_DOCUMENTS"), true);
+  assert.equal(matchesStatusFilter("KYC Pending", "PENDING_DOCUMENTS"), true);
+  assert.equal(matchesStatusFilter("Under Verification", "PENDING_DOCUMENTS"), false);
+  assert.equal(matchesStatusFilter("Rejected", "REJECTED"), true);
+  assert.equal(matchesStatusFilter("Approved", "APPROVED"), true);
 });
 
 test("deduplicateApplications removes duplicate application records stably", () => {
@@ -211,7 +245,7 @@ test("Calculates correct summary counts across diverse services", () => {
   assert.equal(totalCount, 9, "Total count must be 9");
   assert.equal(inProgressCount, 3, "In Progress count must be 3 (GST Amendment, Business Loan, ITR Filing)");
   assert.equal(completedCount, 2, "Completed count must be 2 (Company Incorporation, Home Loan)");
-  assert.equal(underVerificationCount, 3, "Under Verification count must be 3 (GST Reg Submitted, GST Compliance, TDS Refund)");
+  assert.equal(underVerificationCount, 2, "Under Verification count must be 2 (GST Compliance, TDS Refund — Submitted is excluded)");
 });
 
 test("Multi-filter combination: status + category + search query works together without interference", () => {
@@ -221,7 +255,7 @@ test("Multi-filter combination: status + category + search query works together 
       serviceId: "gst-registration",
       serviceName: "GST Registration",
       category: "GST",
-      status: "Submitted",
+      status: "Under Verification",
       formData: { arn: "ARN-999" },
     }),
     createMockApp({
@@ -237,6 +271,14 @@ test("Multi-filter combination: status + category + search query works together 
       serviceName: "Business Loan",
       category: "LOANS",
       status: "In Progress",
+    }),
+    createMockApp({
+      id: "APP-104",
+      serviceId: "gst-registration",
+      serviceName: "GST Registration",
+      category: "GST",
+      status: "Submitted",
+      formData: { arn: "ARN-888" },
     }),
   ];
 
@@ -262,14 +304,183 @@ test("Multi-filter combination: status + category + search query works together 
   assert.equal(searchArn.length, 1);
   assert.equal(searchArn[0].id, "APP-101");
 
-  // 4. Total Applications (ALL) resets status without clearing category or search
+  // 4. Searching for Submitted app when UNDER_VERIFICATION is selected yields 0
+  const searchSubmittedInVerification = apps.filter(
+    (a) =>
+      matchesStatusFilter(a.status, "UNDER_VERIFICATION") &&
+      matchesSearchQuery(a, "ARN-888")
+  );
+  assert.equal(searchSubmittedInVerification.length, 0, "Submitted app must never appear under UNDER_VERIFICATION");
+
+  // 5. Total Applications (ALL) resets status without clearing category or search
   const allCategoryGst = apps.filter(
     (a) =>
       matchesCategoryFilter(a, "gst-registration") &&
       matchesStatusFilter(a.status, "ALL")
   );
-  assert.equal(allCategoryGst.length, 1);
-  assert.equal(allCategoryGst[0].id, "APP-101");
+  assert.equal(allCategoryGst.length, 2);
+});
+
+test("Under Verification filter: 10 regression acceptance checks", () => {
+  // 1. Genuine Under Verification applications are included
+  const genuineVerification = [
+    "Under Verification",
+    "under_verification",
+    "UNDER_VERIFICATION",
+    "Under Review",
+    "under_review",
+    "Under Scrutiny",
+    "Officer Review",
+    "Officer Scrutiny",
+    "CA Review",
+    "Internal Tax Review",
+    "Documents Under Verification",
+    "Verification",
+    "Scrutiny",
+    "Underwriting",
+  ];
+  genuineVerification.forEach((st) => {
+    assert.equal(
+      matchesStatusFilter(st, "UNDER_VERIFICATION"),
+      true,
+      `'${st}' must match UNDER_VERIFICATION`
+    );
+  });
+
+  // 2. Submitted applications are excluded
+  const submittedCases = [
+    "Submitted",
+    "submitted",
+    "SUBMITTED",
+    "New Request",
+    "New Request Received",
+    "Application Submitted",
+  ];
+  submittedCases.forEach((st) => {
+    assert.equal(
+      matchesStatusFilter(st, "UNDER_VERIFICATION"),
+      false,
+      `'${st}' must be excluded from UNDER_VERIFICATION`
+    );
+  });
+
+  // 3. In Progress applications are excluded
+  const inProgressCases = [
+    "In Progress",
+    "in_progress",
+    "Processing",
+    "Ready for Filing",
+    "Return Preparation",
+    "Data Preparation",
+    "Customer Review",
+    "Pending Payment",
+  ];
+  inProgressCases.forEach((st) => {
+    assert.equal(
+      matchesStatusFilter(st, "UNDER_VERIFICATION"),
+      false,
+      `'${st}' must be excluded from UNDER_VERIFICATION`
+    );
+  });
+
+  // 4. Pending Documents applications are excluded
+  const pendingDocsCases = [
+    "Pending Documents",
+    "Documents Pending",
+    "Document Collection",
+    "KYC Pending",
+    "Upload Pending",
+  ];
+  pendingDocsCases.forEach((st) => {
+    assert.equal(
+      matchesStatusFilter(st, "UNDER_VERIFICATION"),
+      false,
+      `'${st}' must be excluded from UNDER_VERIFICATION`
+    );
+  });
+
+  // 5. Rejected, Approved, Completed, and Draft applications are excluded
+  const terminalAndDraftCases = [
+    "Rejected",
+    "Failed",
+    "Cancelled",
+    "Suspended",
+    "Approved",
+    "Completed",
+    "Disbursed",
+    "Sanctioned",
+    "Draft",
+  ];
+  terminalAndDraftCases.forEach((st) => {
+    assert.equal(
+      matchesStatusFilter(st, "UNDER_VERIFICATION"),
+      false,
+      `'${st}' must be excluded from UNDER_VERIFICATION`
+    );
+  });
+
+  // 6. Missing and unknown statuses are excluded
+  const invalidCases = ["", "   ", undefined, "Unknown Custom Status", "Foo Bar"];
+  invalidCases.forEach((st) => {
+    assert.equal(
+      matchesStatusFilter(st, "UNDER_VERIFICATION"),
+      false,
+      `'${st}' must be excluded from UNDER_VERIFICATION`
+    );
+  });
+
+  // 7. Case and whitespace variations normalize correctly
+  const variationCases = [
+    "  under  verification  ",
+    "UNDER_VERIFICATION",
+    "under-review",
+    "  OFFICER  REVIEW  ",
+    "ca_review",
+  ];
+  variationCases.forEach((st) => {
+    assert.equal(
+      matchesStatusFilter(st, "UNDER_VERIFICATION"),
+      true,
+      `'${st}' must normalize and match UNDER_VERIFICATION`
+    );
+  });
+
+  // 8. GST, ITR, Company Registration, and Loan applications filtered using actual status mappings
+  const serviceApps = [
+    createMockApp({ id: "GST-UV", serviceId: "gst-registration", status: "Under Verification" }),
+    createMockApp({ id: "GST-SUB", serviceId: "gst-registration", status: "Submitted" }),
+    createMockApp({ id: "ITR-UV", serviceId: "itr-filing", status: "Under Review" }),
+    createMockApp({ id: "ITR-IP", serviceId: "itr-filing", status: "Return Preparation" }),
+    createMockApp({ id: "COMP-UV", serviceId: "company-registration", status: "Under Verification" }),
+    createMockApp({ id: "COMP-SUB", serviceId: "company-registration", status: "Submitted" }),
+    createMockApp({ id: "LOAN-UV", serviceId: "loan-business", status: "Underwriting" }),
+    createMockApp({ id: "LOAN-DFT", serviceId: "loan-business", status: "Draft" }),
+  ];
+  const verifiedServiceApps = serviceApps.filter((a) =>
+    matchesStatusFilter(a.status, "UNDER_VERIFICATION")
+  );
+  assert.deepEqual(
+    verifiedServiceApps.map((a) => a.id),
+    ["GST-UV", "ITR-UV", "COMP-UV", "LOAN-UV"],
+    "Only apps with actual verification statuses must be included"
+  );
+
+  // 9. Combined status + category + search filters work correctly
+  const combinedFilterResult = serviceApps.filter(
+    (a) =>
+      matchesStatusFilter(a.status, "UNDER_VERIFICATION") &&
+      matchesCategoryFilter(a, "gst-registration") &&
+      matchesSearchQuery(a, "GST-UV")
+  );
+  assert.equal(combinedFilterResult.length, 1);
+  assert.equal(combinedFilterResult[0].id, "GST-UV");
+
+  // 10. No unrelated application appears when Under Verification is selected
+  const allUnrelated = serviceApps.filter((a) => a.id.includes("SUB") || a.id.includes("DFT") || a.id.includes("IP"));
+  const unrelatedInVerification = allUnrelated.filter((a) =>
+    matchesStatusFilter(a.status, "UNDER_VERIFICATION")
+  );
+  assert.equal(unrelatedInVerification.length, 0, "No unrelated application must appear under Under Verification");
 });
 
 test("getApplicationEmptyState generates correct messages and actions", () => {

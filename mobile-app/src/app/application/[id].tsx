@@ -146,9 +146,9 @@ export default function ApplicationDetailScreen() {
     app.id;
 
   const displayName =
-    isGstAmendment && formData.section
+    (isGstAmendment && formData.section
       ? `GST Amendment — ${formData.section}`
-      : app.serviceName;
+      : app.serviceName) || "Application";
 
   const appliedDate =
     (formData.submissionDate ? formatAmendmentSubmissionDate(formData.submissionDate) : null) ||
@@ -201,18 +201,23 @@ export default function ApplicationDetailScreen() {
             app={app}
             displayId={displayId}
             appliedDate={appliedDate}
+            onChatWithCA={() => setActiveTab("CHAT")}
           />
         )}
 
         {activeTab === "STATUS" && (
           <StatusTab
+            app={app}
             timelineSteps={timelineSteps}
             currentStatus={app.status || "Submitted"}
+            appliedDate={appliedDate}
+            onNavigateTab={(tab) => setActiveTab(tab)}
           />
         )}
 
         {activeTab === "DOCUMENTS" && (
           <DocumentsTab
+            app={app}
             isGstAmendment={isGstAmendment}
             formData={formData}
             documents={app.documents}

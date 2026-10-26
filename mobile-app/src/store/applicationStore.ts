@@ -22,6 +22,7 @@ import {
 import {
   draftToApplication,
   getServiceTimeline,
+  extractAllApplicationDocuments,
 } from "./applicationDraftMappers";
 import { logger } from "@/core/logging/logger";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
@@ -161,38 +162,27 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
         .map((draft) => draftToApplication(draft as Record<string, unknown>, cleanMobile))
         .filter((draftApp) => !submittedServiceIds.has(draftApp.serviceId));
 
-      const combinedApps = [...Array.from(mergedMap.values()), ...draftApplications];
-      set({
-        applications: combinedApps,
-        isLoading: false,
-        error: combinedApps.length > 0 ? null : remoteError,
-      });
+      const combinedApps = [...Array.from(mergedMap.values()), ...draftApplications].map((app) => ({
+        ...app,
+        documents: extractAllApplicationDocuments(app, app.documents),
+      }));
+      set({ applications: combinedApps, isLoading: false, error: combinedApps.length > 0 ? null : remoteError });
     } catch (err: unknown) {
       const localApps = await getPersistedApplications(cleanMobile);
       const customerDrafts = await getCustomerDrafts(cleanMobile).catch(() => []);
-      const draftApplications = customerDrafts.map((draft) =>
-        draftToApplication(draft as Record<string, unknown>, cleanMobile),
-      );
-      const fallbackApps = [...localApps, ...draftApplications];
+      const draftApplications = customerDrafts.map((d) => draftToApplication(d as Record<string, unknown>, cleanMobile));
+      const fallbackApps = [...localApps, ...draftApplications].map((app) => ({
+        ...app,
+        documents: extractAllApplicationDocuments(app, app.documents),
+      }));
       const errMsg = err instanceof Error ? err.message : "Failed to load applications. Please try again.";
-      set({
-        applications: fallbackApps,
-        isLoading: false,
-        error: fallbackApps.length > 0 ? null : errMsg,
-      });
+      set({ applications: fallbackApps, isLoading: false, error: fallbackApps.length > 0 ? null : errMsg });
     }
   },
 
   createApplication: (
-    serviceId,
-    serviceName,
-    category,
-    formData,
-    requiredDocs,
-    paymentAmount,
-    initialPaymentStatus,
-    skipNotification,
-    customId,
+    serviceId, serviceName, category, formData, requiredDocs,
+    paymentAmount, initialPaymentStatus, skipNotification, customId,
   ) => {
     const rawFormData = (formData || {}) as Record<string, unknown>;
     const realId =
@@ -204,8 +194,7 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
       (rawFormData.referenceId ? String(rawFormData.referenceId).trim() : "");
 
     const appId: string =
-      realId ||
-      `${category.substring(0, 4).toUpperCase()}-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+      realId || `${category.substring(0, 4).toUpperCase()}-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
 
     const newApp: Application = {
       id: appId,
@@ -216,22 +205,16 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
       progress: 20,
       assignedExecutive: "",
       paymentAmount,
-      paymentStatus:
-        initialPaymentStatus || (paymentAmount > 0 ? "Pending" : "Paid"),
+      paymentStatus: initialPaymentStatus || (paymentAmount > 0 ? "Pending" : "Paid"),
       createdAt: new Date().toISOString().split("T")[0],
       formData: {
         ...formData,
         applicationId: appId,
         submissionDate: (formData as any)?.submissionDate || new Date().toISOString().split("T")[0],
       },
-      documents: requiredDocs.map((doc) =>
-        typeof doc === "string"
-          ? { name: doc, status: "Pending" }
-          : {
-              name: doc.name,
-              status: doc.status || "Pending",
-              fileUri: doc.fileUri,
-            },
+      documents: extractAllApplicationDocuments(
+        { serviceId, formData: formData || {}, documents: [] },
+        requiredDocs,
       ),
       timeline: getServiceTimeline(serviceId),
       chatHistory: [],
@@ -266,19 +249,23 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
   },
 
   addApplication: (newApp) => {
+    const normalizedApp: Application = {
+      ...newApp,
+      documents: extractAllApplicationDocuments(newApp, newApp.documents),
+    };
     set((state) => {
       const remaining = state.applications.filter(
         (a) =>
-          a.id !== newApp.id &&
-          !(newApp.formData?.applicationId && a.id === newApp.formData.applicationId) &&
-          !(newApp.formData?.arn && a.formData?.arn === newApp.formData.arn) &&
-          !(newApp.formData?.gstId && a.formData?.gstId === newApp.formData.gstId),
+          a.id !== normalizedApp.id &&
+          !(normalizedApp.formData?.applicationId && a.id === normalizedApp.formData.applicationId) &&
+          !(normalizedApp.formData?.arn && a.formData?.arn === normalizedApp.formData.arn) &&
+          !(normalizedApp.formData?.gstId && a.formData?.gstId === normalizedApp.formData.gstId),
       );
-      const nextApps = [newApp, ...remaining];
+      const nextApps = [normalizedApp, ...remaining];
       savePersistedApplications(getActiveCustomerMobile(), nextApps);
       return { applications: nextApps };
     });
-    applicationService.createApplication(newApp).catch((err) => {
+    applicationService.createApplication(normalizedApp).catch((err) => {
       logger.debug("[ApplicationStore] Backend persistence note", { error: getErrorMessage(err) });
     });
   },

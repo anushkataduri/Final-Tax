@@ -172,7 +172,16 @@ export async function submitAmendmentService(params: {
       supportingDoc,
       amendmentId: activeAmendmentId,
     }),
-    [supportingDoc.name],
+    supportingDoc
+      ? [{
+          name: supportingDoc.name,
+          status: "Uploaded" as const,
+          fileUri: supportingDoc.uri,
+          fileName: supportingDoc.name,
+          fileSize: supportingDoc.size,
+          category: selectedSection.title || "Supporting Proof",
+        }]
+      : [],
     999,
     "Pending",
     false,

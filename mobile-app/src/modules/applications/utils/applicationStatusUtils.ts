@@ -4,9 +4,13 @@ export type StatusCategory =
   | "ALL"
   | "IN_PROGRESS"
   | "COMPLETED"
-  | "UNDER_VERIFICATION";
+  | "UNDER_VERIFICATION"
+  | "SUBMITTED"
+  | "PENDING_DOCUMENTS"
+  | "REJECTED"
+  | "APPROVED";
 
-export type NormalizedStatus = StatusCategory | "OTHER";
+export type NormalizedStatus = StatusCategory | "DRAFT" | "OTHER";
 
 const COMPLETED_KEYWORDS = [
   "complete",
@@ -19,6 +23,7 @@ const COMPLETED_KEYWORDS = [
   "closed",
   "return filed",
   "e-verified",
+  "e verified",
   "everified",
 ] as const;
 
@@ -30,12 +35,17 @@ const VERIFICATION_KEYWORDS = [
   "officer scrutiny",
   "internal tax review",
   "ca review",
+  "documents under verification",
   "verification",
   "scrutiny",
+  "underwriting",
+] as const;
+
+const SUBMITTED_KEYWORDS = [
   "submitted",
-  "kyc pending",
-  "documents under verification",
   "new request",
+  "application received",
+  "application submitted",
 ] as const;
 
 const IN_PROGRESS_KEYWORDS = [
@@ -59,7 +69,7 @@ export function normalizeApplicationStatus(status?: string): NormalizedStatus {
   if (!status || typeof status !== "string") {
     return "OTHER";
   }
-  const s = status.trim().toLowerCase().replace(/_/g, " ");
+  const s = status.trim().toLowerCase().replace(/[_-]/g, " ").replace(/\s+/g, " ");
   if (!s) {
     return "OTHER";
   }
@@ -78,8 +88,15 @@ export function normalizeApplicationStatus(status?: string): NormalizedStatus {
     return "COMPLETED";
   }
 
-  if (s === "review" || VERIFICATION_KEYWORDS.some((kw) => s.includes(kw))) {
+  if (
+    !s.includes("customer review") &&
+    (s === "review" || VERIFICATION_KEYWORDS.some((kw) => s.includes(kw)))
+  ) {
     return "UNDER_VERIFICATION";
+  }
+
+  if (SUBMITTED_KEYWORDS.some((kw) => s.includes(kw))) {
+    return "SUBMITTED";
   }
 
   if (IN_PROGRESS_KEYWORDS.some((kw) => s.includes(kw))) {
@@ -91,12 +108,57 @@ export function normalizeApplicationStatus(status?: string): NormalizedStatus {
 
 export function matchesStatusFilter(
   status: string | undefined,
-  filter: StatusCategory
+  filter: StatusCategory | string
 ): boolean {
   if (filter === "ALL") {
     return true;
   }
-  return normalizeApplicationStatus(status) === filter;
+  const normFilter = String(filter).toUpperCase().replace(/[\s-]+/g, "_");
+
+  if (normFilter === "UNDER_VERIFICATION") {
+    return normalizeApplicationStatus(status) === "UNDER_VERIFICATION";
+  }
+
+  if (normFilter === "COMPLETED") {
+    return normalizeApplicationStatus(status) === "COMPLETED";
+  }
+
+  if (normFilter === "APPROVED") {
+    const s = (status || "").trim().toLowerCase();
+    return s.includes("approv") || s.includes("sanction");
+  }
+
+  if (normFilter === "SUBMITTED") {
+    return normalizeApplicationStatus(status) === "SUBMITTED";
+  }
+
+  if (normFilter === "PENDING_DOCUMENTS" || normFilter === "DOCUMENTS_PENDING") {
+    const s = (status || "").trim().toLowerCase().replace(/_/g, " ");
+    return (
+      s.includes("pending doc") ||
+      s.includes("doc pending") ||
+      s.includes("documents pending") ||
+      s.includes("pending documents") ||
+      s.includes("document collection") ||
+      s.includes("kyc pending")
+    );
+  }
+
+  if (normFilter === "REJECTED") {
+    const s = (status || "").trim().toLowerCase();
+    return (
+      s.includes("reject") ||
+      s.includes("fail") ||
+      s.includes("cancel") ||
+      s.includes("suspend")
+    );
+  }
+
+  if (normFilter === "IN_PROGRESS") {
+    return normalizeApplicationStatus(status) === "IN_PROGRESS";
+  }
+
+  return normalizeApplicationStatus(status) === normFilter;
 }
 
 export function deduplicateApplications(apps: readonly Application[]): Application[] {

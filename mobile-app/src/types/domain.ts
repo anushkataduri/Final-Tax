@@ -70,6 +70,11 @@ export interface ApplicationDocument {
   status: DocumentStatus;
   /** Local file URI once the customer has uploaded the document. */
   fileUri?: string;
+  fileName?: string;
+  fileSize?: string;
+  category?: string;
+  uploadedAt?: string;
+  mimeType?: string;
 }
 
 export type TimelineStatus = "completed" | "current" | "pending";

@@ -10,6 +10,7 @@ import { logger } from "@/core/logging/logger";
 import { FilingDocItem } from "@/modules/gst/gst-filing/config/gstFilingDocumentsConfig";
 import { GstFilingPeriodData } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstFilingPeriodStep";
 import type { GstFilingPayload } from "@/modules/gst/gst-filing/types/gstFilingPayload.types";
+import type { ApplicationDocument } from "@/types/domain";
 
 export type { GstFilingPayload };
 
@@ -377,4 +378,18 @@ export function syncPreviousAppDocuments(
  */
 export function extractUploadedDocumentNames(docs: readonly FilingDocItem[]): string[] {
   return docs.filter((d) => Boolean(d.fileUri)).map((d) => d.name);
+}
+
+/**
+ * Extracts full uploaded document domain objects with URI and metadata.
+ */
+export function extractUploadedDocuments(docs: readonly FilingDocItem[]): ApplicationDocument[] {
+  return docs.filter((d) => Boolean(d.fileUri)).map((d) => ({
+    name: d.name,
+    status: "Uploaded" as const,
+    fileUri: d.fileUri,
+    fileName: d.fileName || d.name,
+    fileSize: (d as any).fileSize || (d as any).sizeFormatted || "245 KB",
+    category: d.category || "Filing Document",
+  }));
 }
