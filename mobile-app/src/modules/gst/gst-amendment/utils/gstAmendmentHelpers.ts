@@ -214,3 +214,20 @@ export function buildDbReviewSummaries(
   return requestedValDict;
 }
 
+const AMENDMENT_MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+] as const;
+
+export function formatAmendmentSubmissionDate(isoStr: string): string {
+  if (!isoStr) return "";
+  try {
+    const d = new Date(isoStr);
+    if (!isNaN(d.getTime())) {
+      return `${d.getDate()} ${AMENDMENT_MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+    }
+  } catch {
+    // unparseable — return raw
+  }
+  return isoStr;
+}

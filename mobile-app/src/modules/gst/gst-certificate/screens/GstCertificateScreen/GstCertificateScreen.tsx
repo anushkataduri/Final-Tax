@@ -104,7 +104,7 @@ export function GstCertificateScreen() {
               autoCapitalize="characters"
               maxLength={15}
               onFocus={() => flow.setIsFocused(true)}
-              onBlur={() => flow.setIsFocused(false)}
+              onBlur={flow.handleGstinBlur}
             />
             {Boolean(flow.gstinError) && <Text style={st.errorText}>{flow.gstinError}</Text>}
             <Text style={st.helperText}>Enter 15-character GSTIN for certificate download</Text>

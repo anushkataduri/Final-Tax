@@ -14,6 +14,7 @@ import {
   getSuccessActionsWrapStyle,
 } from "./GstAmendmentSuccess.styles";
 import { SubmissionResult } from "../../types/gstAmendmentTypes";
+import { formatAmendmentSubmissionDate } from "../../utils/gstAmendmentHelpers";
 
 interface GstAmendmentSuccessProps {
   submissionResult: SubmissionResult;
@@ -79,7 +80,7 @@ export const GstAmendmentSuccess: React.FC<GstAmendmentSuccessProps> = ({
 
           <View style={styles.successRow}>
             <Text style={styles.successRowKey}>Submission Date</Text>
-            <Text style={styles.successRowVal}>{submissionResult.date}</Text>
+            <Text style={styles.successRowVal}>{formatAmendmentSubmissionDate(submissionResult.date)}</Text>
           </View>
           <View style={styles.successDivider} />
 

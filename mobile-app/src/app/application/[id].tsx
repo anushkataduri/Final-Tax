@@ -29,6 +29,7 @@ import {
   calculateExpectedDate,
   getServiceSpecificTimeline,
 } from "@/components/screens/application/applicationDetailsUtils";
+import { formatAmendmentSubmissionDate } from "@/modules/gst/gst-amendment/utils/gstAmendmentHelpers";
 
 export default function ApplicationDetailScreen() {
   const router = useRouter();
@@ -150,7 +151,7 @@ export default function ApplicationDetailScreen() {
       : app.serviceName;
 
   const appliedDate =
-    formData.submissionDate ||
+    (formData.submissionDate ? formatAmendmentSubmissionDate(formData.submissionDate) : null) ||
     formData.appliedDate ||
     formatDisplayDate(app.createdAt);
 

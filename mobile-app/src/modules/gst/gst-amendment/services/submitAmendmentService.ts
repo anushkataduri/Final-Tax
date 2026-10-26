@@ -155,8 +155,7 @@ export async function submitAmendmentService(params: {
 
   const isCore = selectedSection.type === "core";
   const generatedArn = generateArn();
-  const now = new Date();
-  const dateStr = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
+  const dateStr = new Date().toISOString();
 
   const appId = createApplication(
     "gst-amendment",

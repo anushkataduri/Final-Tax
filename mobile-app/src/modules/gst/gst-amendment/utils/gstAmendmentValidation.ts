@@ -5,6 +5,7 @@ import {
   ALLOWED_PAN_CATEGORIES,
   extractPanFromGstin,
 } from "@/shared/validators/gstValidators";
+import { validateGstinFull } from "@/modules/gst/utils/gstValidation";
 import { parseDDMMYYYY, isFutureDate } from "@/shared/formatters/dateFormatter";
 
 export {
@@ -43,20 +44,9 @@ export function validatePanNumber(pan: string, isTouched = true): string | null 
 export function validateGstinInput(
   gstin: string
 ): { isValid: true; error?: undefined } | { isValid: false; error: string } {
-  const clean = (gstin || "").trim().toUpperCase();
-  if (!clean) return { isValid: false, error: "Enter GSTIN" };
-  if (clean.length !== 15) return { isValid: false, error: "Enter a valid 15-character GSTIN" };
-  const stateCode = clean.slice(0, 2);
-  if (!VALID_GSTIN_STATE_CODES.has(stateCode)) {
-    return { isValid: false, error: "Enter a valid GSTIN state code" };
-  }
-  if (!GSTIN_REGEX.test(clean)) {
-    return { isValid: false, error: "Enter a valid 15-character GSTIN" };
-  }
-  const panCategory = clean[5];
-  if (!ALLOWED_PAN_CATEGORIES.has(panCategory)) {
-    return { isValid: false, error: "Enter a valid PAN segment in GSTIN" };
-  }
+  if (!(gstin || "").trim()) return { isValid: false, error: "Enter GSTIN" };
+  const error = validateGstinFull(gstin);
+  if (error) return { isValid: false, error };
   return { isValid: true };
 }
 

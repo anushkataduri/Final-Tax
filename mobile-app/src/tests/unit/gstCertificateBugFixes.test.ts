@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { validateGstinFull } from "../../modules/gst/utils/gstValidation";
+import { validateGstinInput } from "../../modules/gst/gst-amendment/utils/gstAmendmentValidation";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const SCREEN_FILE = path.join(
@@ -61,7 +62,7 @@ describe("GST Certificate Bug Fixes", () => {
       assert.equal(validateGstinFull("07AAAPZ1234A1Z😂"), "Enter a valid GSTIN format.");
     });
 
-    it("rejects GSTIN with invalid structure (wrong digit positions)", () => {
+    it("rejects GSTIN with invalid Z position (position 13 is not Z)", () => {
       assert.equal(validateGstinFull("07AAAPZ1234A1A0"), "Enter a valid GSTIN format.");
     });
 
@@ -165,6 +166,86 @@ describe("GST Certificate Bug Fixes", () => {
       assert.ok(
         source.includes("cleaned.length === 15"),
         "Hook must trigger validateGstinFull when GSTIN reaches 15 characters"
+      );
+    });
+
+    it("hook provides handleGstinBlur for blur validation", () => {
+      const source = fs.readFileSync(HOOK_FILE, "utf-8");
+      assert.ok(
+        source.includes("handleGstinBlur"),
+        "Hook must export handleGstinBlur"
+      );
+    });
+
+    it("screen calls handleGstinBlur onBlur", () => {
+      const source = fs.readFileSync(SCREEN_FILE, "utf-8");
+      assert.ok(
+        source.includes("onBlur={flow.handleGstinBlur}"),
+        "Screen must bind onBlur to flow.handleGstinBlur"
+      );
+    });
+  });
+});
+
+describe("GST Certificate & Amendment — same canonical GSTIN validator", () => {
+  const VALID_GSTINS = [
+    "07AAAPZ1234A1Z0",
+    "27AABCU9603R1ZP",
+    "19AAACR5055K1ZB",
+  ];
+
+  const INVALID_CASES: [string, string][] = [
+    ["07AAAPZ1234A1Z",  "14 chars — too short"],
+    ["07AAAPZ1234A1Z0X", "16 chars — too long"],
+    ["99AAAPZ1234A1Z0",  "state code 99 — inactive"],
+    ["25AAAPZ1234A1Z0",  "state code 25 — defunct"],
+    ["28AAAPZ1234A1Z0",  "state code 28 — defunct"],
+    ["07AAADZ1234A1Z0",  "PAN entity char D — not in ABCFGHJLPT"],
+    ["07123PZ1234A1Z0",  "digits in PAN alpha prefix"],
+    ["07AAAPZ1234A1A0",  "invalid Z position (position 13 is A not Z)"],
+    ["07AAAPZ1234A1Z5",  "wrong checksum digit"],
+    ["U62010TS2025PTC",  "CIN format — starts with letter"],
+    ["L12345MH2020PLC",  "CIN format — L prefix"],
+  ];
+
+  describe("valid GSTINs — both validators accept", () => {
+    VALID_GSTINS.forEach((gstin) => {
+      it(`${gstin} is accepted by validateGstinFull (Certificate)`, () => {
+        assert.equal(validateGstinFull(gstin), null, `${gstin} must be valid`);
+      });
+
+      it(`${gstin} accepted by Amendment validator maps to isValid:true`, () => {
+        const res = validateGstinInput(gstin);
+        assert.equal(res.isValid, true, `${gstin} must pass Amendment validator`);
+      });
+    });
+  });
+
+  describe("invalid GSTINs — both validators reject", () => {
+    INVALID_CASES.forEach(([gstin, label]) => {
+      it(`Certificate validator rejects: ${label}`, () => {
+        assert.ok(
+          validateGstinFull(gstin) !== null,
+          `validateGstinFull must reject "${gstin}" (${label})`
+        );
+      });
+
+      it(`Amendment validator rejects: ${label}`, () => {
+        const res = validateGstinInput(gstin);
+        assert.equal(res.isValid, false, `validateGstinInput must reject "${gstin}" (${label})`);
+      });
+    });
+  });
+
+  describe("Amendment validator delegates to validateGstinFull", () => {
+    it("gstAmendmentValidation imports validateGstinFull", () => {
+      const source = fs.readFileSync(
+        path.join(ROOT, "src/modules/gst/gst-amendment/utils/gstAmendmentValidation.ts"),
+        "utf-8"
+      );
+      assert.ok(
+        source.includes("validateGstinFull"),
+        "gstAmendmentValidation must import and call validateGstinFull"
       );
     });
   });

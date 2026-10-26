@@ -114,6 +114,12 @@ export function useGstCertificateFlow() {
     }
   }, []);
 
+  const handleGstinBlur = useCallback(() => {
+    setIsFocused(false);
+    const err = validateGstinFull(gstin);
+    setGstinError(err ?? "");
+  }, [gstin]);
+
   const downloadAndSharePdf = useCallback(async (uri: string, fileName: string) => {
     try {
       if (Platform.OS === "web") {
@@ -233,6 +239,7 @@ export function useGstCertificateFlow() {
     registeredEmail,
     draftGuard,
     handleGstinChange,
+    handleGstinBlur,
     downloadAndSharePdf,
     handleGenerateCertificate,
   };

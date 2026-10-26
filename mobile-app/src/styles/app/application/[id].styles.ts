@@ -18,6 +18,19 @@ export const styles = StyleSheet.create({
   headerTextWrap: { paddingHorizontal: 2 },
   navSpacer: { width: 38 },
 
+  /* Shared Floating Header Card (Screens 2–6 Reference) */
+  sharedHeaderCardWrapper: { paddingHorizontal: 16, marginTop: -24, marginBottom: 8, zIndex: 10 },
+  sharedHeaderCard: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", shadowColor: "#0A2346", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4, borderWidth: 1, borderColor: "#E2E8F0" },
+  sharedHeaderContent: { flex: 1, marginLeft: 12, marginRight: 8 },
+  sharedHeaderTitle: { fontSize: 16, fontWeight: "700", color: "#0A2346", letterSpacing: -0.2, marginBottom: 4 },
+  sharedHeaderIdRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 },
+  sharedHeaderIdText: { fontSize: 12, fontWeight: "600", color: "#64748B" },
+  sharedHeaderDateRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  sharedHeaderDateSub: { fontSize: 10, color: "#94A3B8", fontWeight: "500" },
+  sharedHeaderDateText: { fontSize: 11.5, fontWeight: "600", color: "#0F172A" },
+  sharedHeaderStatusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, alignSelf: "flex-start" },
+  sharedHeaderStatusText: { fontSize: 11, fontWeight: "700" },
+
   /* Tabs Bar */
   tabsContainer: { backgroundColor: "#FFFFFF", borderBottomWidth: 1, borderBottomColor: "#F1F5F9", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
   tabsScrollContent: { flexDirection: "row", paddingHorizontal: 12, paddingVertical: 10, alignItems: "center", gap: 8 },
