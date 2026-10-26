@@ -199,7 +199,7 @@ export function StatePickerModal({
           </View>
 
           {/* State List */}
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {filteredStates.map((s) => {
               const isSelected = selectedState === s;
               return (

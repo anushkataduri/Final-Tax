@@ -1,8 +1,8 @@
 import { apiClient } from "../../../../core/api/apiClient";
+import * as FileSystem from "expo-file-system";
 import { TdsDocumentItem } from "../types/tdsDocuments.types";
 import { INITIAL_TDS_DOCUMENTS } from "../constants/tdsDocuments.constants";
 import { TdsDocumentsDto } from "./tdsApiTypes";
-import { logger } from "@/core/logging/logger";
 
 // Helper: Read file URI as Base64 string for REST JSON transport (handles file://, content://, http://, data:)
 export const readFileAsBase64 = async (uri?: string): Promise<string | null> => {
@@ -35,14 +35,14 @@ export const readFileAsBase64 = async (uri?: string): Promise<string | null> => 
     const FileSystemLegacy = await import("expo-file-system/legacy");
     if (FileSystemLegacy && typeof FileSystemLegacy.readAsStringAsync === "function") {
       const base64 = await FileSystemLegacy.readAsStringAsync(cleanUri, {
-        encoding: FileSystemLegacy.EncodingType?.Base64 ?? "base64",
+        encoding: FileSystemLegacy.EncodingType?.Base64 || ("base64" as any),
       });
       if (base64 && base64.trim().length > 0) {
         return base64.trim();
       }
     }
   } catch (legacyErr) {
-    logger.debug("[TDS API] FileSystemLegacy.readAsStringAsync attempt", { error: legacyErr });
+    console.debug("[TDS API] FileSystemLegacy.readAsStringAsync attempt:", legacyErr);
   }
 
   // 4. Strategy B: React Native native fetch() -> Blob -> FileReader (handles content://, file://, http://)
@@ -65,7 +65,7 @@ export const readFileAsBase64 = async (uri?: string): Promise<string | null> => 
       return base64Data;
     }
   } catch (fetchErr) {
-    logger.debug("[TDS API] fetch -> blob -> FileReader attempt", { error: fetchErr });
+    console.debug("[TDS API] fetch -> blob -> FileReader attempt:", fetchErr);
   }
 
   // 5. Strategy C: expo-file-system next File class
@@ -73,9 +73,8 @@ export const readFileAsBase64 = async (uri?: string): Promise<string | null> => 
     const { File: ExpoFile } = await import("expo-file-system");
     if (ExpoFile) {
       const file = new ExpoFile(cleanUri);
-      const fileWithBase64 = file as { base64?: () => Promise<string> };
-      if (typeof fileWithBase64.base64 === "function") {
-        const b64 = await fileWithBase64.base64();
+      if (typeof (file as any).base64 === "function") {
+        const b64 = await (file as any).base64();
         if (b64 && b64.trim().length > 0) return b64.trim();
       }
       if (typeof file.arrayBuffer === "function") {
@@ -92,10 +91,10 @@ export const readFileAsBase64 = async (uri?: string): Promise<string | null> => 
       }
     }
   } catch (expoFileErr) {
-    logger.debug("[TDS API] ExpoFile attempt", { error: expoFileErr });
+    console.debug("[TDS API] ExpoFile attempt:", expoFileErr);
   }
 
-  logger.warn("[TDS API] Could not convert document URI to Base64");
+  console.warn("⚠️ [TDS API] Could not convert document URI to Base64:", cleanUri);
   return null;
 };
 
@@ -104,14 +103,15 @@ export const tdsDocumentsApiService = {
     const getDocBase64 = async (docKey: string): Promise<string | null> => {
       const key = docKey.toLowerCase();
       const doc = documents.find((d) => {
-        const hasUri = d.status === "uploaded" || Boolean(d.fileUri);
+        const hasUri = d.status === "uploaded" || Boolean(d.fileUri) || Boolean((d as any).uri);
         if (!hasUri) return false;
 
         const id = (d.id || "").toLowerCase();
-        const icon = (d.iconType || "").toLowerCase();
+        const icon = ((d as any).iconType || "").toLowerCase();
+        const type = ((d as any).type || "").toLowerCase();
         const title = (d.title || "").toLowerCase();
 
-        if (id === key || icon === key) return true;
+        if (id === key || icon === key || type === key) return true;
 
         if (key === "pan") return (id.includes("pan") || icon.includes("pan") || title.includes("pan"));
         if (key === "form16") return (id === "form16" || icon === "form16" || (title.includes("form 16") && !title.includes("16a")));
@@ -126,7 +126,7 @@ export const tdsDocumentsApiService = {
         return false;
       });
 
-      const targetUri = doc?.fileUri;
+      const targetUri = doc?.fileUri || (doc as any)?.uri;
       if (!doc || !targetUri) return null;
       return await readFileAsBase64(targetUri);
     };

@@ -1,2 +1,2 @@
-export { PartnerDetailsScreen } from "./PartnerDetailsScreen";
+﻿export { PartnerDetailsScreen } from "./PartnerDetailsScreen";
 export { default } from "./PartnerDetailsScreen";

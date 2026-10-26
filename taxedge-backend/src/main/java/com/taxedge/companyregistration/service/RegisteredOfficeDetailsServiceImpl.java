@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import com.taxedge.companyregistration.dto.RegisteredOfficeDetailsDto;
 import com.taxedge.companyregistration.entity.CompanyDetails;
 import com.taxedge.companyregistration.entity.RegisteredOfficeDetails;
-import com.taxedge.companyregistration.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.companyregistration.mapper.RegisteredOfficeDetailsMapper;
 import com.taxedge.companyregistration.repository.CompanyDetailsRepository;
 import com.taxedge.companyregistration.repository.RegisteredOfficeDetailsRepository;

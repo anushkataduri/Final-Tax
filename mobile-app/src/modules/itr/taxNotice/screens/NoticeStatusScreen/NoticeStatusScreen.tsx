@@ -88,7 +88,6 @@ export const NoticeStatusScreen: React.FC = () => {
     },
   ];
 
-  // eslint-disable-next-line react-hooks/purity
   const ackNumber = `RSP${Date.now().toString().slice(-8)}`;
 
   const details = {
@@ -114,7 +113,7 @@ export const NoticeStatusScreen: React.FC = () => {
   };
 
   const handleBackToServices = () => {
-    router.replace("/service/itr" as never);
+    router.replace("/service/itr" as any);
   };
 
   return (

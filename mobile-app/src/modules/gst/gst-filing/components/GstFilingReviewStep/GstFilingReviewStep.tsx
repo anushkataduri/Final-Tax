@@ -7,9 +7,9 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
-import { formatIndianCurrency } from "@/shared/formatters/currencyFormatter";
-import { validateEstimatedAmount } from "@/modules/gst/gst-filing/utils/gstFilingValidation";
-import { GstFilingComputationModal } from "./GstFilingComputationModal";
+import {
+  formatIndianCurrency,
+} from "@/shared/formatters/currencyFormatter";
 import { styles } from "@/modules/gst/gst-filing/components/GstFilingReviewStep/GstFilingReviewStep.styles";
 
 export interface GstFilingReviewStepProps {
@@ -89,64 +89,20 @@ export const GstFilingReviewStep: React.FC<GstFilingReviewStepProps> = ({
 
   // Automatically update computation state when values are retrieved from database
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentTurnover(baseTurnover);
   }, [baseTurnover]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPurchases(basePurchases);
   }, [basePurchases]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentItc(baseItc);
   }, [baseItc]);
 
   // Derived reconciled calculations
   const outputGst = Math.round(currentTurnover * 0.18);
   const netLiability = Math.max(0, outputGst - currentItc);
-
-  // Edit computation modal state
-  const [isEditingComputation, setIsEditingComputation] = useState(false);
-  const [editTurnoverStr, setEditTurnoverStr] = useState(String(currentTurnover));
-  const [editPurchasesStr, setEditPurchasesStr] = useState(String(currentPurchases));
-  const [editItcStr, setEditItcStr] = useState(String(currentItc));
-  const [modalErrors, setModalErrors] = useState<Record<string, string>>({});
-
-  const handleOpenComputationModal = () => {
-    setEditTurnoverStr(String(currentTurnover));
-    setEditPurchasesStr(String(currentPurchases));
-    setEditItcStr(String(currentItc));
-    setModalErrors({});
-    setIsEditingComputation(true);
-  };
-
-  const handleSaveComputation = () => {
-    const errTurnover = validateEstimatedAmount(editTurnoverStr, "gross taxable turnover", false);
-    const errPurchases = validateEstimatedAmount(editPurchasesStr, "estimated purchases", false);
-    const errItc = validateEstimatedAmount(editItcStr, "eligible ITC", false);
-
-    const newErrors: Record<string, string> = {};
-    if (errTurnover) newErrors.turnover = errTurnover;
-    if (errPurchases) newErrors.purchases = errPurchases;
-    if (errItc) newErrors.itc = errItc;
-
-    if (Object.keys(newErrors).length > 0) {
-      setModalErrors(newErrors);
-      return;
-    }
-
-    const newTurnover = parseNumeric(editTurnoverStr, currentTurnover);
-    const newPurchases = parseNumeric(editPurchasesStr, currentPurchases);
-    const newItc = parseNumeric(editItcStr, currentItc);
-    setCurrentTurnover(newTurnover);
-    setCurrentPurchases(newPurchases);
-    setCurrentItc(newItc);
-    setModalErrors({});
-    setIsEditingComputation(false);
-    onUpdateComputation?.(newTurnover, newItc, newPurchases);
-  };
 
   const returnFormName = filingType ? filingType.split(" ")[0] : "GSTR-1";
 
@@ -234,6 +190,15 @@ export const GstFilingReviewStep: React.FC<GstFilingReviewStepProps> = ({
         </View>
 
         <View style={styles.row}>
+          <Text style={styles.label}>Tax Calculation Method</Text>
+          <Text style={styles.value}>
+            {calculationMethod === "manual_estimates"
+              ? "Self-estimated figures"
+              : "Let TaxEdge CA calculate from documents"}
+          </Text>
+        </View>
+
+        <View style={styles.row}>
           <Text style={styles.label}>Filing Type</Text>
           <Text style={styles.value}>{filingNature}</Text>
         </View>
@@ -254,54 +219,54 @@ export const GstFilingReviewStep: React.FC<GstFilingReviewStepProps> = ({
         </View>
       </View>
 
-      {/* 2. Tax Computation Card (Omitted completely for Nil Return) */}
-      {!isNilReturn && (
+      {/* 2. Tax Computation Card / CA Informative Banner (Omitted for Nil Return) */}
+      {!isNilReturn && calculationMethod !== "manual_estimates" && (
+        <View style={styles.caBannerCard}>
+          <View style={styles.caBannerHeaderRow}>
+            <View style={styles.caBannerLeft}>
+              <Ionicons name="information-circle-outline" size={20} color={BrandColors.PRIMARY_BLUE} />
+              <Text style={styles.caBannerTitle}>Tax Computation</Text>
+            </View>
+            {renderEditButton(onEditTaxComputation || onEditFilingDetails)}
+          </View>
+          <Text style={styles.caBannerText}>
+            TaxEdge CA will calculate your liabilities, ITC, and net payable tax directly from your uploaded invoices.
+          </Text>
+        </View>
+      )}
+
+      {!isNilReturn && calculationMethod === "manual_estimates" && (
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
             <Text style={styles.cardTitle}>Tax Computation</Text>
-            {isCaPending ? (
-              <View style={styles.statusPendingBadge}>
-                <Text style={styles.statusPendingText}>CA Reconciliation Pending</Text>
-              </View>
-            ) : (
-              renderEditButton(handleOpenComputationModal)
-            )}
+            {renderEditButton(onEditTaxComputation || onEditFilingDetails)}
           </View>
           <View style={styles.divider} />
 
-          {isCaPending ? (
-            <View style={styles.row}>
-              <Text style={styles.label}>Computation Status</Text>
-              <Text style={styles.value}>To be computed by CA from records</Text>
-            </View>
-          ) : (
-            <>
-              <View style={styles.row}>
-                <Text style={styles.label}>Gross Taxable Turnover</Text>
-                <Text style={styles.value}>{formatInr(currentTurnover)}</Text>
-              </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Gross Taxable Turnover</Text>
+            <Text style={styles.value}>{formatInr(currentTurnover)}</Text>
+          </View>
 
-              <View style={styles.row}>
-                <Text style={styles.label}>Estimated Taxable Purchases</Text>
-                <Text style={styles.value}>{formatInr(currentPurchases)}</Text>
-              </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Estimated Taxable Purchases</Text>
+            <Text style={styles.value}>{formatInr(currentPurchases)}</Text>
+          </View>
 
-              <View style={styles.row}>
-                <Text style={styles.label}>Output GST (18%)</Text>
-                <Text style={styles.value}>{formatInr(outputGst)}</Text>
-              </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Output GST (18%)</Text>
+            <Text style={styles.value}>{formatInr(outputGst)}</Text>
+          </View>
 
-              <View style={styles.row}>
-                <Text style={styles.label}>Eligible Input Tax Credit (ITC)</Text>
-                <Text style={[styles.value, styles.valueSuccess]}>- {formatInr(currentItc)}</Text>
-              </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Eligible Input Tax Credit (ITC)</Text>
+            <Text style={[styles.value, styles.valueSuccess]}>- {formatInr(currentItc)}</Text>
+          </View>
 
-              <View style={styles.row}>
-                <Text style={styles.label}>Net Tax Liability (Govt)</Text>
-                <Text style={styles.value}>{formatInr(netLiability)}</Text>
-              </View>
-            </>
-          )}
+          <View style={styles.row}>
+            <Text style={styles.label}>Net Tax Liability (Govt)</Text>
+            <Text style={styles.value}>{formatInr(netLiability)}</Text>
+          </View>
         </View>
       )}
 
@@ -363,31 +328,6 @@ export const GstFilingReviewStep: React.FC<GstFilingReviewStepProps> = ({
           </View>
         )}
       </View>
-
-      {!isNilReturn && (
-        <GstFilingComputationModal
-          visible={isEditingComputation}
-          editTurnoverStr={editTurnoverStr}
-          editPurchasesStr={editPurchasesStr}
-          editItcStr={editItcStr}
-          modalErrors={modalErrors}
-          onChangeTurnover={(val) => {
-            setEditTurnoverStr(val);
-            if (modalErrors.turnover) setModalErrors((prev) => ({ ...prev, turnover: "" }));
-          }}
-          onChangePurchases={(val) => {
-            setEditPurchasesStr(val);
-            if (modalErrors.purchases) setModalErrors((prev) => ({ ...prev, purchases: "" }));
-          }}
-          onChangeItc={(val) => {
-            setEditItcStr(val);
-            if (modalErrors.itc) setModalErrors((prev) => ({ ...prev, itc: "" }));
-          }}
-          onSave={handleSaveComputation}
-          onClose={() => setIsEditingComputation(false)}
-          onFullForm={() => { setIsEditingComputation(false); onEditTaxComputation?.(); }}
-        />
-      )}
     </View>
   );
 };

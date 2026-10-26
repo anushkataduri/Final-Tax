@@ -4,7 +4,6 @@ import { AppHeader } from '../../../../shared/components/AppHeader';
 import { NomineeForm } from '../../components/NomineeForm/NomineeForm';
 import { usePolicy } from '../../hooks/usePolicy';
 import { styles } from './NomineeDetailsScreen.styles';
-import type { NomineeDetails } from '../../types/member.types';
 
 export const NomineeDetailsScreen: React.FC = () => {
   const { nominee, setNominee } = usePolicy();
@@ -13,7 +12,7 @@ export const NomineeDetailsScreen: React.FC = () => {
     <View style={styles.container}>
       <AppHeader title="Nominee Details" showBack />
       <ScrollView contentContainerStyle={styles.scroll}>
-        <NomineeForm nominee={nominee || {}} onChange={(k, v) => setNominee({ ...(nominee || {}), [k]: v } as NomineeDetails)} />
+        <NomineeForm nominee={nominee || {}} onChange={(k, v) => setNominee({ ...(nominee || {}), [k]: v } as any)} />
       </ScrollView>
     </View>
   );

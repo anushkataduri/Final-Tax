@@ -48,4 +48,9 @@ public class PromoterDirectorDetailsDto {
 	private String mobileNumber;
 
 	private String din;
+
+	private String relationship;
+
+	@Pattern(regexp = "^[0-9]{12}$", message = "Aadhaar number must contain exactly 12 digits")
+	private String aadhaarNumber;
 }

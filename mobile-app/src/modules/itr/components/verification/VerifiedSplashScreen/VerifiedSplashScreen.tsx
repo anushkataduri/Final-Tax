@@ -27,12 +27,12 @@ export const VerifiedSplashScreen: React.FC<VerifiedSplashScreenProps> = ({
     if (onDone) {
       onDone();
     } else {
-      router.replace("/(main)/home" as never);
+      router.replace("/(main)/home" as any);
     }
   };
 
   const handleTaxServices = () => {
-    router.replace("/service/itr" as never);
+    router.replace("/service/itr" as any);
   };
 
   return (

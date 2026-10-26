@@ -2,9 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useNavigation } from "expo-router";
 import { toHref } from "@/shared/utils/navigation";
 
-/** Minimal navigation action shape accepted by react-navigation's dispatch(). */
-type DispatchableAction = Readonly<{ type: string; payload?: object; source?: string; target?: string }>;
-
 export interface UseUniversalDraftGuardOptions {
   /** Return true if the user has unsaved input/dirty state that should trigger draft confirmation */
   isDirty: () => boolean;
@@ -32,7 +29,7 @@ export const useUniversalDraftGuard = ({
   const navigation = useNavigation();
 
   const [showDraftModal, setShowDraftModal] = useState(false);
-  const pendingNavigationActionRef = useRef<DispatchableAction | null>(null);
+  const pendingNavigationActionRef = useRef<any>(null);
   const hasSubmittedRef = useRef(false);
 
   // Keep refs in sync with callbacks
@@ -70,7 +67,7 @@ export const useUniversalDraftGuard = ({
 
       // Intercept navigation & open draft modal
       e.preventDefault();
-      pendingNavigationActionRef.current = e.data.action as DispatchableAction;
+      pendingNavigationActionRef.current = e.data.action;
       setShowDraftModal(true);
     });
 
@@ -85,7 +82,7 @@ export const useUniversalDraftGuard = ({
     if (saveDestinationRef.current) {
       router.replace(toHref(saveDestinationRef.current));
     } else if (pendingNavigationActionRef.current) {
-      navigation.dispatch(pendingNavigationActionRef.current as unknown as DispatchableAction);
+      navigation.dispatch(pendingNavigationActionRef.current);
     } else {
       router.back();
     }
@@ -99,7 +96,7 @@ export const useUniversalDraftGuard = ({
     if (discardDestinationRef.current) {
       router.replace(toHref(discardDestinationRef.current));
     } else if (pendingNavigationActionRef.current) {
-      navigation.dispatch(pendingNavigationActionRef.current as unknown as DispatchableAction);
+      navigation.dispatch(pendingNavigationActionRef.current);
     } else {
       router.back();
     }

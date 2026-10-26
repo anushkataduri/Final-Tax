@@ -14,7 +14,7 @@ import com.taxedge.companyregistration.entity.CompanyDetails;
 import com.taxedge.companyregistration.entity.PromoterDirectorDetails;
 import com.taxedge.companyregistration.entity.ShareholdingCapital;
 import com.taxedge.companyregistration.entity.ShareholdingPattern;
-import com.taxedge.companyregistration.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.companyregistration.mapper.PromoterDirectorDetailsMapper;
 import com.taxedge.companyregistration.repository.CompanyDetailsRepository;
 import com.taxedge.companyregistration.repository.PromoterDirectorDetailsRepository;
@@ -36,23 +36,67 @@ public class PromoterDirectorDetailsServiceImpl implements PromoterDirectorDetai
 	public List<String> registerPromoterDirectorDetails(List<PromoterDirectorDetailsDto> dtoList) {
 
 		List<String> responses = new ArrayList<>();
+		if (dtoList == null || dtoList.isEmpty()) {
+			return responses;
+		}
+
+		String companyRegistrationId = dtoList.get(0).getCompanyRegistrationId();
+		CompanyDetails companyDetails = companyDetailsRepository.findById(companyRegistrationId)
+				.orElseThrow(() -> new ResourceNotFoundException(
+						"Company details not found with ID: " + companyRegistrationId));
+
+		List<PromoterDirectorDetails> existingList = promoterDirectorDetailsRepository
+				.findByCompanyDetails_CompanyRegistrationId(companyRegistrationId);
+
+		List<String> retainedExistingIds = new ArrayList<>();
 
 		for (PromoterDirectorDetailsDto dto : dtoList) {
+			PromoterDirectorDetails matchingExisting = null;
+			if (dto.getPromoterDirectorId() != null && !dto.getPromoterDirectorId().isBlank()) {
+				matchingExisting = existingList.stream()
+						.filter(e -> e.getPromoterDirectorId().equals(dto.getPromoterDirectorId()))
+						.findFirst().orElse(null);
+			}
+			if (matchingExisting == null && dto.getPanNumber() != null && !dto.getPanNumber().isBlank()) {
+				matchingExisting = existingList.stream()
+						.filter(e -> dto.getPanNumber().equalsIgnoreCase(e.getPanNumber()))
+						.findFirst().orElse(null);
+			}
 
-			CompanyDetails companyDetails = companyDetailsRepository.findById(dto.getCompanyRegistrationId())
-					.orElseThrow(() -> new ResourceNotFoundException(
-							"Company details not found with ID: " + dto.getCompanyRegistrationId()));
+			if (matchingExisting != null) {
+				matchingExisting.setFullName(dto.getFullName());
+				matchingExisting.setPanNumber(dto.getPanNumber());
+				matchingExisting.setDateOfBirth(dto.getDateOfBirth());
+				matchingExisting.setDesignation(dto.getDesignation());
+				matchingExisting.setEmailAddress(dto.getEmailAddress());
+				matchingExisting.setMobileNumber(dto.getMobileNumber());
+				matchingExisting.setDin(dto.getDin());
+				matchingExisting.setRelationship(dto.getRelationship());
+				matchingExisting.setAadhaarNumber(dto.getAadhaarNumber());
+				promoterDirectorDetailsRepository.save(matchingExisting);
+				retainedExistingIds.add(matchingExisting.getPromoterDirectorId());
+				responses.add("Promoter/Director details updated. ID: " + matchingExisting.getPromoterDirectorId());
+			} else {
+				PromoterDirectorDetails details = PromoterDirectorDetails.builder()
+						.promoterDirectorId("PD" + UUID.randomUUID().toString().replace("-", ""))
+						.companyDetails(companyDetails).fullName(dto.getFullName()).panNumber(dto.getPanNumber())
+						.dateOfBirth(dto.getDateOfBirth()).designation(dto.getDesignation())
+						.emailAddress(dto.getEmailAddress()).mobileNumber(dto.getMobileNumber()).din(dto.getDin())
+						.relationship(dto.getRelationship()).aadhaarNumber(dto.getAadhaarNumber()).build();
 
-			PromoterDirectorDetails details = PromoterDirectorDetails.builder()
-					.promoterDirectorId("PD" + UUID.randomUUID().toString().replace("-", ""))
-					.companyDetails(companyDetails).fullName(dto.getFullName()).panNumber(dto.getPanNumber())
-					.dateOfBirth(dto.getDateOfBirth()).designation(dto.getDesignation())
-					.emailAddress(dto.getEmailAddress()).mobileNumber(dto.getMobileNumber()).din(dto.getDin()).build();
+				promoterDirectorDetailsRepository.save(details);
+				retainedExistingIds.add(details.getPromoterDirectorId());
+				responses.add("Promoter/Director details successfully registered. Promoter/Director ID: "
+						+ details.getPromoterDirectorId());
+			}
+		}
 
-			promoterDirectorDetailsRepository.save(details);
-
-			responses.add("Promoter/Director details successfully registered. Promoter/Director ID: "
-					+ details.getPromoterDirectorId());
+		// Clean up any promoters that were deleted by the user
+		for (PromoterDirectorDetails existing : existingList) {
+			if (!retainedExistingIds.contains(existing.getPromoterDirectorId())) {
+				shareholdingPatternRepository.deleteByPromoterDirectorId(existing.getPromoterDirectorId());
+				promoterDirectorDetailsRepository.delete(existing);
+			}
 		}
 
 		return responses;

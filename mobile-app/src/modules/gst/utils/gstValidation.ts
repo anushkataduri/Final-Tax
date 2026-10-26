@@ -53,6 +53,32 @@ export function isValidGstin(gstin: string): boolean {
   return isValidGstStateCode(stateCode);
 }
 
+const GSTIN_CHARMAP = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const VALID_PAN_ENTITY_CHARS = new Set(["A","B","C","F","G","H","J","L","P","T"]);
+
+function computeGstinChecksum(clean15: string): string {
+  let s = 0;
+  let p = 2;
+  for (let i = 0; i < 14; i++) {
+    const mv = GSTIN_CHARMAP.indexOf(clean15[i]) * p;
+    s += Math.floor(mv / 36) + (mv % 36);
+    p = 3 - p;
+  }
+  return GSTIN_CHARMAP[(36 - (s % 36)) % 36];
+}
+
+export function validateGstinFull(gstin: string): string | null {
+  if (!gstin || !gstin.trim()) return "Enter a valid 15-character GSTIN.";
+  const clean = gstin.trim().toUpperCase();
+  if (/[^A-Z0-9]/.test(clean)) return "Enter a valid GSTIN format.";
+  if (clean.length !== 15) return "Enter a valid 15-character GSTIN.";
+  if (!GSTIN_REGEX.test(clean)) return "Enter a valid GSTIN format.";
+  if (!isValidGstStateCode(clean.slice(0, 2))) return "Enter a valid GSTIN state code.";
+  if (!VALID_PAN_ENTITY_CHARS.has(clean[5])) return "Enter a valid GSTIN format.";
+  if (clean[14] !== computeGstinChecksum(clean)) return "The GSTIN checksum is invalid.";
+  return null;
+}
+
 export function cleanGstinInput(text: string): string {
   return text.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 15);
 }

@@ -124,7 +124,7 @@ export function GstAmendmentScreen() {
           onSubmit={workflow.handleSubmitAmendment}
           onSaveDraft={workflow.handleExplicitSaveDraft}
           amendmentId={workflow.amendmentId}
-          dbReviewData={workflow.dbReviewData ?? undefined}
+          dbReviewData={workflow.dbReviewData}
         />
       )}
 

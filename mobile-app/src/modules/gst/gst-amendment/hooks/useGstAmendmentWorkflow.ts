@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ScrollView, Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as FileSystem from "expo-file-system";
@@ -24,14 +24,13 @@ import {
 } from "../utils/gstAmendmentValidation";
 import { resolveTargetGstId } from "../utils/gstAmendmentHelpers";
 import { useGstAmendmentDetails } from "./useGstAmendmentDetails";
-import { useGstAmendmentDraftRestore } from "./useGstAmendmentDraftRestore";
 import { submitAmendmentService } from "../services/submitAmendmentService";
 import { persistAmendmentForReview } from "../services/persistAmendmentForReview";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
 
-const stripImageData = (data: Record<string, unknown>): Record<string, unknown> => {
+const stripImageData = (data: any): any => {
   if (!data || typeof data !== "object") return data;
-  const { imageData: _imageData, ...rest } = data;
+  const { imageData, ...rest } = data;
   return rest;
 };
 
@@ -62,7 +61,7 @@ export function useGstAmendmentWorkflow() {
   const [isProofsExpanded, setIsProofsExpanded] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [amendmentId, setAmendmentId] = useState<number | null>(null);
-  const [dbReviewData, setDbReviewData] = useState<Record<string, unknown> | null>(null);
+  const [dbReviewData, setDbReviewData] = useState<any>(null);
   const [isSavingRecord, setIsSavingRecord] = useState(false);
   const savedDraftStepRef = useRef<AmendmentStep | null>(null);
   const savedDraftSectionIdRef = useRef<string | null>(null);
@@ -75,23 +74,77 @@ export function useGstAmendmentWorkflow() {
     onSelect: () => {},
   });
 
-  const targetGstId = resolveTargetGstId(gstin, customer as unknown as Record<string, unknown> | null, gstDraft as unknown as Record<string, unknown> | null, applications as unknown as { formData?: Record<string, unknown> }[]);
+  const targetGstId = resolveTargetGstId(gstin, customer, gstDraft, applications);
   const registeredDetails = useGstAmendmentDetails(targetGstId, selectedSectionId);
 
-  useGstAmendmentDraftRestore({
-    customerMobile: customer?.mobile,
-    gstAmendmentDraft: gstAmendmentDraft as { formData?: unknown; step?: string } | null,
-    params,
-    savedDraftStepRef,
-    savedDraftSectionIdRef,
-    setGstin,
-    setSelectedSectionId,
-    setFormData,
-    setSectionDocs,
-    setAmendmentId,
-    setDbReviewData,
-    setCurrentStep,
-  });
+  // Initial Draft Restoration on mount
+  // Initial Draft Restoration on mount (aligned with GST Registration lifecycle)
+  const hasRestoredDraftRef = useRef(false);
+  useEffect(() => {
+    if (hasRestoredDraftRef.current) return;
+    hasRestoredDraftRef.current = true;
+
+    const restoreDraft = async () => {
+      try {
+        const clean = customer?.mobile ? String(customer.mobile).replace(/\D/g, "") : "";
+        let savedData: any = gstAmendmentDraft?.formData || {};
+        let savedStep: AmendmentStep | undefined = gstAmendmentDraft?.step as AmendmentStep | undefined;
+
+        if (!savedData.gstin && clean) {
+          const draftKey = `@taxedge_draft_${clean}_gst-amendment`;
+          const raw = await AsyncStorage.getItem(draftKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            savedData = parsed.formData || {};
+            savedStep = parsed.step;
+          }
+        }
+
+        savedDraftStepRef.current = (savedStep as AmendmentStep) || null;
+        savedDraftSectionIdRef.current = savedData.selectedSectionId || null;
+
+        const isExplicitResume = Boolean(params.resume === "true" || params.step);
+
+        if (params.gstin) {
+          setGstin(params.gstin);
+        } else if (savedData.gstin) {
+          setGstin(savedData.gstin);
+        }
+
+        if (params.section) {
+          setSelectedSectionId(params.section);
+        } else if (savedData.selectedSectionId) {
+          setSelectedSectionId(savedData.selectedSectionId);
+        }
+
+        if (savedData && Object.keys(savedData).length > 0) {
+          setFormData((prev) => ({ ...prev, ...savedData }));
+          if (savedData._sectionDocs) {
+            setSectionDocs(savedData._sectionDocs);
+          }
+          if (savedData.amendmentId) {
+            setAmendmentId(savedData.amendmentId);
+          }
+          if (savedData.dbReviewData) {
+            setDbReviewData(savedData.dbReviewData);
+          }
+        }
+
+        if (isExplicitResume) {
+          const targetStep = (params.step as AmendmentStep) || savedStep || "EDIT";
+          if (targetStep !== "SUCCESS") {
+            setCurrentStep(targetStep);
+          }
+        } else {
+          setCurrentStep("LANDING");
+        }
+      } catch (err) {
+        logger.warn("[useGstAmendmentWorkflow] Error restoring draft:", { error: err });
+      }
+    };
+
+    restoreDraft();
+  }, [customer?.mobile, gstAmendmentDraft, params.gstin, params.resume, params.section, params.step]);
 
 
   const selectedSection =
@@ -106,7 +159,7 @@ export function useGstAmendmentWorkflow() {
       savedDraftStepRef.current = currentStep;
       savedDraftSectionIdRef.current = selectedSectionId;
       saveGstAmendmentDraft({
-        formData: { gstin, selectedSectionId, ...formData, _sectionDocs: sectionDocs, amendmentId, dbReviewData: stripImageData(dbReviewData ?? {}) },
+        formData: { gstin, selectedSectionId, ...formData, _sectionDocs: sectionDocs, amendmentId, dbReviewData: stripImageData(dbReviewData) },
         step: currentStep,
         updatedAt: new Date().toISOString().split("T")[0],
       });
@@ -193,7 +246,7 @@ export function useGstAmendmentWorkflow() {
     savedDraftStepRef.current = currentStep;
     savedDraftSectionIdRef.current = selectedSectionId;
     saveGstAmendmentDraft({
-      formData: { gstin, selectedSectionId, ...formData, _sectionDocs: sectionDocs, amendmentId, dbReviewData: stripImageData(dbReviewData ?? {}) },
+      formData: { gstin, selectedSectionId, ...formData, _sectionDocs: sectionDocs, amendmentId, dbReviewData: stripImageData(dbReviewData) },
       step: currentStep,
       updatedAt: new Date().toISOString().split("T")[0],
     });
@@ -304,7 +357,7 @@ export function useGstAmendmentWorkflow() {
           formData,
           supportingDoc,
         },
-        { onSaved: setAmendmentId, onReviewData: (data) => setDbReviewData(data as Record<string, unknown> | null) }
+        { onSaved: setAmendmentId, onReviewData: setDbReviewData }
       );
       if (isEditMode) {
         setIsEditMode(false);
@@ -312,7 +365,7 @@ export function useGstAmendmentWorkflow() {
       savedDraftStepRef.current = "REVIEW";
       savedDraftSectionIdRef.current = selectedSectionId;
       saveGstAmendmentDraft({
-        formData: { gstin, selectedSectionId, ...formData, _sectionDocs: sectionDocs, amendmentId, dbReviewData: stripImageData(dbReviewData ?? {}) },
+        formData: { gstin, selectedSectionId, ...formData, _sectionDocs: sectionDocs, amendmentId, dbReviewData: stripImageData(dbReviewData) },
         step: "REVIEW",
         updatedAt: new Date().toISOString().split("T")[0],
       });

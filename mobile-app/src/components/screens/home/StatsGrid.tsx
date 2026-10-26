@@ -11,7 +11,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/hooks/use-theme";
 import { styles } from "@/styles/app/(main)/home.styles";
-import type { StatTile } from "@/modules/dashboard/types/dashboard.types";
+import type { StatTile } from "@/types/home.types";
 
 export type { StatTile };
 

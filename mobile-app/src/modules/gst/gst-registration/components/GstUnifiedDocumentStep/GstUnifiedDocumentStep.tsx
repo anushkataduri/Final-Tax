@@ -152,7 +152,7 @@ export const GstUnifiedDocumentStep: React.FC<Props> = ({
                     fileUri: doc.fileUri,
                     fileName: doc.fileName,
                     fileSize: doc.fileSize,
-                    iconName: doc.iconName as React.ComponentProps<typeof Ionicons>["name"],
+                    iconName: doc.iconName as any,
                     iconBg: doc.iconBg,
                     iconColor: doc.iconColor,
                     category: doc.category,
@@ -178,8 +178,10 @@ export const GstUnifiedDocumentStep: React.FC<Props> = ({
                       uploadStatus: undefined,
                       uploadError: undefined,
                     };
-                    if (id === "address-proof" && pendingAddressProofType) {
-                      patch.subtitle = pendingAddressProofType;
+                    if (id === "address-proof") {
+                      const proofType = pendingAddressProofType || doc.subtitle || "Principal Place Address Proof";
+                      patch.subtitle = proofType;
+                      patch.proofType = proofType;
                       setPendingAddressProofType(null);
                     }
                     onUpdateDocument(id, patch);
@@ -232,6 +234,10 @@ export const GstUnifiedDocumentStep: React.FC<Props> = ({
         }}
         onSelect={(p) => {
           setPendingAddressProofType(p);
+          onUpdateDocument("address-proof", {
+            subtitle: p,
+            proofType: p,
+          });
           setShowAddressProofModal(false);
           setAddressUploadTrigger((prev) => prev + 1);
         }}

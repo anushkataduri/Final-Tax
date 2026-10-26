@@ -1,2 +1,2 @@
-export { CompanyRegistrationHomeScreen } from "./CompanyRegistrationHomeScreen";
+﻿export { CompanyRegistrationHomeScreen } from "./CompanyRegistrationHomeScreen";
 export { default } from "./CompanyRegistrationHomeScreen";

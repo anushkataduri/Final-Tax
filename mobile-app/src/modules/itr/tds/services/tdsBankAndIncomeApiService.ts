@@ -9,13 +9,12 @@ import {
   TdsTaxesPaidDto,
 } from "./tdsApiTypes";
 import { readFileAsBase64 } from "./tdsDocumentsApiService";
-import { logger } from "@/core/logging/logger";
 
 // Helper: Extract generated ID from Spring backend string responses like "Saved. ID: TDS-12345" or "TDS12345"
 const extractIdFromResponse = (responseMsg: unknown): string | null => {
   if (!responseMsg) return null;
-  if (typeof responseMsg === "object" && (responseMsg as Record<string, unknown>).id) {
-    return String((responseMsg as Record<string, unknown>).id);
+  if (typeof responseMsg === "object" && (responseMsg as any).id) {
+    return String((responseMsg as any).id);
   }
   if (typeof responseMsg !== "string") return String(responseMsg);
   const match = responseMsg.match(/ID:\s*([A-Za-z0-9_-]+)/i);
@@ -45,7 +44,7 @@ export const tdsBankAndIncomeApiService = {
             d.id === "pan" ||
             String(d.id || "").toLowerCase().includes("pan") ||
             String(d.title || "").toLowerCase().includes("pan") ||
-            d.iconType === "pan",
+            (d as any).iconType === "pan",
         ) || documents[0];
       const aadhaarDoc =
         documents.find(
@@ -55,8 +54,8 @@ export const tdsBankAndIncomeApiService = {
             String(d.title || "").toLowerCase().includes("aadhaar"),
         ) || documents[1];
 
-      const panUri = panDoc?.fileUri;
-      const aadhaarUri = aadhaarDoc?.fileUri;
+      const panUri = panDoc?.fileUri || (panDoc as any)?.uri || (panDoc as any)?.fileUrl || (panDoc as any)?.url;
+      const aadhaarUri = aadhaarDoc?.fileUri || (aadhaarDoc as any)?.uri || (aadhaarDoc as any)?.fileUrl || (aadhaarDoc as any)?.url;
 
       if (panUri) {
         panBase64 = await readFileAsBase64(panUri);
@@ -76,19 +75,19 @@ export const tdsBankAndIncomeApiService = {
             draftDocs.find((d) => String(d.id || "").toLowerCase().includes("pan") || String(d.title || "").toLowerCase().includes("pan")) || draftDocs[0];
           const draftAadhaar =
             draftDocs.find((d) => String(d.id || "").toLowerCase().includes("aadhaar") || String(d.title || "").toLowerCase().includes("aadhaar")) || draftDocs[1];
-          if (!panBase64 && draftPan?.fileUri) {
-            panBase64 = await readFileAsBase64(draftPan.fileUri);
+          if (!panBase64 && (draftPan?.fileUri || (draftPan as any)?.uri)) {
+            panBase64 = await readFileAsBase64(draftPan.fileUri || (draftPan as any).uri);
           }
-          if (!aadhaarBase64 && draftAadhaar?.fileUri) {
-            aadhaarBase64 = await readFileAsBase64(draftAadhaar.fileUri);
+          if (!aadhaarBase64 && (draftAadhaar?.fileUri || (draftAadhaar as any)?.uri)) {
+            aadhaarBase64 = await readFileAsBase64(draftAadhaar.fileUri || (draftAadhaar as any).uri);
           }
         }
       } catch (draftErr) {
-        logger.debug("[TDS API] Draft docs fallback check", { error: draftErr });
+        console.warn("[TDS API] Draft docs fallback check warning:", draftErr);
       }
     }
 
-    logger.debug("[TDS API] Documents processed", { hasPan: !!panBase64, hasAadhaar: !!aadhaarBase64 });
+    console.log("📄 [TDS API] Documents processed -> PAN bytes length:", panBase64?.length || 0, "Aadhaar bytes length:", aadhaarBase64?.length || 0);
 
     const isDirectDto = "legalBusinessName" in bankData;
 
@@ -183,9 +182,10 @@ export const tdsBankAndIncomeApiService = {
       personalData,
     );
 
-    logger.debug("[TDS API] Calling POST /tds-refund/save", {
-      hasPanDoc: !!payload.businessPanDocument,
-      hasAadhaarDoc: !!payload.aadhaarDocument,
+    console.log("🌐 [TDS API] Calling POST /tds-refund/save with payload:", {
+      ...payload,
+      businessPanDocument: payload.businessPanDocument ? `[base64: ${payload.businessPanDocument.length} chars]` : undefined,
+      aadhaarDocument: payload.aadhaarDocument ? `[base64: ${payload.aadhaarDocument.length} chars]` : undefined,
     });
 
     const res = await apiClient.post<string>("/tds-refund/save", payload);
@@ -213,16 +213,17 @@ export const tdsBankAndIncomeApiService = {
       personalData,
     );
 
-    logger.debug("[TDS API] Calling PUT /tds-refund/update", {
-      hasPanDoc: !!payload.businessPanDocument,
-      hasAadhaarDoc: !!payload.aadhaarDocument,
+    console.log(`🌐 [TDS API] Calling PUT /tds-refund/update/${id} with payload:`, {
+      ...payload,
+      businessPanDocument: payload.businessPanDocument ? `[base64: ${payload.businessPanDocument.length} chars]` : undefined,
+      aadhaarDocument: payload.aadhaarDocument ? `[base64: ${payload.aadhaarDocument.length} chars]` : undefined,
     });
 
     let res: string;
     try {
       res = await apiClient.put<string>(`/tds-refund/update/${id}`, payload);
     } catch (err) {
-      logger.warn("[TDS API] PUT /tds-refund/update failed, falling back to save", { error: err });
+      console.warn(`[TDS API] PUT /tds-refund/update/${id} failed, falling back to /tds-refund/save:`, err);
       res = await apiClient.post<string>("/tds-refund/save", payload);
     }
 
@@ -235,7 +236,7 @@ export const tdsBankAndIncomeApiService = {
    * Update directly with DTO (@PutMapping("/update/{id}"))
    */
   updateTdsRefund: async (id: string, dto: TdsRefundDto): Promise<string> => {
-    logger.debug("[TDS API] Calling PUT /tds-refund/update direct DTO");
+    console.log(`🌐 [TDS API] Calling PUT /tds-refund/update/${id}`);
     const res = await apiClient.put<string>(`/tds-refund/update/${id}`, dto);
     return extractIdFromResponse(res) || (typeof res === "string" ? res : id);
   },

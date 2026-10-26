@@ -1,8 +1,10 @@
 package com.taxedge.customer.exception;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = false)
 public class DuplicateResourceException extends RuntimeException {
 	 
     private static final long serialVersionUID = 1L;

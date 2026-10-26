@@ -231,8 +231,8 @@ test("screens outside /service/ are not touched by the route guard", () => {
 // The wiring: one rule, used everywhere
 // ===============================================================================================
 
-test("both Home screens send every tile through accessService instead of keeping their own exemption lists", () => {
-  for (const file of ["src/app/(main)/home.tsx", "src/modules/dashboard/screens/HomeScreen.tsx"]) {
+test("Home screen sends every tile through accessService instead of keeping its own exemption lists", () => {
+  for (const file of ["src/app/(main)/home.tsx"]) {
     const source = read(file);
     assert.equal(/tile\.route === "\/service\//.test(source), false, `${file} must not hard-code exemptions`);
     assert.equal(source.includes('tile.route === "/services"'), false, file);

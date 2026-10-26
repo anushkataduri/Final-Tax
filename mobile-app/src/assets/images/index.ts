@@ -1,4 +1,4 @@
-export const Images = {
+﻿export const Images = {
   logo: require("../../../assets/images/logo.png"),
   icon: require("../../../assets/images/icon.png"),
   banner: require("../../../assets/images/taxedge-banner.png"),

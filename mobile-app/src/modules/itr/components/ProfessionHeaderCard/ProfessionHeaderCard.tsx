@@ -16,7 +16,7 @@ export const ProfessionHeaderCard: React.FC = () => {
         </View>
       </View>
       <Text style={styles.description}>
-        We&apos;ll recommend the right ITR form for you.
+        We'll recommend the right ITR form for you.
       </Text>
     </View>
   );

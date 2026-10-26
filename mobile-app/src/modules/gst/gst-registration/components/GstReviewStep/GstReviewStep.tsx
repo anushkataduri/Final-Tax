@@ -200,10 +200,14 @@ export const GstReviewStep: React.FC<GstReviewStepProps> = ({
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Uploaded Documents</Text>
-          <TouchableOpacity onPress={() => onEditStep(1, "documents")} activeOpacity={0.7}>
-            <Text style={styles.docCountText}>
-              {uploadedDocs.length}/{documents.length} Uploaded
-            </Text>
+          <TouchableOpacity
+            style={styles.editDocsButton}
+            onPress={() => onEditStep(1, "documents")}
+            accessibilityLabel="Edit Uploaded Documents"
+            activeOpacity={0.7}
+          >
+            <Ionicons name="pencil" size={16} color={BrandColors.PRIMARY_ORANGE} />
+            <Text style={styles.editDocsButtonText}>Edit</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.docProgressBar}>

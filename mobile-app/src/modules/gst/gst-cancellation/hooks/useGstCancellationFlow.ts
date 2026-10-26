@@ -35,7 +35,7 @@ export function useGstCancellationFlow() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [cancellationId, setCancellationId] = useState<string | null>(null);
-  const [dbReviewData, setDbReviewData] = useState<Record<string, unknown> | null>(null);
+  const [dbReviewData, setDbReviewData] = useState<any>(null);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
 
   const { saveGstCancellationDraft, clearGstCancellationDraft, createApplication } = useApplicationStore();
@@ -182,7 +182,7 @@ export function useGstCancellationFlow() {
 
       // 1. POST save or update record in backend
       logger.debug("[Cancellation Review] Saving/updating cancellation in DB via POST");
-      const res: unknown = await gstCancellationApi.createCancellation(form);
+      const res: any = await gstCancellationApi.createCancellation(form);
       logger.debug("[Cancellation Review] Save response received", { hasResponse: !!res });
 
       let parsedId = null;

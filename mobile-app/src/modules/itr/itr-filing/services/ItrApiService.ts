@@ -2,17 +2,16 @@ import { ItrFilingFormData } from "../types/itrFiling.types";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { tokenManager } from "@/core/authentication/tokenManager";
 import { getDefaultBaseUrl } from "@/core/api/apiConfig";
-import { logger } from "@/core/logging/logger";
 
 const getBaseUrl = () => `${getDefaultBaseUrl()}/api/v1/itr`;
 
 const fetchApi = async (
   url: string,
   method: string,
-  body?: Record<string, unknown> | FormData,
+  body?: any,
   isMultipart = false,
 ) => {
-  const headers: Record<string, string> = {};
+  const headers: any = {};
   if (!isMultipart) {
     headers["Content-Type"] = "application/json";
   }
@@ -25,12 +24,12 @@ const fetchApi = async (
   const response = await fetch(url, {
     method,
     headers,
-    body: isMultipart ? (body as FormData) : JSON.stringify(body),
+    body: isMultipart ? body : JSON.stringify(body),
   });
 
   if (!response.ok) {
     const errText = await response.text();
-    logger.warn(`[ITR API] Backend error ${response.status}`, { status: response.status });
+    console.error(`Backend Error Response (${response.status}):`, errText);
     throw new Error(
       `HTTP error! Status: ${response.status}. Details: ${errText}`,
     );
@@ -123,7 +122,7 @@ export const ItrApiService = {
       );
       return { itrId: extractId(result) };
     } catch (error) {
-      logger.warn("[ITR API] Error saving Personal Info", { error });
+      console.error("Error saving Personal Info:", error);
       throw error;
     }
   },
@@ -137,7 +136,7 @@ export const ItrApiService = {
       );
       return result;
     } catch (error) {
-      logger.warn("[ITR API] Error updating Personal Info", { error });
+      console.error("Error updating Personal Info:", error);
       throw error;
     }
   },
@@ -152,7 +151,7 @@ export const ItrApiService = {
       );
       return { incomeId: extractId(result) };
     } catch (error) {
-      logger.warn("[ITR API] Error saving Salary Income", { error });
+      console.error("Error saving Salary Income:", error);
       throw error;
     }
   },
@@ -165,7 +164,7 @@ export const ItrApiService = {
         mapToSalaryIncomeDto(data),
       );
     } catch (error) {
-      logger.warn("[ITR API] Error updating Salary Income", { error });
+      console.error("Error updating Salary Income:", error);
       throw error;
     }
   },
@@ -184,7 +183,7 @@ export const ItrApiService = {
       );
       return { documentId: extractId(result) };
     } catch (error) {
-      logger.warn("[ITR API] Error saving Documents", { error });
+      console.error("Error saving Documents:", error);
       throw error;
     }
   },
@@ -201,7 +200,7 @@ export const ItrApiService = {
         true,
       );
     } catch (error) {
-      logger.warn("[ITR API] Error updating Documents", { error });
+      console.error("Error updating Documents:", error);
       throw error;
     }
   },
@@ -248,7 +247,7 @@ const populateFormDataWithDocuments = async (
         formData.append(paramName, fileBlob, finalFileName);
         hasUploadedAny = true;
       } catch (err) {
-        logger.warn("[ITR API] Failed to read file for upload", { docId: doc.id, error: err });
+        console.error(`Failed to read file ${doc.id} at ${doc.fileUri}`, err);
       }
     }
   }

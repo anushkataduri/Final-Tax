@@ -6,7 +6,6 @@ import {
   Animated,
   TextInputProps,
   TouchableOpacity,
-  type ViewStyle,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/shared/hooks/useTheme";
@@ -23,7 +22,7 @@ export interface FloatingLabelInputProps extends TextInputProps {
   placeholder?: string;
   required?: boolean;
   error?: string;
-  containerStyle?: ViewStyle;
+  containerStyle?: any;
   cardBackground?: string;
   rightElement?: React.ReactNode;
   onClear?: () => void;
@@ -70,7 +69,7 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
     }).start();
   }, [isFocused, hasValue, animatedValue]);
 
-  const handleFocus = (e: Parameters<NonNullable<TextInputProps['onFocus']>>[0]) => {
+  const handleFocus = (e: any) => {
     setIsFocused(true);
     if (onFocus) onFocus(e);
     if (onFocusScroll) {
@@ -80,7 +79,7 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
     }
   };
 
-  const handleBlur = (e: Parameters<NonNullable<TextInputProps['onBlur']>>[0]) => {
+  const handleBlur = (e: any) => {
     setIsFocused(false);
     if (onBlur) onBlur(e);
   };

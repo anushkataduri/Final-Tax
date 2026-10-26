@@ -95,14 +95,14 @@ export const StepPromoters: React.FC = () => {
   };
 
   const handleNomineeChange = (key: keyof OpcNomineeInfo, val: string, validator?: (v: string) => string | null) => {
-    setOpcNominee({ ...opcNominee, [key]: val } as OpcNomineeInfo);
+    setOpcNominee({ ...opcNominee, [key]: val } as any);
     if (validator && !validator(val)) clearFieldError(`nominee_${key}`);
   };
 
   const handleNomineeBlur = (key: keyof OpcNomineeInfo, validator: (v: string) => string | null) => {
     const raw = (opcNominee?.[key] as string) || '';
     const trimmed = raw.trim();
-    if (trimmed !== raw) setOpcNominee({ ...opcNominee, [key]: trimmed } as OpcNomineeInfo);
+    if (trimmed !== raw) setOpcNominee({ ...opcNominee, [key]: trimmed } as any);
     const err = validator(trimmed);
     if (err) {
       setFieldErrors({ ...fieldErrors, [`nominee_${key}`]: err });

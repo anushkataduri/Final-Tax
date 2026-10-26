@@ -125,7 +125,7 @@ export async function submitAmendmentService(params: {
     );
     logger.info(`[submitAmendmentService] Amendment (${selectedSectionId}) submitted successfully to backend.`);
   } catch (subErr) {
-    const errMsg = getErrorMessage(subErr) || "";
+    const errMsg = getErrorMessage(subErr);
     if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
       logger.warn(`[submitAmendmentService] Stale amendment record not found on backend (404). Re-creating and retrying submit...`);
       try {

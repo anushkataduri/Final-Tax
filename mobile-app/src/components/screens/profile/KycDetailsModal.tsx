@@ -3,12 +3,11 @@ import { View, Text, Modal, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SecondaryButton } from "@/shared/components/Button/SecondaryButton";
 import { styles } from "@/styles/app/(main)/profile.styles";
-import { useTheme } from "@/hooks/use-theme";
 
 interface KycDetailsModalProps {
   visible: boolean;
   onClose: () => void;
-  colors: ReturnType<typeof useTheme>;
+  colors: any;
   activePan?: string;
   activeAadhaar?: string;
   kycVerified: boolean;

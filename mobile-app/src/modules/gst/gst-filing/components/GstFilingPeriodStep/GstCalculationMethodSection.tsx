@@ -20,6 +20,7 @@ interface GstCalculationMethodSectionProps {
     taxablePurchases?: string;
     eligibleItc?: string;
   }) => void;
+  onBlurField?: (field: "taxableSales" | "taxablePurchases" | "eligibleItc") => void;
 }
 
 export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionProps> = ({
@@ -29,7 +30,14 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
   eligibleItc,
   errors = {},
   onChange,
+  onBlurField,
 }) => {
+  const getDisplayValue = (val: string | undefined) => {
+    if (!val) return "";
+    const formatted = formatIndianNumberInput(val);
+    return formatted ? `₹ ${formatted}` : "";
+  };
+
   const hasFigures = Boolean(
     (taxableSales && String(taxableSales).trim() !== "" && String(taxableSales).trim() !== "0") ||
     (taxablePurchases && String(taxablePurchases).trim() !== "" && String(taxablePurchases).trim() !== "0") ||
@@ -94,10 +102,12 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
             </Text>
             <TextInput
               style={[styles.estimateInput, errors.taxableSales && styles.inputError]}
-              placeholder="Enter sales amount"
+              placeholder="₹ 0"
               placeholderTextColor="#94A3B8"
               keyboardType="numeric"
-              value={formatIndianNumberInput(taxableSales)}
+              maxLength={20}
+              value={getDisplayValue(taxableSales)}
+              onBlur={() => onBlurField?.("taxableSales")}
               onChangeText={(val) =>
                 onChange({
                   taxableSales: toRawNumericString(val),
@@ -116,10 +126,12 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
             </Text>
             <TextInput
               style={[styles.estimateInput, errors.taxablePurchases && styles.inputError]}
-              placeholder="Enter purchases amount"
+              placeholder="₹ 0"
               placeholderTextColor="#94A3B8"
               keyboardType="numeric"
-              value={formatIndianNumberInput(taxablePurchases)}
+              maxLength={20}
+              value={getDisplayValue(taxablePurchases)}
+              onBlur={() => onBlurField?.("taxablePurchases")}
               onChangeText={(val) =>
                 onChange({
                   taxablePurchases: toRawNumericString(val),
@@ -138,10 +150,12 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
             </Text>
             <TextInput
               style={[styles.estimateInput, errors.eligibleItc && styles.inputError]}
-              placeholder="Enter eligible ITC amount"
+              placeholder="₹ 0"
               placeholderTextColor="#94A3B8"
               keyboardType="numeric"
-              value={formatIndianNumberInput(eligibleItc)}
+              maxLength={20}
+              value={getDisplayValue(eligibleItc)}
+              onBlur={() => onBlurField?.("eligibleItc")}
               onChangeText={(val) =>
                 onChange({
                   eligibleItc: toRawNumericString(val),

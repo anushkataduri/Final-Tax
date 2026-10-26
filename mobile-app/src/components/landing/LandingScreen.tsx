@@ -43,7 +43,7 @@ export function LandingScreen() {
 
             {/* Description */}
             <Text style={styles.description}>
-              Filing your taxes and managing business compliances shouldn&apos;t be
+              Filing your taxes and managing business compliances shouldn't be
               complicated. Experience professional, CA-backed financial solutions
               from the comfort of your home.
             </Text>

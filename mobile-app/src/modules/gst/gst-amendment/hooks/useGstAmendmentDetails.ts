@@ -50,7 +50,7 @@ export function useGstAmendmentDetails(
           signatoryRes,
           contactRes,
         ] = await Promise.allSettled([
-          apiClient.get<Record<string, unknown>>(`/api/v1/gst/business/${idToFetch}`),
+          apiClient.get<any>(`/api/v1/gst/business/${idToFetch}`),
           gstAmendmentApi.getExistingLegalName(idToFetch),
           gstAmendmentApi.getExistingPrincipalPlace(idToFetch),
           gstAmendmentApi.getExistingAdditionalPlace(idToFetch),

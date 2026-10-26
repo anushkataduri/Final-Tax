@@ -5,7 +5,7 @@ export interface NetworkState {
 
 class NetworkStatusService {
   private isConnected = true;
-  private listeners: ((state: NetworkState) => void)[] = [];
+  private listeners: Array<(state: NetworkState) => void> = [];
 
   getConnectionStatus(): NetworkState {
     return {

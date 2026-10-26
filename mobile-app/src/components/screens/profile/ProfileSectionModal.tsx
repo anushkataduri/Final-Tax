@@ -5,14 +5,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { SecondaryButton } from "@/shared/components/Button/SecondaryButton";
 import { styles } from "@/styles/app/(main)/profile.styles";
 import type { Application } from "@/types/domain";
-import { useTheme } from "@/hooks/use-theme";
 
 export type ProfileModalType = "gst" | "itr" | "loans";
 
 interface ProfileSectionModalProps {
   visible: boolean;
   onClose: () => void;
-  colors: ReturnType<typeof useTheme>;
+  colors: any;
   modalType: ProfileModalType | null;
   applications: Application[];
 }
@@ -101,7 +100,7 @@ export function ProfileSectionModal({
 
   const handleCta = () => {
     onClose();
-    router.push(config.ctaRoute as never);
+    router.push(config.ctaRoute as any);
   };
 
   const handleViewApp = () => {

@@ -68,8 +68,9 @@ export function editDigit(digits: OtpDigits, index: number, rawText: string): Di
     return { digits: withDigit(digits, index, incoming), focusIndex: Math.min(index + 1, last) };
   }
 
-  const next = digits.slice();
-  for (let k = 0; k < typed.length && index + k < OTP_LENGTH; k++) next[index + k] = typed[k];
+  const next = digits.map((d, i) =>
+    i >= index && i < index + typed.length ? typed[i - index] : d
+  );
   return { digits: next, focusIndex: Math.min(index + typed.length, last) };
 }
 

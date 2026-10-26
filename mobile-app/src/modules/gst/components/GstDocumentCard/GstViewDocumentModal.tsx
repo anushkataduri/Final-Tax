@@ -7,15 +7,10 @@ import {
   Image,
   TouchableWithoutFeedback,
   Platform,
-  ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import * as Sharing from "expo-sharing";
 import {
   resolveDocType,
-  prepareShareableUri,
-  DocumentOpenError,
-  logSafeDiagnostic,
 } from "../../gst-compliance/utils/gstPreviewUtils";
 import { styles } from "./GstViewDocumentModal.styles";
 
@@ -40,7 +35,6 @@ export const GstViewDocumentModal: React.FC<GstViewDocumentModalProps> = ({
   mimeType,
   onClose,
 }) => {
-  const [isSharing, setIsSharing] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isIframeError, setIsIframeError] = useState<boolean>(false);
   const [isImageError, setIsImageError] = useState<boolean>(false);
@@ -49,7 +43,6 @@ export const GstViewDocumentModal: React.FC<GstViewDocumentModalProps> = ({
     setActionError(null);
     setIsIframeError(false);
     setIsImageError(false);
-    setIsSharing(false);
     onClose();
   }, [onClose]);
 
@@ -59,7 +52,6 @@ export const GstViewDocumentModal: React.FC<GstViewDocumentModalProps> = ({
       setActionError(null);
       setIsIframeError(false);
       setIsImageError(false);
-      setIsSharing(false);
     }
   }, [visible, fileUri]);
 
@@ -103,76 +95,6 @@ export const GstViewDocumentModal: React.FC<GstViewDocumentModalProps> = ({
 
   const handleOpenInNewTab = openWebDocument;
 
-  const handleOpenOrShare = useCallback(async () => {
-    if (!fileUri) {
-      setActionError("Document location is unavailable.");
-      return;
-    }
-    setActionError(null);
-    setIsSharing(true);
-    try {
-      if (Platform.OS === "web") {
-        openWebDocument();
-        return;
-      }
-
-      // 1. Resolve and prepare a valid, accessible native local file URI
-      const { shareableUri, alreadyOpened } = await prepareShareableUri(fileUri, fileName);
-      if (alreadyOpened) {
-        return;
-      }
-
-      // 2. Verify platform sharing/opening capability
-      const available = await Sharing.isAvailableAsync();
-      if (!available) {
-        setActionError("Document opening is not supported on this device.");
-        return;
-      }
-
-      // 3. Launch native sharing / file opener with normalized MIME type and UTI
-      await Sharing.shareAsync(shareableUri, {
-        mimeType: docType.resolvedMime,
-        dialogTitle: fileName || title,
-        UTI: docType.uti,
-      });
-    } catch (err: unknown) {
-      const errorMsg =
-        err instanceof Error ? err.message : String(err || "");
-      const isCancelled =
-        errorMsg.toLowerCase().includes("cancel") ||
-        errorMsg.toLowerCase().includes("dismiss");
-
-      if (isCancelled) {
-        return;
-      }
-
-      logSafeDiagnostic("handleOpenOrShare", {
-        scheme: (fileUri.split(":")[0] || "").toLowerCase(),
-        error: errorMsg,
-      });
-
-      if (err instanceof DocumentOpenError) {
-        setActionError(err.safeMessage);
-      } else if (
-        errorMsg.toLowerCase().includes("no app") ||
-        errorMsg.toLowerCase().includes("no activity") ||
-        errorMsg.toLowerCase().includes("activitynotfound")
-      ) {
-        setActionError("No compatible app found to open this document. Please install a PDF viewer.");
-      } else if (errorMsg.includes("FILE_NOT_FOUND")) {
-        setActionError("The document file was not found on this device. Please re-select the document.");
-      } else if (errorMsg.includes("STORAGE_UNAVAILABLE")) {
-        setActionError("Device storage is unavailable. Please check available disk space.");
-      } else if (errorMsg.includes("REMOTE_URL_UNREACHABLE")) {
-        setActionError("Unable to download or open remote document. Please check your internet connection.");
-      } else {
-        setActionError(`Unable to open file in external viewer: ${errorMsg}. Please try again.`);
-      }
-    } finally {
-      setIsSharing(false);
-    }
-  }, [fileUri, docType, fileName, title, openWebDocument]);
-
   const renderPreviewContent = () => {
     if (!fileUri) {
       return (
@@ -193,23 +115,8 @@ export const GstViewDocumentModal: React.FC<GstViewDocumentModalProps> = ({
             <Ionicons name="image-outline" size={44} color="#EF4444" />
             <Text style={styles.fallbackTitle}>Image Preview Unavailable</Text>
             <Text style={styles.fallbackNotice}>
-              Could not display the image preview. You can open it externally below.
+              Could not display the image preview.
             </Text>
-            <TouchableOpacity
-              style={styles.openActionButton}
-              activeOpacity={0.8}
-              onPress={handleOpenOrShare}
-              disabled={isSharing}
-            >
-              {isSharing ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="open-outline" size={16} color="#FFFFFF" />
-                  <Text style={styles.openActionButtonText}>Open Image</Text>
-                </>
-              )}
-            </TouchableOpacity>
           </View>
         );
       }
@@ -276,28 +183,9 @@ export const GstViewDocumentModal: React.FC<GstViewDocumentModalProps> = ({
         <Text style={styles.fallbackTitle}>{docType.typeLabel}</Text>
         <Text style={styles.fallbackNotice}>
           {docType.isSpreadsheet
-            ? "Spreadsheet files cannot be rendered inline. Open or view using your device or browser."
-            : Platform.OS === "web"
-            ? "Inline browser preview is unavailable for this file URI scheme."
-            : "Inline PDF preview is not supported on this device. Open using the device viewer below."}
+            ? "Spreadsheet preview is not supported inside the application."
+            : "Document is uploaded and verified."}
         </Text>
-        <TouchableOpacity
-          style={styles.openActionButton}
-          activeOpacity={0.8}
-          onPress={handleOpenOrShare}
-          disabled={isSharing}
-        >
-          {isSharing ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <Ionicons name="open-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.openActionButtonText}>
-                {Platform.OS === "web" ? "Open Document File" : "Open / View File..."}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
       </View>
     );
   };

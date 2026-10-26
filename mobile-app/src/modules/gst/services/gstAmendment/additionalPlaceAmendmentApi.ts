@@ -72,3 +72,4 @@ export const additionalPlaceAmendmentApi = {
     return apiClient.post<string>(url);
   },
 };
+

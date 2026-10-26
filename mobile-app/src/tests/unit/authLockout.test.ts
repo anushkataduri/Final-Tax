@@ -10,7 +10,6 @@ import test, { beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 import { formatCountdown, lockoutMessage, secondsUntil } from "../../modules/authentication/services/lockoutPolicy";
-import { isPublicEndpoint } from "../../core/api/apiClient";
 
 type AuthServiceModule = typeof import("../../modules/authentication/services/authService");
 type PasscodeServiceModule = typeof import("../../modules/authentication/services/passcodeService");
@@ -38,6 +37,7 @@ interface ScriptedResponse {
   body: unknown;
   headers?: Record<string, string>;
 }
+import { isPublicEndpoint } from "../../core/api/apiClient";
 
 const queue: ScriptedResponse[] = [];
 const requests: { url: string; body: Record<string, unknown>; headers?: Record<string, string> }[] = [];

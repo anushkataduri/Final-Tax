@@ -1,5 +1,6 @@
 package com.taxedge.companyregistration.service;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,9 +41,9 @@ public class ShareholdingCapitalServiceImpl implements ShareholdingCapitalServic
 
 		CompanyDetails company = findCompany(dto.getCompanyRegistrationId());
 
-		if (capitalRepository.findByCompanyDetails_CompanyRegistrationId(dto.getCompanyRegistrationId()).isPresent()) {
-
-			throw new IllegalArgumentException("Shareholding capital is already registered for this company.");
+		java.util.Optional<ShareholdingCapital> existingOpt = capitalRepository.findByCompanyDetails_CompanyRegistrationId(dto.getCompanyRegistrationId());
+		if (existingOpt.isPresent()) {
+			return updateShareholdingCapital(existingOpt.get().getShareholdingCapitalId(), dto);
 		}
 
 		validatePatternPromoters(dto, company);
@@ -84,13 +85,33 @@ public class ShareholdingCapitalServiceImpl implements ShareholdingCapitalServic
 
 		capitalMapper.updateEntity(dto, capital);
 
-		capital.getShareholdingPattern().clear();
+		List<ShareholdingPattern> existingPatterns = capital.getShareholdingPattern();
+		List<ShareholdingPattern> updatedList = new ArrayList<>();
 
 		for (ShareholdingPatternDto patternDto : dto.getShareholdingPattern()) {
+			PromoterDirectorDetails promoter = findAndValidatePromoter(patternDto.getPromoterDirectorId(),
+					company.getCompanyRegistrationId());
 
-			ShareholdingPattern pattern = createPattern(patternDto, capital, company);
+			ShareholdingPattern existing = existingPatterns.stream()
+					.filter(p -> p.getPromoterDirectorDetails() != null &&
+							p.getPromoterDirectorDetails().getPromoterDirectorId().equals(promoter.getPromoterDirectorId()))
+					.findFirst().orElse(null);
 
-			capital.getShareholdingPattern().add(pattern);
+			if (existing != null) {
+				existing.setAllocatedShares(patternDto.getAllocatedShares());
+				existing.setAmount(patternDto.getAmount());
+				updatedList.add(existing);
+			} else {
+				ShareholdingPattern pattern = createPattern(patternDto, capital, company);
+				updatedList.add(pattern);
+			}
+		}
+
+		existingPatterns.retainAll(updatedList);
+		for (ShareholdingPattern p : updatedList) {
+			if (!existingPatterns.contains(p)) {
+				existingPatterns.add(p);
+			}
 		}
 
 		capitalRepository.save(capital);

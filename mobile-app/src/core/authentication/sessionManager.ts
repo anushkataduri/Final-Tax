@@ -11,7 +11,7 @@ export interface UserSession {
 
 class SessionManager {
   private currentSession: UserSession | null = null;
-  private listeners: ((session: UserSession | null) => void)[] = [];
+  private listeners: Array<(session: UserSession | null) => void> = [];
 
   getSession(): UserSession | null {
     return this.currentSession;

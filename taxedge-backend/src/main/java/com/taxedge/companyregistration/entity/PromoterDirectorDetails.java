@@ -53,4 +53,10 @@ public class PromoterDirectorDetails {
 
 	@Column(name = "din", length = 8)
 	private String din;
+
+	@Column(name = "relationship", length = 100)
+	private String relationship;
+
+	@Column(name = "aadhaar_number", length = 12)
+	private String aadhaarNumber;
 }

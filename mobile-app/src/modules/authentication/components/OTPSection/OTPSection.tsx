@@ -54,7 +54,7 @@ export function OTPSection({
         onFocus={() => otpDigits.handleFocus(i)}
         onBlur={() => otpDigits.handleBlur(i)}
         keyboardType="number-pad"
-        maxLength={OTP_LENGTH}
+        maxLength={1}
         selectTextOnFocus
         editable={!locked}
         textContentType={i === 0 ? "oneTimeCode" : "none"}

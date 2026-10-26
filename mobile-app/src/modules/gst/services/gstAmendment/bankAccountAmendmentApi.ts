@@ -102,3 +102,4 @@ export const bankAccountAmendmentApi = {
     return apiClient.post<string>(url);
   },
 };
+

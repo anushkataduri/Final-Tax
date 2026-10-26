@@ -1,6 +1,8 @@
 import React, { useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { BrandColors } from "@/shared/theme";
 import { GstFilingPeriodStep } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstFilingPeriodStep";
 import { GstFilingDocumentsStep } from "@/modules/gst/gst-filing/components/GstFilingDocumentsStep/GstFilingDocumentsStep";
 import { GstFilingReviewStep } from "@/modules/gst/gst-filing/components/GstFilingReviewStep/GstFilingReviewStep";
@@ -122,7 +124,7 @@ export const GstFilingScreen: React.FC = () => {
           totalSteps={3}
           stepLabel={FILING_STEP_LABELS[currentStep] || "Filing"}
           onBack={handleBack}
-          hideBack={currentStep === 2}
+          showBack={currentStep !== 2}
         />
       ) : (
         <View style={[styles.headerBar, getHeaderBarStyle(insets.top)]}>
@@ -164,11 +166,9 @@ export const GstFilingScreen: React.FC = () => {
               setPeriodErrors((prev) => {
                 const keys = Object.keys(fields).filter((k) => k !== "gstin");
                 if (keys.length === 0) return prev;
-                const next = { ...prev };
-                for (const k of keys) {
-                  delete next[k];
-                }
-                return next;
+                return Object.fromEntries(
+                  Object.entries(prev).filter(([k]) => !keys.includes(k))
+                );
               });
             }}
           />

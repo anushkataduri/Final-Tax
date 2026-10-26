@@ -39,7 +39,7 @@ interface GstAmendmentReviewProps {
   onSubmit: () => void;
   onSaveDraft?: () => void;
   amendmentId?: number | null;
-  dbReviewData?: Record<string, unknown>;
+  dbReviewData?: any;
 }
 
 export const GstAmendmentReview: React.FC<GstAmendmentReviewProps> = ({

@@ -29,8 +29,19 @@ export function MobileNumberSection({
 }: MobileNumberSectionProps) {
   const colors = useTheme();
   const [isFocused, setIsFocused] = useState(false);
-  // Tell the user straight away when the entered value is not an acceptable number.
-  const entryError = !isReadOnly && mobile.length >= 10 ? validateLoginPhone(mobile).error : undefined;
+  const [hasBlurred, setHasBlurred] = useState(false);
+
+  let entryError: string | undefined;
+  if (!isReadOnly) {
+    if (mobile.length > 0 && !/^[6-9]/.test(mobile)) {
+      entryError = "Mobile number must start with 6, 7, 8, or 9";
+    } else if (hasBlurred && mobile.length > 0 && mobile.length < 10) {
+      entryError = "Mobile number must be exactly 10 digits";
+    } else if (mobile.length >= 10) {
+      entryError = validateLoginPhone(mobile).error;
+    }
+  }
+
   const shownError = error || entryError;
   const themed = getThemedStyles(colors, isFocused, isReadOnly, shownError);
 
@@ -62,11 +73,14 @@ export function MobileNumberSection({
           editable={!isReadOnly && !loading}
           onChangeText={(t) => onChangeMobile(applyMobileInput(mobile, t))}
           onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onBlur={() => {
+            setIsFocused(false);
+            setHasBlurred(true);
+          }}
           placeholder="Enter 10-digit mobile number"
           placeholderTextColor={colors.textSecondary}
           keyboardType="phone-pad"
-          maxLength={20}
+          maxLength={10}
           style={[styles.input, themed.input]}
         />
       </View>

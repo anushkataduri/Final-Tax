@@ -1,8 +1,6 @@
+import * as FileSystem from "expo-file-system";
 import { apiClient, SERVER_IP, SERVER_PORT } from "@/core/api/apiClient";
 import { tokenManager } from "@/core/authentication/tokenManager";
-import { tokenRefreshManager } from "@/core/authentication/tokenRefreshManager";
-import { logger } from "@/core/logging/logger";
-import authStore from "@/store/authStore";
 import type { TaxNoticeFormData } from "../taxNotice/types/taxNotice.types";
  
 const getBaseUrl = () => apiClient.getBaseUrl() || `http://${SERVER_IP}:${SERVER_PORT}`;
@@ -19,19 +17,20 @@ export const taxNoticeApi = {
        
         // Ensure token is fresh before sending raw XHR
         try {
+          const { tokenRefreshManager } = require("@/core/authentication/tokenRefreshManager");
           const refreshed = await tokenRefreshManager.attemptRefresh();
           if (refreshed) {
              token = await tokenManager.getAccessToken();
           }
         } catch(e) {
-          logger.warn("Token refresh check failed before XHR", e);
+          console.warn("Token refresh check failed before XHR:", e);
         }
 
         if (!token) {
           reject(new Error("Session expired. Please log in again."));
           return;
         }
-
+ 
         const url = getBaseUrl() + "/api/v1/itr/tax-notice/register";
        
         const xhr = new XMLHttpRequest();
@@ -41,11 +40,12 @@ export const taxNoticeApi = {
         }
  
         const formData = new FormData();
-        // Get customer ID
+                // Get customer ID
+        const { default: authStore } = require("@/store/authStore");
         const user = authStore.getState().authenticatedUser || authStore.getState().customer;
-        const custId = user?.customerId || (user as unknown as { custId?: string })?.custId || "";
-
-        const formatDateForBackend = (dateStr?: string) => {
+        const custId = user?.customerId || user?.custId || "";
+ 
+                const formatDateForBackend = (dateStr?: string) => {
           if (!dateStr) return null;
           const parts = dateStr.trim().split(" ");
           if (parts.length === 3) {
@@ -79,11 +79,12 @@ export const taxNoticeApi = {
             uri: data.noticeFileUri,
             name: data.noticeFileName || "notice_document.pdf",
             type: data.noticeFileType || "application/pdf",
-          } as unknown as Blob);
+          } as any);
         }
-
+ 
                   xhr.onload = () => {
             if (xhr.status === 401 || xhr.status === 403) {
+              const { tokenRefreshManager } = require("@/core/authentication/tokenRefreshManager");
               tokenRefreshManager.attemptRefresh().catch(() => {});
               reject(new Error("Session expired. Please log in again."));
               return;
@@ -117,12 +118,13 @@ export const taxNoticeApi = {
        
         // Ensure token is fresh before sending raw XHR
         try {
+          const { tokenRefreshManager } = require("@/core/authentication/tokenRefreshManager");
           const refreshed = await tokenRefreshManager.attemptRefresh();
           if (refreshed) {
              token = await tokenManager.getAccessToken();
           }
         } catch(e) {
-          logger.warn("Token refresh check failed before XHR", e);
+          console.warn("Token refresh check failed before XHR:", e);
         }
 
         if (!token) {
@@ -139,11 +141,12 @@ export const taxNoticeApi = {
         }
  
         const formData = new FormData();
-        // Get customer ID
+                // Get customer ID
+        const { default: authStore } = require("@/store/authStore");
         const user = authStore.getState().authenticatedUser || authStore.getState().customer;
-        const custId = user?.customerId || (user as unknown as { custId?: string })?.custId || "";
-
-        const formatDateForBackend = (dateStr?: string) => {
+        const custId = user?.customerId || user?.custId || "";
+ 
+                const formatDateForBackend = (dateStr?: string) => {
           if (!dateStr) return null;
           const parts = dateStr.trim().split(" ");
           if (parts.length === 3) {
@@ -177,11 +180,12 @@ export const taxNoticeApi = {
             uri: data.noticeFileUri,
             name: data.noticeFileName || "notice_document.pdf",
             type: data.noticeFileType || "application/pdf",
-          } as unknown as Blob);
+          } as any);
         }
-
+ 
                   xhr.onload = () => {
             if (xhr.status === 401 || xhr.status === 403) {
+              const { tokenRefreshManager } = require("@/core/authentication/tokenRefreshManager");
               tokenRefreshManager.attemptRefresh().catch(() => {});
               reject(new Error("Session expired. Please log in again."));
               return;
@@ -211,19 +215,20 @@ export const taxNoticeApi = {
   /**
    * 2. Get Tax Notice Details
    */
-  getTaxNotice: async (noticeId: string): Promise<unknown> => {
+  getTaxNotice: async (noticeId: string): Promise<any> => {
     return apiClient.get("/api/v1/itr/tax-notice/" + noticeId);
   },
-
+ 
   /**
    * 3. Register Additional Documents for a Notice
    */
-  registerDocuments: (noticeId: string, documents: Record<string, { uri?: string; name?: string; mimeType?: string }>): Promise<string> => {
+  registerDocuments: (noticeId: string, documents: Record<string, any>): Promise<string> => {
     return new Promise(async (resolve, reject) => {
       try {
                 let token = await tokenManager.getAccessToken();
        
         try {
+          const { tokenRefreshManager } = require("@/core/authentication/tokenRefreshManager");
           const refreshed = await tokenRefreshManager.attemptRefresh();
           if (refreshed) {
              token = await tokenManager.getAccessToken();
@@ -255,7 +260,7 @@ export const taxNoticeApi = {
               uri: fileObj.uri,
               name: fileObj.name || "document.pdf",
               type: fileObj.mimeType || "application/pdf"
-            } as unknown as Blob);
+            } as any);
           }
         }
  

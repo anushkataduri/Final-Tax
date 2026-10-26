@@ -283,5 +283,5 @@ export const styles = StyleSheet.create({
 
 export const getProgressBarFill = (percent: number) => ({
   ...styles.progressBarFill,
-  width: `${Math.min(100, Math.max(0, percent))}%` as `${number}%`,
+  width: `${Math.min(100, Math.max(0, percent))}%` as any,
 });

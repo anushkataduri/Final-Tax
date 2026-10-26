@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef } from "react";
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ export const AssessmentYearCard: React.FC<AssessmentYearCardProps> = ({
   isSelected,
   onSelect,
 }) => {
-  const [scaleAnim] = useState(() => new Animated.Value(1));
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
     if (item.isEligible) {

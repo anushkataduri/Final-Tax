@@ -4,7 +4,7 @@ import {
   getStageQuestion,
   prunePropertyFormData,
 } from "../property/utils/propertyFlow";
-import type { ReviewRow, ReviewSection } from "./loanSectionBuilders";
+import type { ReviewRow, ReviewSection } from "./loanReviewSummary";
 
 const EMPTY = "—";
 

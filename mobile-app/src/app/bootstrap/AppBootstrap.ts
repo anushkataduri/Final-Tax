@@ -4,7 +4,6 @@ import { apiClient, isPublicEndpoint } from "@/core/api/apiClient";
 import { tokenManager, JwtUtils } from "@/core/authentication/tokenManager";
 import { tokenRefreshManager } from "@/core/authentication/tokenRefreshManager";
 import { sessionManager } from "@/core/authentication/sessionManager";
-import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { logger } from "@/core/logging/logger";
 
 export class AppBootstrap {
@@ -39,20 +38,14 @@ export class AppBootstrap {
 
     // ── Session-expired handler ───────────────────────────────────────────
     // Fired by tokenRefreshManager when the refresh token itself is expired
-    // or revoked. The session is irrecoverably dead — clear auth state and
-    // redirect to login.
-    //
-    // We call useAuthStore.getState().logout() rather than
-    // sessionManager.logout() because only the Zustand logout resets
-    // isLoggedIn to false, which is what the auth navigation guard reads to
-    // redirect the user to the login screen. sessionManager.logout() only
-    // clears the core session object; it leaves isLoggedIn: true in Zustand,
-    // stranding the user in a partially-authenticated state with no valid tokens.
+    // or revoked. The session is irrecoverably dead — clear auth state.
     tokenRefreshManager.onSessionExpired(() => {
       logger.warn(
-        "Session expired — refresh token is no longer valid. Clearing auth state and redirecting to login."
+        "Session expired — refresh token is no longer valid. Clearing auth state."
       );
-      useAuthStore.getState().logout();
+      sessionManager.logout().catch((err) => {
+        logger.warn("[AppBootstrap] Error during automatic session expiration logout:", { error: err });
+      });
     });
 
     // Initialize all domain modules

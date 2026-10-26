@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Alert, Animated, Platform, BackHandler } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as Print from "expo-print";
@@ -9,7 +9,7 @@ import { useApplicationStore } from "@/store/applicationStore";
 import { useGstStore } from "@/modules/gst/store/gstStore";
 import { notificationService } from "@/modules/notifications/services/notificationService";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
-import { GstValidators } from "@/modules/gst/utils/gstValidators";
+import { validateGstinFull } from "@/modules/gst/utils/gstValidation";
 
 import { CertificateRequestParams } from "../types/gstCertificateTypes";
 import { buildCertificateHtml } from "../utils/gstCertificateHtml";
@@ -54,9 +54,9 @@ export function useGstCertificateFlow() {
   const [generatedFileName, setGeneratedFileName] = useState<string>("");
   const [isFocused, setIsFocused] = useState(false);
 
-  const [floatAnim] = useState(() => new Animated.Value(0));
-  const [btnScale] = useState(() => new Animated.Value(1));
-  const [fadeAnim] = useState(() => new Animated.Value(0));
+  const floatAnim = useRef(new Animated.Value(0)).current;
+  const btnScale = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (gstCertificateDraft?.formData) {
@@ -105,8 +105,13 @@ export function useGstCertificateFlow() {
   });
 
   const handleGstinChange = useCallback((text: string) => {
-    setGstin(text.replace(/[^a-zA-Z0-9]/g, "").toUpperCase());
-    setGstinError("");
+    const cleaned = text.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+    setGstin(cleaned);
+    if (cleaned.length === 15) {
+      setGstinError(validateGstinFull(cleaned) ?? "");
+    } else {
+      setGstinError("");
+    }
   }, []);
 
   const downloadAndSharePdf = useCallback(async (uri: string, fileName: string) => {
@@ -134,8 +139,9 @@ export function useGstCertificateFlow() {
   }, []);
 
   const handleGenerateCertificate = useCallback(async () => {
-    if (!GstValidators.isValidGstin(gstin)) {
-      setGstinError("Enter a valid 15-character GSTIN (e.g. 29AAAAA0000A1Z5)");
+    const gstinValidationError = validateGstinFull(gstin);
+    if (gstinValidationError) {
+      setGstinError(gstinValidationError);
       Alert.alert("Invalid GSTIN", "Please enter a valid 15-character GSTIN to download certificate.");
       return;
     }
@@ -149,10 +155,10 @@ export function useGstCertificateFlow() {
       const regData = mapRegistrationDataToCertificate(
         gstin,
         params,
-        applications as { serviceId?: string; formData?: Record<string, unknown> }[],
-        gstDraft as unknown as Record<string, unknown> | null,
-        registrationDraft as unknown as Record<string, unknown> | null,
-        customer as unknown as Record<string, unknown> | null
+        applications,
+        gstDraft,
+        registrationDraft,
+        customer
       );
 
       const cleanGstin = regData.gstin.replace(/[^a-zA-Z0-9]/g, "");

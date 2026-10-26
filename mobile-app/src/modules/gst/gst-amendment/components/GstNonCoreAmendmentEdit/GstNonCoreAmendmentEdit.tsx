@@ -73,6 +73,8 @@ export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = (
   const sectionId = selectedSection.id;
   const acceptedProofConfig = NON_CORE_ACCEPTED_PROOFS[sectionId];
   const maxDob = useMemo(() => new Date(), []);
+  const panLen = (formData.newSignatoryPan || "").length;
+  const panKeyboardType = panLen >= 5 && panLen <= 8 ? "number-pad" : "default";
 
   return (
     <View style={styles.root}>
@@ -242,6 +244,7 @@ export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = (
                 placeholder="Enter PAN number"
                 autoCapitalize="characters"
                 maxLength={10}
+                keyboardType={panKeyboardType}
                 error={errors.newSignatoryPan}
               />
               <DateField
@@ -255,8 +258,10 @@ export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = (
               <InputField
                 label="Designation / Status"
                 value={formData.newSignatoryDesignation}
-                onChangeText={(val) => onUpdateField("newSignatoryDesignation", val)}
-                placeholder="Enter designation"
+                onChangeText={(val) => onUpdateField("newSignatoryDesignation", val.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 3))}
+                placeholder="MR / MS / DR"
+                autoCapitalize="characters"
+                maxLength={3}
                 error={errors.newSignatoryDesignation}
               />
               <PhoneField

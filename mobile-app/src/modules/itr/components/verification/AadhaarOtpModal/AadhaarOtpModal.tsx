@@ -24,7 +24,7 @@ export const AadhaarOtpModal: React.FC<AadhaarOtpModalProps> = ({
 }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isVerifying, setIsVerifying] = useState(false);
-  const inputRefs = useRef<(TextInput | null)[]>([]);
+  const inputRefs = useRef<Array<TextInput | null>>([]);
 
   const handleOtpChange = (value: string, index: number) => {
     const newOtp = [...otp];
@@ -37,7 +37,7 @@ export const AadhaarOtpModal: React.FC<AadhaarOtpModalProps> = ({
     }
   };
 
-  const handleKeyPress = (e: { nativeEvent: { key: string } }, index: number) => {
+  const handleKeyPress = (e: any, index: number) => {
     if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
@@ -106,7 +106,7 @@ export const AadhaarOtpModal: React.FC<AadhaarOtpModalProps> = ({
 
               {/* Resend Link */}
               <View style={styles.resendRow}>
-                <Text style={styles.resendPrompt}>Didn&apos;t receive OTP? </Text>
+                <Text style={styles.resendPrompt}>Didn't receive OTP? </Text>
                 <TouchableOpacity activeOpacity={0.7}>
                   <Text style={styles.resendLink}>Resend OTP (30s)</Text>
                 </TouchableOpacity>

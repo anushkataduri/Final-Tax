@@ -27,6 +27,7 @@ export interface DocumentItem {
   uploadedFileUri?: string;
   uploadError?: string;
   canRetry?: boolean;
+  proofType?: string;
 }
 
 export const STATUS_LABELS: Record<DocumentDisplayStatus, string> = {

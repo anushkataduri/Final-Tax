@@ -71,7 +71,7 @@ type MeasurableHost = {
     callback: (x: number, y: number, width: number, height: number) => void
   ) => void;
   measureLayout: (
-    relativeTo: unknown,
+    relativeTo: any,
     onSuccess: (left: number, top: number, width: number, height: number) => void,
     onFail?: () => void
   ) => void;
@@ -144,7 +144,7 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, KeyboardAwareScrol
     );
 
     const getScrollHost = useCallback((): MeasurableHost | null => {
-      const scrollView = scrollRef.current as { getNativeScrollRef?: () => MeasurableHost } & MeasurableHost | null;
+      const scrollView = scrollRef.current as any;
       if (!scrollView) return null;
       return (scrollView.getNativeScrollRef?.() ?? scrollView) as MeasurableHost | null;
     }, []);
@@ -152,9 +152,9 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, KeyboardAwareScrol
     const scrollToFocusedInput = useCallback(() => {
       if (!enableAutomaticScroll) return;
       const kbTop = keyboardTop.current;
-      const scrollView = scrollRef.current as { getInnerViewRef?: () => MeasurableHost } | null;
+      const scrollView = scrollRef.current as any;
       const scrollHost = getScrollHost();
-      const input: MeasurableHost | null = TextInput.State.currentlyFocusedInput() as unknown as MeasurableHost | null;
+      const input: MeasurableHost | null = TextInput.State.currentlyFocusedInput();
       const contentHost = scrollView?.getInnerViewRef?.();
       if (kbTop == null || !scrollHost || !input || !contentHost) return;
 

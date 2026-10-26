@@ -85,10 +85,10 @@ export async function submitPeriodStep({
       if (filings && filings.length > 0) {
         const sortedFilings = [...filings].sort(
           (a, b) =>
-            new Date(a.createdAt as string).getTime() - new Date(b.createdAt as string).getTime(),
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
         );
         const latest = sortedFilings[sortedFilings.length - 1];
-        resolvedId = (latest.gstfilingId as string | undefined) || (latest.id as string | undefined) || "";
+        resolvedId = latest.gstfilingId || latest.id || "";
       }
     }
 
@@ -183,7 +183,7 @@ export async function submitDocumentsStep({
           await gstApi.updateAllFilingDocuments(targetFilingId, docsToUpload);
           Alert.alert("Success", "Filing documents updated successfully.");
         } catch (updateErr) {
-          const errMsg = getErrorMessage(updateErr) ?? "";
+          const errMsg = getErrorMessage(updateErr);
           if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
             await gstApi.uploadAllFilingDocuments(targetFilingId, docsToUpload);
           } else {
@@ -194,7 +194,7 @@ export async function submitDocumentsStep({
         try {
           await gstApi.uploadAllFilingDocuments(targetFilingId, docsToUpload);
         } catch (uploadErr) {
-          const errMsg = getErrorMessage(uploadErr) ?? "";
+          const errMsg = getErrorMessage(uploadErr);
           if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
             logger.warn(`[DocumentStep] Filing ID '${targetFilingId}' not found on backend (404). Re-creating session...`);
             const custId = await getResolvedCustomerId();
@@ -214,7 +214,7 @@ export async function submitDocumentsStep({
           }
         }
       }
-      docsToUpload.forEach((d) => { d.uploadedToBackend = true; });
+      docsToUpload.forEach((d) => ((d as any).uploadedToBackend = true));
       setDocuments([...documents]);
     }
     if (isEditMode) {
@@ -292,7 +292,7 @@ export async function submitReviewStep({
       try {
         await gstApi.updateFiling(activeFilingId, payload);
       } catch (updateErr) {
-        const errMsg = getErrorMessage(updateErr) ?? "";
+        const errMsg = getErrorMessage(updateErr);
         if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
           logger.warn(`[ReviewStep] Filing ${activeFilingId} not found for update, re-creating session...`);
           try {
@@ -327,7 +327,7 @@ export async function submitReviewStep({
         await gstApi.submitFinalFiling(activeFilingId, pushToken || undefined);
         logger.info(`[ReviewStep] GST Filing submitted successfully to backend: ${activeFilingId}`);
       } catch (subErr) {
-        const errMsg = getErrorMessage(subErr) ?? "";
+        const errMsg = getErrorMessage(subErr);
         if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
           logger.warn(`[ReviewStep] Filing ${activeFilingId} not found on server for submit, re-creating and submitting...`);
           try {

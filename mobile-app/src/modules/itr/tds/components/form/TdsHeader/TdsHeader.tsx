@@ -23,7 +23,7 @@ export const TdsHeader: React.FC<TdsHeaderProps> = ({
     } else if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/service/itr" as never);
+      router.replace("/service/itr" as any);
     }
   };
 

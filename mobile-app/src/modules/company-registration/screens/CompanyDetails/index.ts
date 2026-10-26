@@ -1,2 +1,2 @@
-export { CompanyDetailsScreen } from "./CompanyDetailsScreen";
+﻿export { CompanyDetailsScreen } from "./CompanyDetailsScreen";
 export { default } from "./CompanyDetailsScreen";

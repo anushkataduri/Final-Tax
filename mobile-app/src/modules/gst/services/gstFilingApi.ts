@@ -8,7 +8,6 @@ import {
 } from "./gstUploadHelper";
 import { appendFilePart } from "@/shared/utils/formDataFile";
 import type { GstFilingPayload } from "@/modules/gst/gst-filing/types/gstFilingPayload.types";
-import type { GstBusinessDto } from "./gstApiTypes";
 
 export const gstFilingApi = {
   createFiling: async (payload: GstFilingPayload, resolveCustomerId: () => Promise<string>) => {
@@ -71,7 +70,7 @@ export const gstFilingApi = {
     const headers: Record<string, string> = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
     const cleanId = String(filingId || "").trim();
-    return apiClient.get<GstBusinessDto>(`/api/v1/gst/filing/${cleanId}`, { headers });
+    return apiClient.get<any>(`/api/v1/gst/filing/${cleanId}`, { headers });
   },
 
   getFilingDocuments: async (gstfilingId: string) => {
@@ -79,7 +78,7 @@ export const gstFilingApi = {
     const headers: Record<string, string> = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
     const cleanId = String(gstfilingId || "").trim();
-    return apiClient.get<GstBusinessDto>(`/api/v1/gst/filing/documents/${cleanId}`, { headers });
+    return apiClient.get<any>(`/api/v1/gst/filing/documents/${cleanId}`, { headers });
   },
 
   uploadAllFilingDocuments: async (
@@ -169,7 +168,7 @@ export const gstFilingApi = {
   },
 
   fetchFilings: async (gstin: string) => {
-    return apiClient.get<GstBusinessDto[]>(`/api/v1/gst/filing/${gstin}`);
+    return apiClient.get<any[]>(`/api/v1/gst/filing/${gstin}`);
   },
 
   submitFinalFiling: async (filingId: string, pushToken?: string) => {

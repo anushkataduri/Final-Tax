@@ -1,5 +1,5 @@
 import { StyleSheet, Dimensions } from "react-native";
-import { BrandColors } from "@/shared/theme";
+import { BrandColors, BorderRadius, Spacing } from "@/shared/theme";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 

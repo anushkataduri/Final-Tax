@@ -14,6 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import {
+  BRAND,
   PARTICLES,
   styles,
   type ParticleItem,
@@ -54,7 +55,7 @@ function InwardParticle({ item }: { item: ParticleItem }) {
         withTiming(0, { duration: 480, easing: Easing.in(Easing.quad) })
       )
     );
-  }, [transX, transY, opacity, endX, endY, item.delay]);
+  }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -213,7 +214,6 @@ export function AnimatedSplashOverlay({ onFinish }: AnimatedSplashOverlayProps) 
     }, 2800);
 
     return () => clearTimeout(failsafe);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Animated Styles

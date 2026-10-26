@@ -1,7 +1,5 @@
 import { CertificateDetails, CertificateRequestParams } from "../types/gstCertificateTypes";
 
-const s = (v: unknown): string => (v ? String(v) : "");
-
 const STATE_CODE_MAP: Record<string, string> = {
   "07": "Delhi",
   "24": "Gujarat",
@@ -20,93 +18,92 @@ const STATE_CODE_MAP: Record<string, string> = {
 export function mapRegistrationDataToCertificate(
   targetGstin: string,
   params: CertificateRequestParams,
-  applications: { serviceId?: string; formData?: Record<string, unknown> }[],
-  gstDraft: Record<string, unknown> | null | undefined,
-  registrationDraft: Record<string, unknown> | null | undefined,
-  customer: Record<string, unknown> | null | undefined
+  applications: any[],
+  gstDraft: any,
+  registrationDraft: any,
+  customer: any
 ): CertificateDetails {
   const clean = targetGstin.trim().toUpperCase();
   const app =
-    applications.find((a) => (a.formData?.gstin as string | undefined)?.toUpperCase() === clean) ||
+    applications.find((a) => a.formData?.gstin?.toUpperCase() === clean) ||
     applications.find((a) => a.serviceId === "gst-registration");
-  const fd = (app?.formData || {}) as Record<string, unknown>;
-  const dBiz = ((gstDraft?.businessData as Record<string, unknown>) || {}) as Record<string, unknown>;
-  const sDraft = registrationDraft || {};
-  const cust = customer || {};
+  const fd = app?.formData || {};
+  const dBiz = gstDraft?.businessData || {};
+  const sDraft = (registrationDraft || {}) as any;
+  const cust = customer || ({} as any);
 
   const state =
     params.state ||
-    s(fd.state) ||
-    s(dBiz.state) ||
-    s(sDraft.state) ||
-    s(cust.state) ||
+    fd.state ||
+    dBiz.state ||
+    sDraft.state ||
+    cust.state ||
     STATE_CODE_MAP[clean.slice(0, 2)] ||
     "";
 
   const legalName =
     params.legalName ||
-    s(fd.legalName) ||
-    s(dBiz.legalName) ||
-    s(sDraft.legalName) ||
-    s(cust.businessName) ||
-    s(cust.name) ||
+    fd.legalName ||
+    dBiz.legalName ||
+    sDraft.legalName ||
+    cust.businessName ||
+    cust.name ||
     (clean ? `ENTERPRISE ${clean}` : "TAXPAYER ENTERPRISE");
 
   const tradeName =
     params.tradeName ||
-    s(fd.businessName) ||
-    s(dBiz.businessName) ||
-    s(sDraft.businessName) ||
+    fd.businessName ||
+    dBiz.businessName ||
+    sDraft.businessName ||
     legalName;
 
   const constitution =
     params.constitution ||
-    s(fd.businessType) ||
-    s(dBiz.businessType) ||
-    s(sDraft.constitution) ||
+    fd.businessType ||
+    dBiz.businessType ||
+    sDraft.constitution ||
     "Private Limited Company";
 
   const addrParts = [
-    s(fd.businessAddress) || s(dBiz.businessAddress),
-    s(fd.city) || s(dBiz.city),
-    s(fd.district) || s(dBiz.district),
+    fd.businessAddress || dBiz.businessAddress,
+    fd.city || dBiz.city,
+    fd.district || dBiz.district,
     state,
-    s(fd.pinCode) || s(dBiz.pinCode),
+    fd.pinCode || dBiz.pinCode,
   ].filter(Boolean);
 
   const address =
     params.address ||
     (addrParts.length > 0
       ? addrParts.join(", ")
-      : s(cust.address) || (state ? `Registered Office, ${state}` : "Registered Business Address"));
+      : cust.address || (state ? `Registered Office, ${state}` : "Registered Business Address"));
 
   const sigName =
     params.director ||
     params.signatoryName ||
-    s(fd.signatoryName) ||
-    s(dBiz.signatoryName) ||
-    s(cust.name) ||
+    fd.signatoryName ||
+    dBiz.signatoryName ||
+    cust.name ||
     "";
   const sigDesignation =
-    s(fd.signatoryDesignation) || s(dBiz.signatoryDesignation) || "Director";
+    fd.signatoryDesignation || dBiz.signatoryDesignation || "Director";
   const signatories = sigName
     ? [{ name: String(sigName).toUpperCase(), designation: sigDesignation }]
     : [];
 
   const additionalPlaces = (
     fd.additionalAddress
-      ? [s(fd.additionalAddress)]
+      ? [fd.additionalAddress]
       : dBiz.additionalAddress
-      ? [s(dBiz.additionalAddress)]
+      ? [dBiz.additionalAddress]
       : []
   ).filter(Boolean);
 
-  const natureStr = s(fd.natureOfBusiness) || s(dBiz.natureOfBusiness);
+  const natureStr = fd.natureOfBusiness || dBiz.natureOfBusiness || "";
   const activities = natureStr
-    ? natureStr.split(",").map((seg: string) => seg.trim()).filter(Boolean)
+    ? natureStr.split(",").map((s: string) => s.trim()).filter(Boolean)
     : [];
 
-  const compositionStr = s(fd.compositionScheme);
   const todayStr = new Date().toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "2-digit",
@@ -119,10 +116,10 @@ export function mapRegistrationDataToCertificate(
     tradeName: String(tradeName).toUpperCase(),
     constitution,
     address,
-    liabilityDate: s(fd.businessStartDate) || s(dBiz.businessStartDate) || "",
-    validityFrom: s(fd.businessStartDate) || s(dBiz.businessStartDate) || "01/04/2026",
-    regType: compositionStr.includes("composition") ? "Composition" : "Regular",
-    regDate: s(fd.appliedDate) || todayStr,
+    liabilityDate: fd.businessStartDate || dBiz.businessStartDate || "",
+    validityFrom: fd.businessStartDate || dBiz.businessStartDate || "01/04/2026",
+    regType: fd.compositionScheme?.includes("composition") ? "Composition" : "Regular",
+    regDate: fd.appliedDate || todayStr,
     issueDate: todayStr,
     additionalPlaces,
     signatories,

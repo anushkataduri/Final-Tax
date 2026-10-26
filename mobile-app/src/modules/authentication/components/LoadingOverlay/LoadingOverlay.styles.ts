@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+﻿import { StyleSheet } from "react-native";
 import { BorderRadius, Typography, Spacing } from "../../../../shared/theme";
 
 export const styles = StyleSheet.create({

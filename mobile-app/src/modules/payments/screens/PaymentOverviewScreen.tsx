@@ -60,7 +60,7 @@ export function PaymentOverviewScreen() {
 
   const handlePayNow = (app: Application) => {
     router.push({
-      pathname: `/payment/${app.id}` as never,
+      pathname: `/payment/${app.id}` as any,
     });
   };
 

@@ -1,2 +1,2 @@
-export const Icons = {};
+﻿export const Icons = {};
 export default Icons;

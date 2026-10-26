@@ -10,14 +10,14 @@ import { styles } from "./GstComplianceReviewStep.styles";
 
 export interface GstComplianceReviewStepProps {
   formData: ComplianceFormData;
-  dbData?: Record<string, unknown>;
+  dbData?: any;
   complianceId?: string | null;
   onEditStep: (section?: string) => void;
 }
 
 interface ReviewRowProps {
   label: string;
-  value: string | undefined;
+  value: string;
   isDark: boolean;
   multiline?: boolean;
   isMissing?: boolean;
@@ -134,7 +134,7 @@ export const GstComplianceReviewStep: React.FC<GstComplianceReviewStepProps> = (
     ? "Reconciliation Support"
     : dbData?.requestType === "NOTICE_RESPONSE"
     ? "Notice Response"
-    : (dbData?.requestType as string | undefined) || "";
+    : dbData?.requestType || "";
 
   const isRecon = displayRequestType === "Reconciliation Support";
 
@@ -242,8 +242,8 @@ export const GstComplianceReviewStep: React.FC<GstComplianceReviewStepProps> = (
         </View>
         <View style={[styles.divider, isDark && styles.dividerDark]} />
 
-        <ReviewRow label="GSTIN" value={formData.gstin || (dbData?.gstin as string | undefined)} isDark={isDark} />
-        <ReviewRow label="Financial Year" value={formData.financialYear || (dbData?.financialYear as string | undefined)} isDark={isDark} />
+        <ReviewRow label="GSTIN" value={formData.gstin || dbData?.gstin} isDark={isDark} />
+        <ReviewRow label="Financial Year" value={formData.financialYear || dbData?.financialYear} isDark={isDark} />
         <ReviewRow label="Request Type" value={displayRequestType} isDark={isDark} />
       </View>
 
@@ -259,15 +259,15 @@ export const GstComplianceReviewStep: React.FC<GstComplianceReviewStepProps> = (
 
         {isRecon ? (
           <>
-            <ReviewRow label="GSTR-2B Ref / Period" value={formData.gstr2bRef || (dbData?.gstr2bNumber as string | undefined) || "Not specified"} isDark={isDark} />
-            <ReviewRow label="Remarks" value={formData.reconciliationRemarks || (dbData?.message as string | undefined) || "None"} isDark={isDark} multiline />
+            <ReviewRow label="GSTR-2B Ref / Period" value={formData.gstr2bRef || dbData?.gstr2bNumber || "Not specified"} isDark={isDark} />
+            <ReviewRow label="Remarks" value={formData.reconciliationRemarks || dbData?.message || "None"} isDark={isDark} multiline />
           </>
         ) : (
           <>
-            <ReviewRow label="Notice / Order No." value={formData.noticeNumber || (dbData?.noticeNumber as string | undefined)} isDark={isDark} />
-            <ReviewRow label="Notice Issue Date" value={formData.noticeIssueDate || (dbData?.noticeIssueDate as string | undefined)} isDark={isDark} />
-            <ReviewRow label="Reply Due Date" value={formData.replyDueDate || (dbData?.replyDueDate as string | undefined)} isDark={isDark} />
-            <ReviewRow label="Remarks / Grounds" value={formData.noticeRemarks || (dbData?.message as string | undefined) || "None"} isDark={isDark} multiline />
+            <ReviewRow label="Notice / Order No." value={formData.noticeNumber || dbData?.noticeNumber} isDark={isDark} />
+            <ReviewRow label="Notice Issue Date" value={formData.noticeIssueDate || dbData?.noticeIssueDate} isDark={isDark} />
+            <ReviewRow label="Reply Due Date" value={formData.replyDueDate || dbData?.replyDueDate} isDark={isDark} />
+            <ReviewRow label="Remarks / Grounds" value={formData.noticeRemarks || dbData?.message || "None"} isDark={isDark} multiline />
           </>
         )}
       </View>

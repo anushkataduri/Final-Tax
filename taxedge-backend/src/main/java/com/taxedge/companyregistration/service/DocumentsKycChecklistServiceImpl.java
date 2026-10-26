@@ -31,9 +31,9 @@ public class DocumentsKycChecklistServiceImpl implements DocumentsKycChecklistSe
 
 		CompanyDetails company = getCompany(companyRegistrationId);
 
-		if (documentsRepository.findByCompanyDetails_CompanyRegistrationId(companyRegistrationId).isPresent()) {
-
-			throw new IllegalArgumentException("Documents are already registered for this company. Use update.");
+		java.util.Optional<DocumentsKycChecklist> existingOpt = documentsRepository.findByCompanyDetails_CompanyRegistrationId(companyRegistrationId);
+		if (existingOpt.isPresent()) {
+			return updateDocumentsById(existingOpt.get().getDocumentId(), dto);
 		}
 
 		validateAtLeastOneDocument(dto);

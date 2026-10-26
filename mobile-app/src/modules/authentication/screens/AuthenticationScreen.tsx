@@ -6,6 +6,7 @@ import {
   Platform,
   ScrollView,
   Animated,
+  Keyboard,
   TouchableOpacity,
   useColorScheme,
 } from "react-native";
@@ -29,7 +30,8 @@ import {
 } from "../components";
 import { useReauthSlideAnimation } from "../hooks/useReauthSlideAnimation";
 import { useAuthFlowTransition } from "../hooks/useAuthFlowTransition";
-import { useAuthHandlers } from "../hooks/useAuthHandlers";
+import { authStorage } from "../services/authStorage";
+import { biometricService } from "../services/biometricService";
 import { BiometricPromptModal } from "../../../shared/components/BiometricPromptModal";
 import { ServerConfigModal } from "../../../shared/components/ServerConfigModal";
 import {
@@ -38,6 +40,7 @@ import {
   getThemedStyles,
   getDynamicScrollStyle,
 } from "./AuthenticationScreen.styles";
+import { getErrorMessage } from "@/core/error-handling/errorMessage";
 
 const HEADER_OFFSET = Spacing.md;
 const FOOTER_OFFSET = Spacing.base;
@@ -81,6 +84,7 @@ export function AuthenticationScreen() {
   const [biometricType, setBiometricType] = useState("Fingerprint");
   const [showServerModal, setShowServerModal] = useState(false);
 
+  // BIOMETRIC REAUTH animation state
   const {
     passcodeVisible,
     biometricDismissed,
@@ -93,45 +97,34 @@ export function AuthenticationScreen() {
   } = useReauthSlideAnimation();
   const reauthScrollRef = useRef<ScrollView>(null);
 
+  // Guards: prevent duplicate biometric calls or navigations
   const hasBioTriggered = useRef(false);
   const hasNavigated = useRef(false);
 
-  const {
-    handleBiometricReauth,
-    handlePasscodeFromReauth,
-    handleMobileSubmit,
-    handleOtpVerify,
-    handleLoginSubmit,
-    handleEnableBiometric,
-    handleNotNowBiometric,
-    handleBiometricLogin,
-    handleForgotPasscode,
-    handleForgotPasscodeOtpVerify,
-    handleResetPasscodeSubmit,
-    handleBiometricRetry,
-    handleReauthBiometricFallback,
-  } = useAuthHandlers({
-    router,
-    mobileNumber,
-    setPasscode,
-    loginWithPasscode,
-    sendOtp,
-    verifyOtp,
-    setAuthFlowState,
-    setError,
-    resetLoginPresentation,
-    syncFromDevAuth,
-    startForgotPasscode,
-    verifyForgotPasscodeOtp,
-    resetPasscodeAndProceed,
-    slideToBiometricDismissed,
-    resetToBiometric,
-    setPasscodeAutoFocus,
-    setBiometricType,
-    setShowBiometricModal,
-    hasBioTriggered,
-    hasNavigated,
-  });
+  const navigateHomeOnce = () => {
+    if (!hasNavigated.current) {
+      hasNavigated.current = true;
+      router.replace("/(main)/home");
+    }
+  };
+
+  const offerBiometricEnrollmentOrGoHome = async () => {
+    try {
+      const hasHardware = await biometricService.checkHardwareSupport();
+      const isEnrolled = await biometricService.checkEnrollment();
+      const isAlreadyEnabled = await biometricService.isBiometricEnabled();
+
+      if (hasHardware && isEnrolled && !isAlreadyEnabled) {
+        const typeLabel = await biometricService.getBiometricTypeLabel();
+        setBiometricType(typeLabel);
+        setShowBiometricModal(true);
+        return;
+      }
+    } catch (err) {
+      logger.debug("[AuthenticationScreen] Biometric enrollment check fallback:", { error: err });
+    }
+    navigateHomeOnce();
+  };
 
   useEffect(() => {
     if (authFlowState === "BIOMETRIC_REAUTH") {
@@ -139,7 +132,7 @@ export function AuthenticationScreen() {
       hasNavigated.current = false;
       resetToBiometric();
     }
-  }, [authFlowState, hasBioTriggered, hasNavigated, resetToBiometric]);
+  }, [authFlowState]);
 
   useEffect(() => {
     if (!passcodeVisible) return;
@@ -147,24 +140,26 @@ export function AuthenticationScreen() {
       reauthScrollRef.current?.scrollToEnd({ animated: true });
     }, 500);
     return () => clearTimeout(timer);
-  }, [passcodeVisible, reauthScrollRef]);
+  }, [passcodeVisible]);
 
   useFocusEffect(
     useCallback(() => {
-      if (authFlowState !== "BIOMETRIC_REAUTH" || hasBioTriggered.current) return undefined;
+      if (authFlowState !== "BIOMETRIC_REAUTH" || hasBioTriggered.current) {
+        return undefined;
+      }
       const timer = setTimeout(() => {
         if (hasBioTriggered.current) return;
         hasBioTriggered.current = true;
         handleBiometricReauth();
       }, 2900);
       return () => clearTimeout(timer);
-    }, [authFlowState, hasBioTriggered, handleBiometricReauth])
+    }, [authFlowState])
   );
 
   useEffect(() => {
     if ((authFlowState === "PASSCODE_LOGIN" || authFlowState === "BIOMETRIC_REAUTH") && mobileNumber) {
       refreshPasscodeLockout().catch((err) => {
-        logger.debug("[AuthenticationScreen] Passcode lockout refresh failed", { error: err });
+        logger.debug("[AuthenticationScreen] Passcode lockout refresh failed", { error: getErrorMessage(err) });
       });
     }
   }, [authFlowState, mobileNumber, refreshPasscodeLockout]);
@@ -178,17 +173,147 @@ export function AuthenticationScreen() {
       authFlowState !== "RESET_PASSCODE" &&
       authFlowState !== "FORGOT_PASSCODE_OTP"
     ) {
-      if (!hasNavigated.current) {
-        hasNavigated.current = true;
+      navigateHomeOnce();
+    }
+  }, [isLoggedIn, showBiometricModal, authFlowState]);
+
+  const { fadeAnim, slideAnim } = useAuthFlowTransition({
+    authFlowState,
+    otpTimer,
+    decrementTimer,
+  });
+
+  const handleBiometricReauth = useCallback(async () => {
+    try {
+      const typeLabel = await biometricService.getBiometricTypeLabel().catch(() => "Biometrics");
+      const authRes = await biometricService.authenticate({
+        promptMessage: `Authenticate with ${typeLabel}`,
+        disableDeviceFallback: true,
+      });
+
+      if (authRes.success) {
+        resetLoginPresentation();
+        const activeMobile = mobileNumber || authStorage.getSession().activeMobile;
+        if (activeMobile) {
+          authStorage.saveSession({
+            isLoggedIn: true,
+            activeMobile,
+            lastLoginAt: new Date().toISOString(),
+          });
+          await useAuthStore.getState().fetchAndSyncProfile(activeMobile).catch(() => {});
+          syncFromDevAuth();
+        }
+        navigateHomeOnce();
+        return;
+      }
+      slideToBiometricDismissed();
+    } catch {
+      slideToBiometricDismissed();
+    }
+  }, [mobileNumber]);
+
+  const handlePasscodeFromReauth = useCallback(async () => {
+    const res = await loginWithPasscode();
+    if (res.success) {
+      setPasscodeAutoFocus(false);
+      setPasscode("");
+      Keyboard.dismiss();
+      await offerBiometricEnrollmentOrGoHome();
+    }
+  }, [loginWithPasscode]);
+
+  const handleMobileSubmit = async () => {
+    await sendOtp();
+  };
+
+  const handleOtpVerify = async (code?: string) => {
+    const res = await verifyOtp(code);
+    if (res.success) {
+      if (res.requiresPasscode) {
+        setAuthFlowState("PASSCODE_LOGIN");
+      } else {
         router.replace("/(main)/home");
       }
     }
-  }, [isLoggedIn, showBiometricModal, authFlowState, hasNavigated, router]);
+  };
 
-  const { fadeAnim, slideAnim } = useAuthFlowTransition({ authFlowState, otpTimer, decrementTimer });
+  const handleLoginSubmit = async () => {
+    const res = await loginWithPasscode();
+    if (res.success) {
+      setPasscode("");
+      Keyboard.dismiss();
+      await offerBiometricEnrollmentOrGoHome();
+    }
+  };
 
-  const themed = getThemedStyles(colors, isDark, insets.top, HEADER_OFFSET, MIN_SCROLL_PADDING);
-  const dynamicScroll = getDynamicScrollStyle(insets.top, insets.bottom, HEADER_OFFSET, FOOTER_OFFSET, MIN_SCROLL_PADDING);
+  const handleEnableBiometric = async () => {
+    setShowBiometricModal(false);
+    try {
+      const authRes = await biometricService.authenticate();
+      if (authRes.success) {
+        await useAuthStore.getState().setBiometricEnabled(true);
+      }
+    } catch (err) {
+      logger.warn("[AuthenticationScreen] Biometric activation failed:", { error: err });
+    }
+    navigateHomeOnce();
+  };
+
+  const handleNotNowBiometric = () => {
+    setShowBiometricModal(false);
+    navigateHomeOnce();
+  };
+
+  const handleBiometricLogin = async () => {
+    try {
+      const typeLabel = await biometricService.getBiometricTypeLabel();
+      const authRes = await biometricService.authenticate(`Authenticate with ${typeLabel}`);
+      if (authRes.success) {
+        resetLoginPresentation();
+        const activeMobile = mobileNumber || authStorage.getSession().activeMobile;
+        if (activeMobile) {
+          authStorage.saveSession({
+            isLoggedIn: true,
+            activeMobile: activeMobile,
+            lastLoginAt: new Date().toISOString(),
+          });
+          syncFromDevAuth();
+          router.replace("/(main)/home");
+        }
+      } else if (!authRes?.cancelled && authRes?.error && authRes.error !== "Authentication cancelled") {
+        setError(authRes.error);
+      }
+    } catch (e) {
+      setError(getErrorMessage(e) || "Biometric authentication failed");
+    }
+  };
+
+  const handleForgotPasscode = async () => {
+    await startForgotPasscode();
+  };
+
+  const handleForgotPasscodeOtpVerify = async (code?: string) => {
+    await verifyForgotPasscodeOtp(code);
+  };
+
+  const handleResetPasscodeSubmit = async () => {
+    await resetPasscodeAndProceed();
+  };
+
+  const themed = getThemedStyles(
+    colors,
+    isDark,
+    insets.top,
+    HEADER_OFFSET,
+    MIN_SCROLL_PADDING
+  );
+  const dynamicScroll = getDynamicScrollStyle(
+    insets.top,
+    insets.bottom,
+    HEADER_OFFSET,
+    FOOTER_OFFSET,
+    MIN_SCROLL_PADDING
+  );
 
   const screenModals = (
     <>
@@ -198,16 +323,19 @@ export function AuthenticationScreen() {
         onEnable={handleEnableBiometric}
         onNotNow={handleNotNowBiometric}
       />
-      <ServerConfigModal visible={showServerModal} onClose={() => setShowServerModal(false)} />
+      <ServerConfigModal
+        visible={showServerModal}
+        onClose={() => setShowServerModal(false)}
+      />
     </>
   );
 
   if (authFlowState === "BIOMETRIC_REAUTH") {
     return (
       <KeyboardAvoidingView
-        style={[styles.container, themed.container, { flex: 1 }]}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top : 0}
+        style={[styles.container, themed.container]}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       >
         <FocusAwareStatusBar barStyle={isDark ? "light-content" : "dark-content"} />
         <ScrollView
@@ -219,9 +347,15 @@ export function AuthenticationScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.wrapper}>
-            <AuthBrandHeader onLongPress={() => setShowServerModal(true)} titleStyle={themed.brandTitle} subtitleStyle={themed.brandSub} />
+            <AuthBrandHeader
+              onLongPress={() => setShowServerModal(true)}
+              titleStyle={themed.brandTitle}
+              subtitleStyle={themed.brandSub}
+            />
             <View style={reauthStyles.welcomeSection}>
-              <Text style={[reauthStyles.welcomeTitle, { color: colors.text }]}>Welcome Back 👋</Text>
+              <Text style={[reauthStyles.welcomeTitle, themed.welcomeTitle]}>
+                Welcome Back 👋
+              </Text>
             </View>
             <ErrorBanner error={error} onDismiss={() => setError(null)} />
             {!biometricDismissed && (
@@ -230,7 +364,10 @@ export function AuthenticationScreen() {
                   biometricType={biometricType}
                   textColor={colors.text}
                   secondaryTextColor={colors.textSecondary}
-                  onRetry={handleBiometricRetry}
+                  onRetry={() => {
+                    hasBioTriggered.current = false;
+                    handleBiometricReauth();
+                  }}
                   onUsePasscode={slideToBiometricDismissed}
                 />
               </Reanimated.View>
@@ -252,7 +389,11 @@ export function AuthenticationScreen() {
                   onLogin={handlePasscodeFromReauth}
                   onForgotPasscode={handleForgotPasscode}
                   loading={isLoading}
-                  onBiometricLogin={handleReauthBiometricFallback}
+                  onBiometricLogin={() => {
+                    hasBioTriggered.current = false;
+                    resetToBiometric();
+                    handleBiometricReauth();
+                  }}
                   isBiometricEnabled={isBiometricEnabled}
                   biometricTypeLabel={biometricType}
                   autoFocus={passcodeAutoFocus}
@@ -269,7 +410,8 @@ export function AuthenticationScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
       style={[styles.container, themed.container]}
     >
       <FocusAwareStatusBar barStyle={isDark ? "light-content" : "dark-content"} />
@@ -285,11 +427,19 @@ export function AuthenticationScreen() {
             style={[styles.backBtnAbsolute, themed.backBtnAbsolute]}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="arrow-back" size={20} color={isDark ? "#FFFFFF" : BrandColors.PRIMARY_BLUE_DARK} />
+            <Ionicons
+              name="arrow-back"
+              size={20}
+              color={isDark ? "#FFFFFF" : BrandColors.PRIMARY_BLUE_DARK}
+            />
           </TouchableOpacity>
         )}
         <View style={styles.wrapper}>
-          <AuthBrandHeader onLongPress={() => setShowServerModal(true)} titleStyle={themed.brandTitle} subtitleStyle={themed.brandSub} />
+          <AuthBrandHeader
+            onLongPress={() => setShowServerModal(true)}
+            titleStyle={themed.brandTitle}
+            subtitleStyle={themed.brandSub}
+          />
           {authFlowState === "ENTER_MOBILE" && (
             <View style={styles.welcome}>
               <Text style={[styles.welcomeTitle, themed.welcomeTitle]}>Welcome Back 👋</Text>
@@ -301,7 +451,15 @@ export function AuthenticationScreen() {
               <ServerConfigHint error={error} onPress={() => setShowServerModal(true)} />
             </>
           )}
-          <Animated.View style={[styles.formBody, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <Animated.View
+            style={[
+              styles.formBody,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
             <AuthFlowSections
               biometricTypeLabel={biometricType}
               onMobileSubmit={handleMobileSubmit}

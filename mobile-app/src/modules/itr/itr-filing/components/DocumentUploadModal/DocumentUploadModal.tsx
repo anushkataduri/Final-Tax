@@ -38,8 +38,8 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
     if (!sizeInBytes) {
       try {
         const fileInfo = await FileSystem.getInfoAsync(uri);
-        if (fileInfo.exists && (fileInfo as { size?: number }).size) {
-          sizeInBytes = (fileInfo as { size?: number }).size;
+        if (fileInfo.exists && (fileInfo as any).size) {
+          sizeInBytes = (fileInfo as any).size;
         }
       } catch {
         // Fallback if FileSystem check is unavailable
@@ -112,7 +112,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
         await checkSizeAndProceed(
           asset.uri,
           fileName,
-          (asset as { fileSize?: number }).fileSize,
+          (asset as any).fileSize,
           asset.mimeType || "image/jpeg"
         );
       }
@@ -141,7 +141,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
         await checkSizeAndProceed(
           asset.uri,
           fileName,
-          (asset as { fileSize?: number }).fileSize,
+          (asset as any).fileSize,
           asset.mimeType || "image/jpeg"
         );
       }

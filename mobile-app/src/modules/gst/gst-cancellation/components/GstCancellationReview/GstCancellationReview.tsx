@@ -10,7 +10,7 @@ import { CancellationFormData } from "../../types/gstCancellationTypes";
 
 interface GstCancellationReviewProps {
   formData: CancellationFormData;
-  dbReviewData?: Record<string, unknown>;
+  dbReviewData?: any;
   isReviewDeclared: boolean;
   setIsReviewDeclared: (val: boolean) => void;
   isSubmitting: boolean;
@@ -31,14 +31,14 @@ export function GstCancellationReview({
 }: GstCancellationReviewProps) {
   const insets = useSafeAreaInsets();
 
-  const gstin = (dbReviewData?.gstin as string | undefined) || formData.gstin;
+  const gstin = dbReviewData?.gstin || formData.gstin;
   const reason =
-    (dbReviewData?.reasonForCancellation as string | undefined) ||
+    dbReviewData?.reasonForCancellation ||
     (formData.reason === "Other Valid Reason"
       ? formData.otherReason
       : formData.reason);
   const cancellationDate =
-    (dbReviewData?.dateCancellationIsSought as string | undefined) || formData.cancellationDate;
+    dbReviewData?.dateCancellationIsSought || formData.cancellationDate;
   const closingStock =
     dbReviewData?.closingStockAndInputTaxReversal !== undefined
       ? String(dbReviewData.closingStockAndInputTaxReversal)
@@ -48,13 +48,13 @@ export function GstCancellationReview({
       ? String(dbReviewData.pendingDuesLiabilities)
       : formData.pendingLiabilities;
   const lastGstr3b =
-    (dbReviewData?.lastGstr3bFiledArnPeriod as string | undefined) || formData.lastGstr3b;
+    dbReviewData?.lastGstr3bFiledArnPeriod || formData.lastGstr3b;
   const supportingDoc = formData.supportingDoc;
 
   const reviewRows = [
     { k: "Form", v: "REG-16 (Cancellation)" },
     ...(dbReviewData?.cancellationId
-      ? [{ k: "Reference ID", v: dbReviewData.cancellationId as string | undefined, isBlue: true }]
+      ? [{ k: "Reference ID", v: dbReviewData.cancellationId, isBlue: true }]
       : []),
     { k: "GSTIN", v: gstin, isBlue: true },
     {

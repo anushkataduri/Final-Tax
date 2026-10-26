@@ -5,7 +5,6 @@ import { tokenRefreshManager } from "../../../core/authentication/tokenRefreshMa
 import { getResolvedCustomerId } from "@/modules/gst/gst-filing/hooks/gstFilingHelpers";
 import { logger } from "../../../core/logging/logger";
 import type { CancellationFormData } from "../gst-cancellation/types/gstCancellationTypes";
-import type { GstCancellationResponseDto } from "./gstApiTypes";
 import { appendFilePart } from "@/shared/utils/formDataFile";
 
 const MONTHS = [
@@ -46,12 +45,12 @@ export class GstCancellationError extends Error {
 }
 
 export const gstCancellationApi = {
-  createCancellation: async (data: CancellationFormData): Promise<GstCancellationResponseDto> => {
+  createCancellation: async (data: CancellationFormData): Promise<any> => {
     const formData = new FormData();
     const custId = await getResolvedCustomerId();
 
     const dto = {
-      customerId: custId || "",
+      customerId: custId || (data as any).customerId || "",
       gstin: data.gstin ? data.gstin.trim() : "29AAAAA0000A1Z5",
       reasonForCancellation:
         data.reason === "Other Valid Reason" ? data.otherReason : data.reason,
@@ -87,7 +86,7 @@ export const gstCancellationApi = {
       }
     }
 
-    return new Promise<GstCancellationResponseDto>((resolve, reject) => {
+    return new Promise<any>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", url);
 
@@ -102,7 +101,7 @@ export const gstCancellationApi = {
             resolve(parsed);
           } catch (parseErr) {
             logger.debug("[gstCancellationApi] Non-JSON success response", { error: parseErr });
-            resolve({ message: xhr.responseText });
+            resolve(xhr.responseText);
           }
         } else {
           let errText = xhr.responseText;
@@ -132,12 +131,12 @@ export const gstCancellationApi = {
   updateCancellation: async (
     _cancellationId: string,
     data: CancellationFormData
-  ): Promise<GstCancellationResponseDto> => {
+  ): Promise<any> => {
     // Backend registers and updates (upserts) cancellation details via POST /api/v1/gst/cancellation/register
     return gstCancellationApi.createCancellation(data);
   },
 
-  getCancellation: async (cancellationId: string): Promise<GstCancellationResponseDto> => {
+  getCancellation: async (cancellationId: string): Promise<any> => {
     const baseUrl = apiClient.getBaseUrl() || (await getActiveBaseUrl());
     if (!baseUrl) {
       throw new GstCancellationError("Backend URL is not configured.");

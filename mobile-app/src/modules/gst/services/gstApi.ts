@@ -16,7 +16,6 @@ import { gstAmendmentApi } from "./gstAmendmentApi";
 import { appendFilePart } from "@/shared/utils/formDataFile";
 import type { mapGstRegistrationPayload } from "@/modules/gst/gst-registration/utils/gstRegistrationMapper";
 import type { GstFilingPayload } from "@/modules/gst/gst-filing/types/gstFilingPayload.types";
-import type { GstBusinessDto, GstDocumentsDto, GstRegistrationResponseDto, GstStatusResponseDto } from "./gstApiTypes";
 
 /** Body sent to the GST business register / update endpoints. */
 type GstRegistrationPayload = ReturnType<typeof mapGstRegistrationPayload>;
@@ -39,7 +38,7 @@ const resolveCustomerId = async (): Promise<string> => {
       authState.customer?.customerId ||
       authState.authenticatedUser?.customerId ||
       authState.authenticatedUser?.custId ||
-      authState.customer?.customerId ||
+      (authState.customer as any)?.custId ||
       "";
     if (custId && typeof custId === "string" && custId.trim() !== "" && custId.trim() !== "undefined") {
       return custId.trim();
@@ -154,7 +153,7 @@ export const gstApi = {
     const headers: Record<string, string> = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
     const cleanGstId = String(gstId || "").trim();
-    return apiClient.get<GstBusinessDto>(`/api/v1/gst/business/${cleanGstId}`, { headers });
+    return apiClient.get<any>(`/api/v1/gst/business/${cleanGstId}`, { headers });
   },
 
   getRegistrationDocuments: async (documentId: string) => {
@@ -162,7 +161,7 @@ export const gstApi = {
     const headers: Record<string, string> = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
     const cleanDocId = String(documentId || "").trim();
-    return apiClient.get<GstDocumentsDto>(`/api/v1/gst/documents/${cleanDocId}`, { headers });
+    return apiClient.get<any>(`/api/v1/gst/documents/${cleanDocId}`, { headers });
   },
 
   submitRegistration: async (businessData: GstRegistrationPayload) => {
@@ -182,7 +181,7 @@ export const gstApi = {
       );
     }
 
-    return apiClient.post<GstRegistrationResponseDto>("/api/v1/gst/business/register", payload, { headers });
+    return apiClient.post<any>("/api/v1/gst/business/register", payload, { headers });
   },
 
   updateRegistration: async (gstId: string, businessData: GstRegistrationPayload) => {
@@ -201,7 +200,7 @@ export const gstApi = {
       if (custId) payload.customerId = custId;
     }
 
-    return apiClient.put<GstRegistrationResponseDto>(`/api/v1/gst/business/update/${cleanGstId}`, payload, { headers });
+    return apiClient.put<any>(`/api/v1/gst/business/update/${cleanGstId}`, payload, { headers });
   },
 
   uploadAllDocuments: async (
@@ -257,8 +256,6 @@ export const gstApi = {
   createFiling: async (payload: GstFilingPayload) => gstFilingApi.createFiling(payload, resolveCustomerId),
   updateFiling: async (filingId: string, payload: GstFilingPayload) =>
     gstFilingApi.updateFiling(filingId, payload, resolveCustomerId),
-  /** Alias for getFilingById — used by useGstFiling to refresh state at the Review step. */
-  getFiling: async (filingId: string) => gstFilingApi.getFilingById(filingId),
   getFilingById: async (filingId: string) => gstFilingApi.getFilingById(filingId),
   getFilingDocuments: async (gstfilingId: string) => gstFilingApi.getFilingDocuments(gstfilingId),
   uploadAllFilingDocuments: async (filingId: string, documents: UploadDocumentItem[]) =>
@@ -280,7 +277,7 @@ export const gstApi = {
   ) => gstAmendmentApi.submitFinalAmendmentRecord(sectionId, gstId, id, pushToken),
 
   fetchStatus: async (applicationId: string) => {
-    return apiClient.get<GstStatusResponseDto>(`/api/v1/gst/status/${applicationId}`);
+    return apiClient.get<{ status: string; timeline: any[] }>(`/api/v1/gst/status/${applicationId}`);
   },
 
   submitFinalRegistration: async (gstId: string, pushToken?: string) => {

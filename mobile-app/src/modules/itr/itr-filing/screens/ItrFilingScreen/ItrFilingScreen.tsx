@@ -22,7 +22,7 @@ import { useITRStore } from "@/modules/itr/store/itrStore";
 import { useApplicationStore } from "@/store/applicationStore";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
-import { useItrFilingHandlers } from "./useItrFilingHandlers";
+import { ItrApiService } from "../../services/ItrApiService";
 import { styles } from "./ItrFilingScreen.styles";
 
 export const ItrFilingScreen: React.FC = () => {
@@ -42,7 +42,7 @@ export const ItrFilingScreen: React.FC = () => {
   const setPersonalInfo = useITRStore((state) => state.setPersonalInfo);
   const selectRefundBank = useITRStore((state) => state.selectRefundBank);
   const addBankAccount = useITRStore((state) => state.addBankAccount);
-  const _setBankDetails = useITRStore((state) => state.setBankDetails);
+  const setBankDetails = useITRStore((state) => state.setBankDetails);
   const setPriorItrNotice = useITRStore((state) => state.setPriorItrNotice);
   const importPriorItrData = useITRStore((state) => state.importPriorItrData);
   const setIncomeSalary = useITRStore((state) => state.setIncomeSalary);
@@ -50,8 +50,8 @@ export const ItrFilingScreen: React.FC = () => {
   const setIncomeBusiness = useITRStore((state) => state.setIncomeBusiness);
   const setIncomeCapitalGains = useITRStore((state) => state.setIncomeCapitalGains);
   const setIncomeOtherSources = useITRStore((state) => state.setIncomeOtherSources);
-  const _setRegime = useITRStore((state) => state.setRegime);
-  const _setDeductions = useITRStore((state) => state.setDeductions);
+  const setRegime = useITRStore((state) => state.setRegime);
+  const setDeductions = useITRStore((state) => state.setDeductions);
   const setDeclarationAccepted = useITRStore((state) => state.setDeclarationAccepted);
   const updateDocument = useITRStore((state) => state.updateDocument);
 
@@ -88,16 +88,6 @@ export const ItrFilingScreen: React.FC = () => {
       resetForm();
     },
     isSubmitted: () => currentStep >= 5,
-  });
-
-  const {
-    handleStep1Continue, handleStep1Update,
-    handleStep2Continue, handleStep2Update,
-    handleStep3Continue, handleStep3Update,
-    handleSubmitApplication,
-  } = useItrFilingHandlers({
-    formData, isSubmitting, setIsSubmitting, setStep, setBackendIds,
-    markSubmitted, clearItrDraft, createApplication, router,
   });
 
   // Scroll to top on step transition
@@ -137,6 +127,110 @@ export const ItrFilingScreen: React.FC = () => {
     }
   };
 
+  // Step 1: POST (Create)
+  const handleStep1Continue = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      if (!formData.itrId) {
+        const response = await ItrApiService.savePersonalInfo(formData);
+        if (response?.itrId) setBackendIds({ itrId: response.itrId });
+      } else {
+        try {
+          await ItrApiService.updatePersonalInfo(formData.itrId, formData);
+        } catch {
+          const response = await ItrApiService.savePersonalInfo(formData);
+          if (response?.itrId) setBackendIds({ itrId: response.itrId });
+        }
+      }
+      setStep(1);
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Failed to save personal information to the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 1: PUT (Update & Continue from Review)
+  const handleStep1Update = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      if (formData.itrId) await ItrApiService.updatePersonalInfo(formData.itrId, formData);
+      setStep(3); // Return directly to Review screen
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Failed to update personal information on the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 2: POST (Create)
+  const handleStep2Continue = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      if (formData.itrId && !formData.incomeId) {
+        const response = await ItrApiService.saveSalaryIncome(formData.itrId, formData);
+        if (response?.incomeId) setBackendIds({ incomeId: response.incomeId });
+      } else if (formData.incomeId) {
+        await ItrApiService.updateSalaryIncome(formData.incomeId, formData);
+      }
+      setStep(2);
+    } catch (e) {
+      Alert.alert("Error", "Failed to save income information to the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 2: PUT (Update & Continue from Review)
+  const handleStep2Update = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      if (formData.incomeId) await ItrApiService.updateSalaryIncome(formData.incomeId, formData);
+      setStep(3);
+    } catch (e) {
+      Alert.alert("Error", "Failed to update income information on the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 3: POST (Create)
+  const handleStep3Continue = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      if (formData.itrId && !formData.documentId) {
+        const response = await ItrApiService.saveDocuments(formData.itrId, formData);
+        if (response?.documentId) setBackendIds({ documentId: response.documentId });
+      } else if (formData.documentId) {
+        await ItrApiService.updateDocuments(formData.documentId, formData);
+      }
+      setStep(3);
+    } catch (e) {
+      Alert.alert("Error", "Failed to save document information to the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Step 3: PUT (Update & Continue from Review)
+  const handleStep3Update = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      if (formData.documentId) await ItrApiService.updateDocuments(formData.documentId, formData);
+      setStep(3);
+    } catch (e) {
+      Alert.alert("Error", "Failed to update documents on the server.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
@@ -161,6 +255,99 @@ export const ItrFilingScreen: React.FC = () => {
       return () => subscription.remove();
     }, [currentStep, isCategoryConfirmed, formData, openDraftModal])
   );
+
+  const handleSubmitApplication = async () => {
+    setIsSubmitting(true);
+    try {
+      const uploadedDocItems = formData.documents
+        .filter((d) => Boolean(d.fileUri) || d.isProfileVerified)
+        .map((d) => ({
+          id: d.id,
+          name: d.name,
+          fileUri: d.fileUri || "verified://profile",
+          status: "Uploaded" as const,
+          uploadedAt: d.uploadedAt || new Date().toISOString(),
+        }));
+
+      const serviceTitle = `ITR Filing - ${formData.determinedForm.formTitle}`;
+
+      const generatedAppId = createApplication(
+        "itr-filing",
+        serviceTitle,
+        "ITR",
+        {
+          assessmentYear: formData.personalInfo.assessmentYear,
+          filingType: formData.personalInfo.filingType,
+          formType: formData.determinedForm.form,
+          formTitle: formData.determinedForm.formTitle,
+          pan: formData.personalInfo.pan,
+          name: formData.personalInfo.name,
+          mobile: formData.personalInfo.mobile,
+          email: formData.personalInfo.email,
+          residentialStatus: formData.personalInfo.residentialStatus,
+          bankName: formData.bankDetails.bankName,
+          accountNumber: formData.bankDetails.accountNumber,
+          ifscCode: formData.bankDetails.ifscCode,
+          accountType: formData.bankDetails.accountType,
+          regime: formData.regime,
+          grossTotalIncome: formData.calculation.grossTotalIncome,
+          totalDeductions: formData.calculation.totalDeductions,
+          taxableIncome: formData.calculation.taxableIncome,
+          totalTaxLiability: formData.calculation.totalTaxLiability,
+          totalTaxesPaid: formData.calculation.totalTaxesPaid,
+          finalAmount: formData.calculation.finalAmount,
+          finalType: formData.calculation.finalType,
+          hasPreviousItr: formData.priorItrNotice.hasPreviousItr,
+          previousAckNumber: formData.priorItrNotice.previousAckNumber,
+          hasTaxNotice: formData.priorItrNotice.hasTaxNotice,
+        },
+        uploadedDocItems,
+        999, // service fee
+        "Pending"
+      );
+
+      markSubmitted();
+      clearItrDraft();
+      setIsSubmitting(false);
+
+      // Derive active income sources for summary
+      const activeIncomeLabels = [
+        formData.incomeSources.salary.enabled ? "Salary" : null,
+        formData.incomeSources.business.enabled ? "Business" : null,
+        formData.incomeSources.houseProperty.enabled ? "House Property" : null,
+        formData.incomeSources.capitalGains.enabled ? "Capital Gains" : null,
+        formData.incomeSources.otherSources.enabled ? "Other Income" : null,
+      ].filter(Boolean) as string[];
+
+      const incomeSourcesSummary = activeIncomeLabels.join(" • ") || "Declared Income";
+      const verifiedOrUploadedCount = formData.documents.filter(
+        (d) => Boolean(d.fileUri) || d.isProfileVerified
+      ).length;
+      const totalDocsCount = formData.documents.length;
+      const maskedBank = formData.bankDetails.bankName
+        ? `${formData.bankDetails.bankName} •••• ${formData.bankDetails.accountNumber.slice(-4)}`
+        : "Primary Refund Bank";
+
+      // Navigate to Success Screen with synchronized parameters
+      router.replace({
+        pathname: "/service/itr-success" as any,
+        params: {
+          applicationId: generatedAppId,
+          serviceTitle,
+          assessmentYear: formData.personalInfo.assessmentYear,
+          formType: formData.determinedForm.form,
+          incomeType: incomeSourcesSummary,
+          regime: formData.regime === "new" ? "New Tax Regime" : "Old Tax Regime",
+          uploadedDocsCount: String(verifiedOrUploadedCount),
+          totalDocsCount: String(totalDocsCount),
+          refundBank: maskedBank,
+        },
+      });
+    } catch (err: any) {
+      setIsSubmitting(false);
+      Alert.alert("Submission Error", err?.message || "Could not submit application. Please try again.");
+    }
+  };
 
   if (!isCategoryConfirmed) {
     return (
@@ -227,7 +414,7 @@ export const ItrFilingScreen: React.FC = () => {
 
       {/* Main Content Area */}
       <KeyboardAwareScrollView
-        ref={scrollViewRef}
+        ref={scrollViewRef as any}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: insets.bottom + 40 },

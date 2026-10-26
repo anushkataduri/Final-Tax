@@ -16,7 +16,6 @@ import { useCreateProfile } from "@/components/screens/create-profile/useCreateP
 import { FieldLabel, FormField, GenderPickerModal, StatePickerModal } from "@/components/screens/create-profile/CreateProfileModals";
 import { PROFILE_FIELD_LIMITS } from "@/shared/validators/profileValidators";
 import { CUSTOMER_TYPE_OPTIONS } from "@/components/screens/create-profile/types";
-import type { SignupForm } from "@/components/screens/create-profile/types";
 
 export function RegisterScreen() {
   const insets = useSafeAreaInsets();
@@ -49,8 +48,8 @@ export function RegisterScreen() {
     return () => sub.remove();
   }, [currentStep, scrollRef]);
 
-  const yo = (key: string) => ({ onLayout: (e: { nativeEvent: { layout: { y: number } } }) => setFieldOffset(key, e.nativeEvent.layout.y) });
-  const ff = (key: keyof SignupForm) => ({ onBlur: () => handleBlur(key) });
+  const yo = (key: string) => ({ onLayout: (e: any) => setFieldOffset(key, e.nativeEvent.layout.y) });
+  const ff = (key: string) => ({ onBlur: () => handleBlur(key as any) });
 
   // The keyboard gap is added by KeyboardAwareScrollView, measured from what the keyboard covers.
   const scrollBottomPadding = currentStep === 1 ? Spacing.base : Math.max(insets.bottom + Spacing.xl, 40);
@@ -110,22 +109,6 @@ export function RegisterScreen() {
           </>
         ) : (
           <View style={styles.formSection}>
-            <TouchableOpacity activeOpacity={0.7}
-              onPress={() => { setCurrentStep(1); scrollRef.current?.scrollTo({ y: 0, animated: true }); }}
-              style={styles.accountTypeBadge}>
-              <View style={styles.accountTypeBadgeLeft}>
-                <Ionicons name="briefcase-outline" size={20} color={BrandColors.PRIMARY_BLUE} />
-                <View>
-                  <Text style={styles.accountTypeBadgeLabel}>Account Type</Text>
-                  <Text style={styles.accountTypeBadgeValue}>{form.customerType || "Individual"}</Text>
-                </View>
-              </View>
-              <View style={styles.accountTypeBadgeRight}>
-                <Text style={styles.accountTypeBadgeChangeText}>Change</Text>
-                <Ionicons name="chevron-forward" size={14} color={BrandColors.PRIMARY_ORANGE} />
-              </View>
-            </TouchableOpacity>
-
             <Text style={styles.requiredLegend}>
               Fields marked <Text style={styles.requiredStar}>*</Text> are required
             </Text>

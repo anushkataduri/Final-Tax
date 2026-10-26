@@ -300,7 +300,7 @@ export function ActiveApplicationsScreen() {
                 >
                   <View style={styles.categoryModalOptionLeft}>
                     <Ionicons
-                      name={opt.icon as never}
+                      name={opt.icon as any}
                       size={20}
                       color={isActive ? "#EA580C" : "#64748B"}
                     />

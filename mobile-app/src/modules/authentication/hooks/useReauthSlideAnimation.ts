@@ -42,23 +42,19 @@ export function useReauthSlideAnimation() {
     setPasscodeVisible(false);
     setBiometricDismissed(false);
     setPasscodeAutoFocus(false);
-    // eslint-disable-next-line react-hooks/immutability
     biometricAreaY.value = 0;
-    // eslint-disable-next-line react-hooks/immutability
     passcodeAreaY.value = HIDDEN_OFFSET;
   };
 
   // ─── Slide transition: biometric → passcode ───────────────────────────────
   const slideToPasscode = useCallback(() => {
     // Animate biometric area sliding down
-    // eslint-disable-next-line react-hooks/immutability
     biometricAreaY.value = withTiming(HIDDEN_OFFSET, {
       duration: SLIDE_DURATION,
       easing: Easing.bezier(0.4, 0, 0.2, 1),
     });
 
     // Animate passcode area sliding up (with slight delay for staggered feel)
-    // eslint-disable-next-line react-hooks/immutability
     passcodeAreaY.value = withDelay(
       80,
       withTiming(0, {

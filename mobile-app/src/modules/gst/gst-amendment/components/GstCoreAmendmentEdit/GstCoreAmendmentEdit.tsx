@@ -137,10 +137,6 @@ export const GstCoreAmendmentEdit: React.FC<GstCoreAmendmentEditProps> = ({
                   <Text style={styles.currentFieldLabel}>City / State</Text>
                   <Text style={styles.currentFieldValue}>{`${registeredDetails.principalCity}, ${registeredDetails.principalState} - ${registeredDetails.principalPincode}`}</Text>
                 </View>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Premises Proof</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.principalProofType}</Text>
-                </View>
               </>
             )}
 

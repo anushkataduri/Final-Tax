@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { getInitialDraft } from "../../modules/company-registration/store/initialDraft";
+import { initialDraft, getInitialDraft } from "../../modules/company-registration/store/initialDraft";
 import { getSuffixForType } from "../../modules/company-registration/validation/companySchema";
 import { validateRegistrationStep } from "../../modules/company-registration/validation/companyStepValidation";
 

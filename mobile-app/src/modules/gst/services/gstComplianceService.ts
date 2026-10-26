@@ -115,7 +115,7 @@ export async function submitComplianceRequest(
     // 1. Call Spring Boot backend API to store in database if not already saved
     if (!resolvedId) {
       try {
-        const backendResponse: unknown = await gstComplianceApi.createCompliance(data);
+        const backendResponse: any = await gstComplianceApi.createCompliance(data);
         logger.debug("[GST] Compliance API Response received", { hasResponse: !!backendResponse });
 
         let parsedId = null;
@@ -151,12 +151,12 @@ export async function submitComplianceRequest(
         await gstComplianceApi.submitFinalCompliance(resolvedId, pushToken || undefined);
         logger.info(`[GST] Compliance submitted successfully to backend: ${resolvedId}`);
       } catch (subErr) {
-        const errMsg = getErrorMessage(subErr) || "";
+        const errMsg = getErrorMessage(subErr);
         if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
           logger.warn(`[GST] Compliance ID '${resolvedId}' not found on backend (404). Re-creating and retrying submit...`);
           try {
-            const createRes: unknown = await gstComplianceApi.createCompliance(data);
-            const parsed = typeof createRes === "string" ? JSON.parse(createRes) : (createRes as Record<string, unknown>);
+            const createRes: any = await gstComplianceApi.createCompliance(data);
+            const parsed = typeof createRes === "string" ? JSON.parse(createRes) : createRes;
             const freshId = parsed?.complianceId || (String(createRes).match(/Compliance ID:\s*([A-Za-z0-9_-]+)/i)?.[1]);
             if (freshId) {
               resolvedId = freshId;

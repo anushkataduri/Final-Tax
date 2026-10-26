@@ -34,7 +34,7 @@ export interface ApplyBanner {
   title: string;
   desc: string;
   cta: string;
-  icon: React.ComponentProps<typeof Ionicons>["name"];
+  icon: any; // Ionicons name
   bg: string;
 }
 

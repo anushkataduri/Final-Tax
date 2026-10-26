@@ -4,16 +4,19 @@ import { tokenManager } from "@/core/authentication/tokenManager";
 import { useAuthStore } from "@/store/authStore";
 import { logger } from "@/core/logging/logger";
 
-// React Native's FormData accepts { uri, name, type } file parts; DOM typings do not model them.
-export const formatFile = (file: AmendmentFileInput): Blob => {
-  if (!file?.uri) {
-    return (file || {}) as unknown as Blob;
+export const formatFile = (file: AmendmentFileInput) => {
+  if (!file) return undefined;
+  if (file.uri) {
+    return {
+      uri: file.uri,
+      name: file.name || "proof.jpg",
+      type: file.name?.toLowerCase().endsWith(".pdf")
+        ? "application/pdf"
+        : "image/jpeg",
+      // React Native's FormData accepts { uri, name, type } file parts; the DOM typings do not model them.
+    } as any;
   }
-  return {
-    uri: file.uri,
-    name: file.name || "proof.jpg",
-    type: file.name?.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/jpeg",
-  } as unknown as Blob;
+  return file;
 };
 
 export const mapNatureOfPremises = (nature?: string): string => {
@@ -54,7 +57,9 @@ export const uploadAmendmentWithFile = async <T = unknown>(
       const authState = useAuthStore.getState();
       const custId =
         authState.customer?.customerId ||
-        authState.authenticatedUser?.customerId;
+        authState.authenticatedUser?.customerId ||
+        authState.authenticatedUser?.custId ||
+        (authState.customer as any)?.custId;
       if (custId && typeof custId === "string" && custId.trim() !== "") {
         formData.append("customerId", custId.trim());
       }

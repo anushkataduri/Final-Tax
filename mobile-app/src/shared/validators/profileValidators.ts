@@ -100,15 +100,13 @@ export function isValidPersonName(raw: string, rules: NameRules = FULL_NAME_RULE
 
 // ---- email ---------------------------------------------------------------------------------------
 
-const EMAIL_LOCAL_PART = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/;
+export const EMAIL_LOCAL_REGEX = /^[a-zA-Z0-9]+(?:[._+-][a-zA-Z0-9]+)*$/;
+export const VALID_TLD_REGEX = /^(com|in|org|net|co|gov|edu|mil|biz|info|io|ai|me|dev|app|tech|online|store|agency|global|world|[a-z]{2,4})$/i;
+export const EMAIL_REGEX = /^[a-zA-Z0-9]+(?:[._+-][a-zA-Z0-9]+)*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
 const DOMAIN_LABEL = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
-const TOP_LEVEL_DOMAIN = /^(?:[A-Za-z]{2,63}|xn--[A-Za-z0-9-]{1,59})$/;
 
 /**
- * "" when the address is valid, else a specific message. Checks the structure that matters for
- * delivery: one "@"; a local part without leading/trailing/double dots; a domain of at least two
- * labels with no empty labels, no leading/trailing hyphen and an alphabetic (or punycode) TLD.
- * Quoted local parts and non-ASCII addresses are not accepted.
+ * Validates email according to RFC 5322 format, no consecutive dots, and valid domain label structure.
  */
 export function validateEmailAddress(raw: string): string {
   const email = (raw || "").trim();
@@ -117,6 +115,7 @@ export function validateEmailAddress(raw: string): string {
   if (codePointLength(email) > PROFILE_FIELD_LIMITS.email) {
     return `Email cannot be longer than ${PROFILE_FIELD_LIMITS.email} characters`;
   }
+  if (email.includes("..")) return "Email cannot contain consecutive dots";
   const at = email.indexOf("@");
   if (at === -1) return "Email must contain @";
   if (at !== email.lastIndexOf("@")) return "Email can contain only one @";
@@ -124,15 +123,24 @@ export function validateEmailAddress(raw: string): string {
   const local = email.slice(0, at);
   const domain = email.slice(at + 1);
   if (!local) return "Enter the part of the email before @";
-  if (local.length > 64 || !EMAIL_LOCAL_PART.test(local)) return "Enter a valid email address";
   if (!domain) return "Enter the email domain after @";
+
+  if (!EMAIL_LOCAL_REGEX.test(local)) {
+    return "Email before @ can only contain letters, numbers, and single . _ - +";
+  }
 
   const labels = domain.split(".");
   if (labels.length < 2) return "Email domain must include a dot, for example gmail.com";
   if (domain.length > 253 || labels.some((label) => !DOMAIN_LABEL.test(label))) {
     return "Email domain is not valid";
   }
-  if (!TOP_LEVEL_DOMAIN.test(labels[labels.length - 1])) return "Email domain ending is not valid";
+
+  const tld = labels[labels.length - 1].toLowerCase();
+  if (!VALID_TLD_REGEX.test(tld)) {
+    return "Enter a valid domain extension (e.g. .com, .in)";
+  }
+
+  if (!EMAIL_REGEX.test(email)) return "Enter a valid email address";
   return "";
 }
 

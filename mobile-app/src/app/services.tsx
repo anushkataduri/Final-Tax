@@ -7,7 +7,7 @@ import {
   TextInput,
   ScrollView,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTheme } from "@/hooks/use-theme";
 import { BrandColors } from "@/shared/theme";
 import { SERVICES, CATEGORIES } from "@/data/services";
@@ -20,6 +20,7 @@ import { styles } from "@/styles/app/services.styles";
 
 export default function ServicesScreen() {
   const colors = useTheme();
+  const router = useRouter();
   const { accessService } = useServiceAccessGuard();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ selectedCategory?: string }>();
@@ -29,7 +30,6 @@ export default function ServicesScreen() {
   // Handle deep-link redirection from home dashboard carousel
   useEffect(() => {
     if (params.selectedCategory) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveCategory(params.selectedCategory);
     }
   }, [params.selectedCategory]);

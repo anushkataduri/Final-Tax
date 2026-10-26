@@ -9,6 +9,7 @@ import { useAuthStore } from "@/store/authStore";
 import { biometricService } from "@/modules/authentication/services/biometricService";
 import {
   sanitizePanInput,
+  formatDobInput,
   validateField,
   validateRealTimeField,
   validateFormAddressLength,
@@ -110,18 +111,16 @@ export function useCreateProfile(
 
   useEffect(() => {
     const requestedType = params?.customerType;
-    if (requestedType && requestedType !== form.customerType) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    requestedType &&
+      requestedType !== form.customerType &&
       setForm((p) => ({ ...p, customerType: requestedType }));
-    }
-  }, [params?.customerType, form.customerType]);
+  }, [params?.customerType]);
 
   useEffect(() => {
-    if (storeMobileNumber && storeMobileNumber !== form.mobileNumber) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+    storeMobileNumber &&
+      storeMobileNumber !== form.mobileNumber &&
       setForm((p) => ({ ...p, mobileNumber: storeMobileNumber }));
-    }
-  }, [storeMobileNumber, form.mobileNumber]);
+  }, [storeMobileNumber]);
 
   // ─── PAN Keyboard Type ───────────────────────────────────────────────────────
   const panKeyboardType: "default" | "number-pad" =
@@ -211,21 +210,15 @@ export function useCreateProfile(
 
   // ─── Step Navigation ─────────────────────────────────────────────────────────
   const handleProceedToRegistration = () => {
-    if (!form.customerType) {
-      Alert.alert("Account Type Required", "Please select an account type.");
-    } else {
-      setCurrentStep(2);
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
-    }
+    !form.customerType
+      ? Alert.alert("Account Type Required", "Please select an account type.")
+      : (setCurrentStep(2), scrollRef.current?.scrollTo({ y: 0, animated: true }));
   };
 
   const handleBack = () => {
-    if (currentStep === 2) {
-      setCurrentStep(1);
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
-    } else {
-      router.back();
-    }
+    currentStep === 2
+      ? (setCurrentStep(1), scrollRef.current?.scrollTo({ y: 0, animated: true }))
+      : router.back();
   };
 
   // ─── Registration API Call ───────────────────────────────────────────────────
@@ -242,33 +235,33 @@ export function useCreateProfile(
       );
 
       setProfileLoading(false);
-      if (res.success) {
-        const pendingRoute = useAuthStore.getState().pendingServiceRoute;
-        useAuthStore.getState().setPendingServiceRoute(null);
-        const destination = pendingRoute || "/(main)/home";
-        try {
-          const hasHardware = await biometricService.checkHardwareSupport();
-          const isEnrolled = await biometricService.checkEnrollment();
-          const isAlreadyEnabled = await biometricService.isBiometricEnabled();
-          if (hasHardware && isEnrolled && !isAlreadyEnabled) {
-            const typeLabel = await biometricService.getBiometricTypeLabel();
-            setBiometricType(typeLabel);
-            setPendingPostRegistrationRoute(destination);
-            setShowBiometricModal(true);
-          } else {
+      res.success
+        ? (async () => {
+            const pendingRoute = useAuthStore.getState().pendingServiceRoute;
+            useAuthStore.getState().setPendingServiceRoute(null);
+            const destination = pendingRoute || "/(main)/home";
+            try {
+              const hasHardware = await biometricService.checkHardwareSupport();
+              const isEnrolled = await biometricService.checkEnrollment();
+              const isAlreadyEnabled = await biometricService.isBiometricEnabled();
+              hasHardware && isEnrolled && !isAlreadyEnabled
+                ? (async () => {
+                    const typeLabel = await biometricService.getBiometricTypeLabel();
+                    setBiometricType(typeLabel);
+                    setPendingPostRegistrationRoute(destination);
+                    setShowBiometricModal(true);
+                  })()
+                : router.replace(toHref(destination));
+              return;
+            } catch (bioCheckErr) {
+              logger.warn("Biometric check error during registration", { error: getErrorMessage(bioCheckErr) });
+            }
             router.replace(toHref(destination));
-          }
-          return;
-        } catch (bioCheckErr) {
-          logger.warn("Biometric check error during registration", { error: getErrorMessage(bioCheckErr) });
-        }
-        router.replace(toHref(destination));
-      } else if (res.requiresReverification) {
-        Alert.alert("Verification expired", res.error || "Please verify your mobile number again.");
-        router.replace("/(auth)/login");
-      } else {
-        Alert.alert("Registration Error", res.error || "Failed to create account. Please try again.");
-      }
+          })()
+        : res.requiresReverification
+          ? (Alert.alert("Verification expired", res.error || "Please verify your mobile number again."),
+            router.replace("/(auth)/login"))
+          : Alert.alert("Registration Error", res.error || "Failed to create account. Please try again.");
     } catch (err) {
       setProfileLoading(false);
       Alert.alert("Registration Error", getErrorMessage(err) || "An unexpected error occurred during registration.");
@@ -314,32 +307,29 @@ export function useCreateProfile(
     if (addressTooLong && !errs.addressLine1) errs.addressLine1 = addressTooLong;
 
     const hasErrors = Object.keys(errs).length > 0;
-    if (hasErrors) {
-      setProfileErrors(errs);
-      const firstInvalid = fieldOrder.find((item) => Boolean(errs[item.key]));
-      if (firstInvalid) {
-        const y = fieldYOffsets.current[firstInvalid.key];
-        if (y !== undefined) {
-          scrollRef.current?.scrollTo({ y: Math.max(0, y - 70), animated: true });
-        }
-        if (firstInvalid.ref?.current) {
-          setTimeout(() => firstInvalid.ref?.current?.focus(), 150);
-        }
-      } else if (errs.terms) {
-        scrollRef.current?.scrollToEnd({ animated: true });
-      }
-    } else {
-      executeRegistrationRequest();
-    }
+    hasErrors
+      ? (() => {
+          setProfileErrors(errs);
+          const firstInvalid = fieldOrder.find((item) => Boolean(errs[item.key]));
+          firstInvalid
+            ? (() => {
+                const y = fieldYOffsets.current[firstInvalid.key];
+                y !== undefined &&
+                  scrollRef.current?.scrollTo({ y: Math.max(0, y - 70), animated: true });
+                firstInvalid.ref?.current &&
+                  setTimeout(() => firstInvalid.ref?.current?.focus(), 150);
+              })()
+            : errs.terms
+              ? scrollRef.current?.scrollToEnd({ animated: true })
+              : undefined;
+        })()
+      : executeRegistrationRequest();
   };
 
   const handleFinalRegistration = async () => {
-    if (!form.customerType) {
-      Alert.alert("Account Type Required", "Please select an account type.");
-      setCurrentStep(1);
-    } else {
-      submitValidatedForm();
-    }
+    !form.customerType
+      ? (Alert.alert("Account Type Required", "Please select an account type."), setCurrentStep(1))
+      : submitValidatedForm();
   };
 
   // ─── Biometric Handlers ──────────────────────────────────────────────────────
@@ -347,9 +337,7 @@ export function useCreateProfile(
     setShowBiometricModal(false);
     try {
       const authRes = await biometricService.authenticate();
-      if (authRes.success) {
-        await useAuthStore.getState().setBiometricEnabled(true);
-      }
+      authRes.success && (await useAuthStore.getState().setBiometricEnabled(true));
     } catch (bioAuthErr) {
       logger.warn("Biometric authentication error", { error: getErrorMessage(bioAuthErr) });
     }

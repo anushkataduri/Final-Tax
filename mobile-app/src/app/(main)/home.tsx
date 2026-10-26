@@ -16,7 +16,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Spacing } from "@/shared/theme";
 import { styles } from "@/styles/app/(main)/home.styles";
 import type { CatalogueItem, ServiceCategoryId } from "@/types/domain";
-import type { DashboardServiceTile, ServiceTile } from "@/modules/dashboard/types/dashboard.types";
+import type { DashboardServiceTile, ServiceTile } from "@/types/home.types";
 
 // ── Extracted sub-components ──────────────────────────────────────────────────
 import { HomeHeader } from "@/components/screens/home/HomeHeader";
@@ -26,6 +26,7 @@ import { StatsGrid, type StatTile } from "@/components/screens/home/StatsGrid";
 import { DraftBanner } from "@/components/screens/home/DraftBanner";
 import { RecentApplicationCard } from "@/components/screens/home/RecentApplicationCard";
 import { ExploreServicesSheet } from "@/components/screens/home/ExploreServicesSheet";
+import { HomeProfileSetupCard } from "@/components/screens/home/HomeProfileSetupCard";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -157,7 +158,7 @@ export default function HomeScreen() {
     if (tile.isMore) { setMoreQuery(""); setMoreOpen(true); return; }
     setMoreOpen(false);
     // accessService applies the one profile rule (shared/guards/serviceAccess) for every tile.
-    if (tile.route) accessService(tile.route as Parameters<typeof accessService>[0]);
+    if (tile.route) accessService(tile.route);
   };
 
   // Catalogue filtered by the sheet's search box.
@@ -188,6 +189,13 @@ export default function HomeScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: SCREEN_BOTTOM_PADDING }]}
         showsVerticalScrollIndicator={false}
       >
+        {!customer?.profileCompleted && (
+          <HomeProfileSetupCard
+            onComplete={() => router.push("/(auth)/createprofile")}
+            completionPercentage={60}
+          />
+        )}
+
         {/* Apply-for banner carousel */}
         <ApplyBannerCarousel
           banners={APPLY_BANNERS}

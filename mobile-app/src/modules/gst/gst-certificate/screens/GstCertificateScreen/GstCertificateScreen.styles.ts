@@ -1,4 +1,4 @@
-import { StyleSheet, Animated } from "react-native";
+import { StyleSheet } from "react-native";
 
 export const st = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#FAFCFF" },
@@ -251,15 +251,15 @@ export const getTopBarStyle = (topInset: number) => ({
   paddingTop: Math.max(topInset, 12) + 4,
 });
 
-export const getScaleTransformStyle = (scale: Animated.Value) => ({
+export const getScaleTransformStyle = (scale: any) => ({
   transform: [{ scale }],
 });
 
-export const getTranslateYTransformStyle = (translateY: Animated.Value) => ({
+export const getTranslateYTransformStyle = (translateY: any) => ({
   transform: [{ translateY }],
 });
 
-export const getOpacityAnimStyle = (opacity: Animated.Value) => ({
+export const getOpacityAnimStyle = (opacity: any) => ({
   opacity,
 });
 

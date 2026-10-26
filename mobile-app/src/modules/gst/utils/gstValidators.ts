@@ -28,7 +28,7 @@ export const parseAnyDate = (value?: string | null): Date | null => {
 /**
  * RFC 5322-compliant local part pattern (no spaces, no consecutive dots, max 64 chars).
  */
-const EMAIL_LOCAL_REGEX = /^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*$/;
+const EMAIL_LOCAL_REGEX = /^[a-zA-Z0-9]+(?:[._+-][a-zA-Z0-9]+)*$/;
 
 /**
  * Domain label pattern: 1-63 alphanumeric chars or internal hyphens.
@@ -108,14 +108,22 @@ const validateSignatoryName = (value?: string | null): string => {
   return "";
 };
 
+export const getEighteenYearsAgo = (): Date => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 18);
+  return d;
+};
+
+const PAN_CATEGORY_CODES = "ABCFGHJLPT";
+
 const validateSignatoryPan = (value?: string | null): string => {
   const raw = value !== null && value !== undefined ? String(value) : "";
   const clean = raw.trim().toUpperCase();
   if (!clean) return "Enter a valid 10-character PAN.";
-  if (clean.length >= 4 && clean[3] !== "P") {
-    return "For an individual signatory, the fourth PAN character must be P.";
+  if (clean.length >= 4 && !PAN_CATEGORY_CODES.includes(clean[3])) {
+    return "4th character of PAN must be one of A, B, C, F, G, H, J, L, P, T";
   }
-  if (clean.length !== 10 || !INDIVIDUAL_PAN_REGEX.test(clean)) {
+  if (clean.length !== 10 || !/^[A-Z]{3}[ABCFGHJLPT][A-Z][0-9]{4}[A-Z]$/.test(clean)) {
     return "Enter a valid 10-character PAN.";
   }
   return "";
@@ -131,6 +139,10 @@ const validateSignatoryDob = (value?: string | null): string => {
   const selected = new Date(dob.getFullYear(), dob.getMonth(), dob.getDate());
   if (selected.getTime() > today.getTime()) return "Date of birth cannot be in the future.";
   if (selected.getTime() === today.getTime()) return "Date of birth must be earlier than today.";
+  const maxDobDate = getEighteenYearsAgo();
+  if (selected.getTime() > maxDobDate.getTime()) {
+    return "Authorized Signatory must be at least 18 years of age";
+  }
   if (dob.getFullYear() < today.getFullYear() - 120) return "Enter a valid date of birth";
   return "";
 };
@@ -371,7 +383,10 @@ export const GstValidators = {
         if (!GstValidators.isNotEmpty(value, 1)) return "Business start date is required";
         const startDate = parseAnyDate(value);
         if (!startDate) return "Enter a valid date in DD-MM-YYYY format";
-        if (isFutureDate(startDate)) return "Commencement date cannot be in the future";
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const selected = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+        if (selected.getTime() > today.getTime()) return "Commencement date cannot be in the future";
         return "";
       }
       case "reasonForRegistration": return GstValidators.isNotEmpty(value, 2) ? "" : "Please select a reason";

@@ -145,7 +145,10 @@ export function ResetPasscodeSection({
             />
           </TouchableOpacity>
         </View>
-        {renderBoxes(passcode, activeSection === "new", false, showPasscode, () => { newPasscodeRef.current?.focus(); setActiveSection("new"); })}
+        {renderBoxes(passcode, activeSection === "new", false, showPasscode, () => {
+          newPasscodeRef.current?.focus();
+          setActiveSection("new");
+        })}
       </View>
 
       {/* 2. Confirm Passcode Section */}
@@ -173,7 +176,10 @@ export function ResetPasscodeSection({
           activeSection === "confirm",
           showMismatchError,
           showConfirmPasscode,
-          () => { confirmPasscodeRef.current?.focus(); setActiveSection("confirm"); }
+          () => {
+            confirmPasscodeRef.current?.focus();
+            setActiveSection("confirm");
+          }
         )}
       </View>
 

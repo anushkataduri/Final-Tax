@@ -13,7 +13,7 @@ export const GstReconciliationCard: React.FC<GstReconciliationCardProps> = ({
   reconciliation,
   onEditTurnover,
 }) => {
-  const [_showExplanation, _setShowExplanation] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
 
   const rows = [
     {

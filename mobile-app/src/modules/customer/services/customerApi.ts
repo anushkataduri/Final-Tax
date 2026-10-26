@@ -1,10 +1,8 @@
 import type { CustomerProfile } from "../types/customer.types";
 import { authStorage } from "../../authentication/services/authStorage";
-import type { StoredUser } from "../../authentication/types/auth.types";
-import type { CustomerApiRecord } from "../../authentication/services/authApi.types";
 
 export const customerApi = {
-  getProfile: async (identifier?: string): Promise<CustomerApiRecord | null> => {
+  getProfile: async (identifier?: string): Promise<any> => {
     const cleanMobile = identifier ? String(identifier).replace(/\D/g, "") : "";
     const user = (cleanMobile ? authStorage.getUserByMobile(cleanMobile) : null) || authStorage.getUser();
     const session = authStorage.getSession();
@@ -60,7 +58,7 @@ export const customerApi = {
     };
 
     if (resolvedMobile) {
-      authStorage.saveUser(updatedUser as StoredUser);
+      authStorage.saveUser(updatedUser as any);
     }
 
     return { success: true, data: updatedUser };

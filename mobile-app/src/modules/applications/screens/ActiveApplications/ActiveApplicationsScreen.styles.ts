@@ -5,7 +5,6 @@
  */
 
 import { StyleSheet } from "react-native";
-import type { UseThemeResult } from "@/hooks/use-theme";
 
 export const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -264,7 +263,7 @@ export const getOverviewValColor = (
 export const getOverviewSubStyle = (
   isSelected: boolean,
   isDark: boolean,
-  colors: UseThemeResult,
+  colors: any,
 ) => ({
   color: isDark
     ? isSelected

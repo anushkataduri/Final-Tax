@@ -13,8 +13,6 @@ import { SecondaryButton } from "@/shared/components/Button/SecondaryButton";
 import { styles } from "@/styles/app/(main)/profile.styles";
 import type { PersonalFormState } from "./useProfileManager";
 import { isPlaceholderCustomerName } from "@/modules/authentication/store/authStore.helpers";
-import { useTheme } from "@/hooks/use-theme";
-import type { Customer, CustomerProfile } from "@/types/domain";
 
 const isMockEmail = (email?: string | null): boolean => {
   if (!email || email.trim() === "") return true;
@@ -24,13 +22,13 @@ const isMockEmail = (email?: string | null): boolean => {
 interface PersonalDetailsModalProps {
   visible: boolean;
   onClose: () => void;
-  colors: ReturnType<typeof useTheme>;
+  colors: any;
   fetchingPersonal: boolean;
   isEditingPersonal: boolean;
   setIsEditingPersonal: (val: boolean) => void;
   savingPersonal: boolean;
-  personalDetails: (Partial<CustomerProfile> & { mobileNumber?: string }) | null;
-  customer: Customer | null;
+  personalDetails: any;
+  customer: any;
   personalForm: PersonalFormState;
   personalErrors: Record<string, string>;
   updatePersonalField: (field: keyof PersonalFormState, value: string) => void;
@@ -114,9 +112,9 @@ export function PersonalDetailsModal({
   const cleanName = isPlaceholderCustomerName(rawName) ? "Not provided" : rawName;
 
   const readOnlyItems: [string, string][] = [
-    ["Full Name", cleanName ?? "Not provided"],
+    ["Full Name", cleanName],
     ["Mobile", personalDetails?.mobileNumber || customer?.mobile || "N/A"],
-    ["Email", cleanEmail ?? ""],
+    ["Email", cleanEmail],
     ["Date of Birth", personalDetails?.dob || customer?.dob || "Not provided"],
     [
       "Customer Type",
@@ -161,7 +159,7 @@ export function PersonalDetailsModal({
                 Profile Setup Incomplete
               </Text>
               <Text style={[styles.incompleteSubtitle, { color: colors.textSecondary }]}>
-                You haven&apos;t completed your profile setup yet. Complete your profile to set up your personal details, access loans, and file taxes.
+                You haven't completed your profile setup yet. Complete your profile to set up your personal details, access loans, and file taxes.
               </Text>
 
               {/* Progress Indicator */}

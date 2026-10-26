@@ -51,6 +51,42 @@ export const styles = StyleSheet.create({
     }),
   },
 
+  caBannerCard: {
+    backgroundColor: "#EFF6FF",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    gap: 10,
+  },
+  caBannerHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  caBannerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  caBannerTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: BrandColors.PRIMARY_BLUE_DARK,
+    fontFamily: Platform.select({
+      ios: "System",
+      android: "sans-serif-medium",
+    }),
+  },
+  caBannerText: {
+    fontSize: 13,
+    color: "#1E3A8A",
+    lineHeight: 18,
+    fontFamily: Platform.select({
+      ios: "System",
+      android: "sans-serif",
+    }),
+  },
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,

@@ -2,16 +2,21 @@ import React, { useState } from "react";
 import {
   View,
   Text,
+  TextInput,
   ScrollView,
   TouchableOpacity,
   StatusBar,
   Alert,
+  Modal,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { TaxNoticeHeader } from "../../components/common";
 import { DraftedResponseCard } from "../../components/review";
+import { generateNoticeDraftResponse } from "../../mock/taxNoticeData";
+import { taxNoticeApi } from "../../../services/taxNoticeApi";
 import { useApplicationStore } from "@/store/applicationStore";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import {
@@ -41,23 +46,23 @@ export const ReviewNoticeResponseScreen: React.FC = () => {
   const customerName =
     customer?.name || authUser?.name || "Assessee";
   const pan =
-    params.pan || (taxNoticeDraft?.formData?.pan as string | undefined) || customer?.pan || "AXTPD4419K";
+    params.pan || taxNoticeDraft?.formData?.pan || customer?.pan || "AXTPD4419K";
   const noticeNumber =
     params.noticeNumber ||
-    (taxNoticeDraft?.formData?.noticeNumber as string | undefined) ||
+    taxNoticeDraft?.formData?.noticeNumber ||
     "CPC/2526/A3/284419260";
   const noticeDate =
-    params.noticeDate || (taxNoticeDraft?.formData?.noticeDate as string | undefined) || "18 August 2026";
+    params.noticeDate || taxNoticeDraft?.formData?.noticeDate || "18 August 2026";
   const assessmentYear =
     params.assessmentYear ||
-    (taxNoticeDraft?.formData?.assessmentYear as string | undefined) ||
+    taxNoticeDraft?.formData?.assessmentYear ||
     "AY 2025–26";
 
   // Checked by default matching reference screenshot
   const [isChecked, setIsChecked] = useState(true);
 
   // Edit request modal state
-  const [_showEditModal, setShowEditModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editNotes, setEditNotes] = useState("");
 
   const dynamicResponseLetter = `Respected Sir/Madam,
@@ -72,7 +77,7 @@ Yours faithfully,
 For TaxEdge Fin Solutions
 Meera Iyer, Tax Executive`;
 
-  const _handleSendEditRequest = () => {
+  const handleSendEditRequest = () => {
     if (!editNotes.trim()) {
       Alert.alert("Input Required", "Please enter the changes you would like our Tax Executive to make.");
       return;
@@ -120,7 +125,7 @@ Meera Iyer, Tax Executive`;
 
     // Navigate to Screen 6: Response Submission & Notice Status
     router.push({
-      pathname: "/service/tax-notice-status" as never,
+      pathname: "/service/tax-notice-status" as any,
       params: {
         applicationId: createdAppId,
         noticeNumber,

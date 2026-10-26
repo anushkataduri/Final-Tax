@@ -20,7 +20,6 @@ import { ReturnSummaryCard } from "../../components/find";
 import { useApplicationStore } from "@/store/applicationStore";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { RevisedItrApiService } from "../../services/RevisedItrApiService";
-import { logger } from "@/core/logging/logger";
 import { OriginalReturnDetails } from "../../types/revisedItr.types";
 import {
   styles,
@@ -32,7 +31,7 @@ import {
 export const FindOriginalReturnScreen: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams<{ acknowledgementNumber?: string; assessmentYear?: string; isEditing?: string }>();
-  const _maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
+  const maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
   const insets = useSafeAreaInsets();
   const applications = useApplicationStore((state) => state.applications);
 
@@ -40,14 +39,14 @@ export const FindOriginalReturnScreen: React.FC = () => {
     (a) => a.serviceId === "itr-filing" || a.category === "ITR"
   );
 
-  const [ackNumber, setAckNumber] = useState<string>(params.acknowledgementNumber || String((existingItr?.formData as Record<string, unknown>)?.previousAckNumber ?? "") || "");
+  const [ackNumber, setAckNumber] = useState<string>(params.acknowledgementNumber || (existingItr?.formData as any)?.previousAckNumber || "");
   const [assessmentYear, setAssessmentYear] = useState<string>("AY 2025-26");
   const [showAyDropdown, setShowAyDropdown] = useState<boolean>(false);
   const [foundReturn, setFoundReturn] = useState<OriginalReturnDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const {
     showDraftModal,
-    openDraftModal: _openDraftModal,
+    openDraftModal,
     handleSaveAndExit,
     handleDiscardAndExit,
     handleCancel,
@@ -69,15 +68,15 @@ export const FindOriginalReturnScreen: React.FC = () => {
   useEffect(() => {
     const draft = useApplicationStore.getState().revisedItrDraft;
     if (draft) {
-      const step = Number(draft.step ?? draft.currentStep ?? 0);
+      const step = draft.step ?? draft.currentStep ?? 0;
       if (step >= 4) {
-        router.push({ pathname: "/service/revised-itr-review" as never, params: (draft.formData || {}) as Record<string, string> });
+        router.push({ pathname: "/service/revised-itr-review" as any, params: draft.formData || {} });
       } else if (step === 3) {
-        router.push({ pathname: "/service/revised-itr-documents" as never, params: (draft.formData || {}) as Record<string, string> });
+        router.push({ pathname: "/service/revised-itr-documents" as any, params: draft.formData || {} });
       } else if (step === 2) {
-        router.push({ pathname: "/service/revised-itr-update" as never, params: (draft.formData || {}) as Record<string, string> });
+        router.push({ pathname: "/service/revised-itr-update" as any, params: draft.formData || {} });
       } else if (step === 1) {
-        router.push({ pathname: "/service/revised-itr-reason" as never, params: (draft.formData || {}) as Record<string, string> });
+        router.push({ pathname: "/service/revised-itr-reason" as any, params: draft.formData || {} });
       }
     }
   }, []);
@@ -97,17 +96,17 @@ export const FindOriginalReturnScreen: React.FC = () => {
     setError(null);
     const matched = applications.find(
       (a) =>
-        (a.formData as Record<string, unknown>)?.previousAckNumber === cleaned ||
+        (a.formData as any)?.previousAckNumber === cleaned ||
         a.id === cleaned
     );
 
     if (matched) {
-      const fd = (matched.formData || {}) as Record<string, unknown>;
+      const fd = (matched.formData || {}) as any;
       setFoundReturn({
         acknowledgementNumber: cleaned,
-        assessmentYear: (fd.assessmentYear as string | undefined) || assessmentYear,
+        assessmentYear: fd.assessmentYear || assessmentYear,
         filingDate: matched.createdAt || "Filed via TaxEdge",
-        itrForm: (fd.formTitle as string | undefined) || (fd.formType as string | undefined) || "ITR-1 (Sahaj)",
+        itrForm: fd.formTitle || fd.formType || "ITR-1 (Sahaj)",
         filingStatus: matched.status || "Successfully Filed",
         grossTotalIncome: fd.grossTotalIncome
           ? `₹${Number(fd.grossTotalIncome).toLocaleString("en-IN")}`
@@ -138,7 +137,7 @@ export const FindOriginalReturnScreen: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      const customerId = customer?.customerId || authenticatedUser?.customerId || "CUST-12345";
+      const customerId = customer?.customerId || (authenticatedUser as any)?.customerId || "CUST-12345";
       
       const payload = {
         customerId,
@@ -154,14 +153,14 @@ export const FindOriginalReturnScreen: React.FC = () => {
 
       // Navigate to Screen 2: Reason for Revision
       router.push({
-        pathname: "/service/revised-itr-reason" as never,
+        pathname: "/service/revised-itr-reason" as any,
         params: {
           acknowledgementNumber: foundReturn.acknowledgementNumber,
           assessmentYear: foundReturn.assessmentYear,
         },
       });
     } catch (e) {
-      logger.error("Error saving revised ITR", e);
+      console.error("Error saving revised ITR:", e);
       Alert.alert("Error", "Failed to save revised ITR.");
     } finally {
       setIsSubmitting(false);
@@ -182,7 +181,7 @@ export const FindOriginalReturnScreen: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      const customerId = customer?.customerId || authenticatedUser?.customerId || "CUST-12345";
+      const customerId = customer?.customerId || (authenticatedUser as any)?.customerId || "CUST-12345";
       
       const payload = {
         customerId,
@@ -194,14 +193,14 @@ export const FindOriginalReturnScreen: React.FC = () => {
 
       // Redirect back to Review screen
       router.push({
-        pathname: "/service/revised-itr-review" as never,
+        pathname: "/service/revised-itr-review" as any,
         params: {
           acknowledgementNumber: foundReturn.acknowledgementNumber,
           assessmentYear: foundReturn.assessmentYear,
         },
       });
     } catch (e) {
-      logger.error("Error updating revised ITR", e);
+      console.error("Error updating revised ITR:", e);
       Alert.alert("Error", "Failed to update revised ITR.");
     } finally {
       setIsSubmitting(false);

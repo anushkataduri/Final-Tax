@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  BackHandler,
 } from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -43,22 +42,23 @@ export const PreviousYearSubmittedScreen: React.FC = () => {
   };
 
   const handleBack = () => {
-    router.replace("/(main)/home" as never);
+    router.replace("/(main)/home" as any);
   };
 
   const handleGoHome = () => {
-    router.replace("/(main)/home" as never);
+    router.replace("/(main)/home" as any);
   };
 
   const handleTrackStatus = () => {
     if (applicationId && applicationId !== "Pending" && !applicationId.includes(" ")) {
-      router.replace(`/application/${applicationId}` as never);
+      router.replace(`/application/${applicationId}` as any);
     } else {
-      router.replace("/(main)/applications" as never);
+      router.replace("/(main)/applications" as any);
     }
   };
 
   React.useEffect(() => {
+    const { BackHandler } = require("react-native");
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
       handleBack();
       return true;

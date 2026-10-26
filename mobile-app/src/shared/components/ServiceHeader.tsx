@@ -70,7 +70,7 @@ export const ServiceHeader: React.FC<ServiceHeaderProps> = ({
         <View style={styles.titleSection}>
           {iconName && (
             <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
-              <Ionicons name={iconName as never} size={28} color={iconColor} />
+              <Ionicons name={iconName as any} size={28} color={iconColor} />
             </View>
           )}
 

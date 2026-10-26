@@ -395,7 +395,7 @@ export function GstCancellationScreen() {
       {flow.step === "REVIEW" && (
         <GstCancellationReview
           formData={flow.form}
-          dbReviewData={flow.dbReviewData ?? undefined}
+          dbReviewData={flow.dbReviewData}
           isReviewDeclared={flow.reviewDeclared}
           setIsReviewDeclared={flow.setReviewDeclared}
           isSubmitting={flow.submitting}

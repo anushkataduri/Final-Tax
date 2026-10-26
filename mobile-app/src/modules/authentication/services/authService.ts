@@ -152,7 +152,7 @@ export const authService = {
         customerExists: false,
         profileCompleted: false,
         hasPasscode: false,
-        error: checkRes.error || "Unable to check customer existence",
+        error: (checkRes as any).error || "Unable to check customer existence",
       };
     } catch (e) {
       logger.warn("[AuthService] Error calling backend checkUser", { error: getErrorMessage(e) });

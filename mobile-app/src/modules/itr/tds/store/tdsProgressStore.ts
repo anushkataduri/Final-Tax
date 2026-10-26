@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export interface TdsProgressStore {
+interface TdsProgressStore {
   maxStepReached: number;
   setMaxStepReached: (step: number) => void;
   reset: () => void;

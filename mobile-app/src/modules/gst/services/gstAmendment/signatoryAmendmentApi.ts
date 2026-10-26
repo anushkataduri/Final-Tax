@@ -119,3 +119,4 @@ export const signatoryAmendmentApi = {
     return apiClient.post<string>(url);
   },
 };
+

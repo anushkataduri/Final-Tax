@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.taxedge.customer.entity.Customer;
 import com.taxedge.companyregistration.dto.CompanyDetailsDto;
 import com.taxedge.companyregistration.entity.CompanyDetails;
-import com.taxedge.companyregistration.exception.ResourceNotFoundException;
+import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.companyregistration.mapper.CompanyDetailsMapper;
 import com.taxedge.companyregistration.repository.CompanyDetailsRepository;
 import com.taxedge.customer.repository.CustomerRepository;

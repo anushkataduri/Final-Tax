@@ -8,7 +8,6 @@ import { getActiveBaseUrl } from "@/core/api/apiConfig";
 import { tokenManager } from "@/core/authentication/tokenManager";
 import { tokenRefreshManager } from "@/core/authentication/tokenRefreshManager";
 import { getResolvedCustomerId } from "@/modules/gst/gst-filing/hooks/gstFilingHelpers";
-import type { GstComplianceDto } from "./gstApiTypes";
 import { appendFilePart } from "@/shared/utils/formDataFile";
 import { logger } from "@/core/logging/logger";
 import { ApiError } from "@/core/api/apiError";
@@ -301,7 +300,7 @@ export const gstComplianceApi = {
   },
 
   getCompliance: async (gstin: string, id: string) => {
-    return apiClient.get<GstComplianceDto>(
+    return apiClient.get<any>(
       `/api/v1/gst/compliance/${encodeURIComponent(gstin)}/${encodeURIComponent(id)}`,
     );
   },

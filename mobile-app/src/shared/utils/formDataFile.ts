@@ -10,5 +10,5 @@ export interface ReactNativeFilePart {
  * objects, which the DOM FormData typings do not model — this is the one place that cast lives.
  */
 export const appendFilePart = (formData: FormData, field: string, file: ReactNativeFilePart): void => {
-  formData.append(field, file as unknown as Blob);
+  formData.append(field, file as any);
 };

@@ -1,22 +1,18 @@
 import { FilingDocItem } from "../config/gstFilingDocumentsConfig";
 import { getFilingPeriodsForFrequency } from "../components/GstFilingPeriodStep/gstPeriodUtils";
+import {
+  GSTIN_REGEX,
+  VALID_GSTIN_STATE_CODES,
+  ALLOWED_PAN_CATEGORIES,
+  extractPanFromGstin,
+} from "@/shared/validators/gstValidators";
 
-/**
- * 38 statutory domestic Indian States and Union Territories (GST Portal standard: 01 to 38).
- * Rejects: 00, out-of-range (> 38), and non-numeric codes.
- */
-export const VALID_GSTIN_STATE_CODES = new Set(
-  Array.from({ length: 38 }, (_, i) => String(i + 1).padStart(2, "0"))
-);
-
-/**
- * Valid PAN categories (4th character of PAN, position 6 of GSTIN).
- * P - Individual, C - Company, H - HUF, F - Firm/LLP, A - AOP,
- * B - BOI, T - Trust, L - Local Authority, J - Artificial Juridical Person, G - Government.
- */
-export const ALLOWED_PAN_CATEGORIES = new Set([
-  "P", "C", "H", "F", "A", "B", "T", "L", "J", "G"
-]);
+export {
+  GSTIN_REGEX,
+  VALID_GSTIN_STATE_CODES,
+  ALLOWED_PAN_CATEGORIES,
+  extractPanFromGstin,
+};
 
 /** Permitted upper monetary ceiling for estimated figures: ₹999 Crore (9,99,99,99,999) */
 export const MAX_ESTIMATED_AMOUNT = 9999999999;
@@ -107,7 +103,7 @@ export function validateEstimatedAmount(
     return isRequired ? `Enter ${fieldName}` : null;
   }
 
-  const rawStr = String(value).replace(/,/g, "").trim();
+  const rawStr = String(value).replace(/[₹,\s]/g, "").trim();
 
   if (!rawStr) {
     return isRequired ? `Enter ${fieldName}` : null;
@@ -117,8 +113,8 @@ export function validateEstimatedAmount(
     return "Amount cannot be negative";
   }
 
-  // Decimal check: allow up to 2 decimal places
-  if (!/^\d+(\.\d{1,2})?$/.test(rawStr)) {
+  // Decimal check: allow up to 2 decimal places: /^\d+(\.\d{0,2})?$/
+  if (!/^\d+(\.\d{0,2})?$/.test(rawStr)) {
     return "Enter a valid amount";
   }
 
@@ -133,7 +129,7 @@ export function validateEstimatedAmount(
   }
 
   if (num > MAX_ESTIMATED_AMOUNT) {
-    return "Amount exceeds the permitted limit";
+    return "Amount exceeds the permitted limit (Max: ₹999 Cr)";
   }
 
   return null;

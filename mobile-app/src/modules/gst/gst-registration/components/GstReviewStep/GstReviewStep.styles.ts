@@ -59,6 +59,23 @@ export const styles = StyleSheet.create({
     color: BrandColors.PRIMARY_ORANGE,
     fontFamily: Platform.select({ ios: "System", android: "sans-serif-medium" }),
   },
+  editDocsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FEF0E6",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FDBA74",
+  },
+  editDocsButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: BrandColors.PRIMARY_ORANGE,
+    fontFamily: Platform.select({ ios: "System", android: "sans-serif-medium" }),
+  },
   divider: {
     height: 1,
     backgroundColor: BrandColors.CARD_BORDER,
@@ -249,5 +266,5 @@ export const styles = StyleSheet.create({
 });
 
 export const getDocProgressFillStyle = (progressPercent: number) => ({
-  width: `${progressPercent}%` as `${number}%`,
+  width: `${progressPercent}%` as any,
 });

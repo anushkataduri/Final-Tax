@@ -50,39 +50,38 @@ export function useGstFilingRestore({
           .applications.find((a) => a.id === params.appId);
         if (existingApp) {
           setCreatedAppId(existingApp.id);
-          const fData = (existingApp.formData || {}) as Record<string, unknown>;
-          const s = (v: unknown): string | undefined => typeof v === "string" ? v : undefined;
+          const fData = (existingApp.formData || {}) as Record<string, any>;
           if (fData.filingId || fData.gstfilingId || existingApp.id.startsWith("FIL")) {
-            setFilingId(s(fData.filingId) || s(fData.gstfilingId) || existingApp.id);
+            setFilingId(fData.filingId || fData.gstfilingId || existingApp.id);
           }
           setPeriodData((prev) => ({
             ...prev,
-            gstin: s(fData.gstin) || prev.gstin,
+            gstin: fData.gstin || prev.gstin,
             businessName:
-              s(fData.businessName) ||
-              s(fData.tradeName) ||
-              s(fData.applicantName) ||
+              fData.businessName ||
+              fData.tradeName ||
+              fData.applicantName ||
               prev.businessName,
-            tradeName: s(fData.tradeName) || s(fData.businessName) || prev.tradeName,
-            taxpayerScheme: s(fData.taxpayerScheme) || prev.taxpayerScheme,
-            filingNature: (s(fData.filingNature) || prev.filingNature) as "Regular Return" | "Nil Return" | undefined,
-            financialYear: s(fData.financialYear) || prev.financialYear,
+            tradeName: fData.tradeName || fData.businessName || prev.tradeName,
+            taxpayerScheme: fData.taxpayerScheme || prev.taxpayerScheme,
+            filingNature: fData.filingNature || prev.filingNature,
+            financialYear: fData.financialYear || prev.financialYear,
             filingPeriod:
-              s(fData.filingPeriod) || s(fData.filingMonth) || prev.filingPeriod,
+              fData.filingPeriod || fData.filingMonth || prev.filingPeriod,
             filingMonth:
-              s(fData.filingMonth) || s(fData.filingPeriod) || prev.filingMonth,
-            filingType: s(fData.filingType) || prev.filingType,
-            filingFrequency: s(fData.filingFrequency) || prev.periodType,
-            periodType: s(fData.filingFrequency) || prev.periodType,
+              fData.filingMonth || fData.filingPeriod || prev.filingMonth,
+            filingType: fData.filingType || prev.filingType,
+            filingFrequency: fData.filingFrequency || prev.periodType,
+            periodType: fData.filingFrequency || prev.periodType,
             calculationMethod:
-              (s(fData.calculationMethod) as "ca_assisted" | "manual_estimates" | undefined) ||
+              fData.calculationMethod ||
               (fData.taxablePurchases || fData.taxableSales || fData.turnover || fData.eligibleItc
                 ? "manual_estimates"
                 : prev.calculationMethod),
-            taxableSales: s(fData.taxableSales) || s(fData.turnover) || prev.taxableSales,
-            turnover: s(fData.turnover) || s(fData.taxableSales) || prev.turnover,
-            taxablePurchases: s(fData.taxablePurchases) || prev.taxablePurchases,
-            eligibleItc: s(fData.eligibleItc) || prev.eligibleItc,
+            taxableSales: fData.taxableSales || fData.turnover || prev.taxableSales,
+            turnover: fData.turnover || fData.taxableSales || prev.turnover,
+            taxablePurchases: fData.taxablePurchases || prev.taxablePurchases,
+            eligibleItc: fData.eligibleItc || prev.eligibleItc,
           }));
 
           if (
@@ -90,7 +89,7 @@ export function useGstFilingRestore({
             existingApp.documents.length > 0
           ) {
             setDocuments((prevDocs) =>
-              syncPreviousAppDocuments(prevDocs, existingApp.documents),
+              syncPreviousAppDocuments(prevDocs, existingApp.documents as any[]),
             );
           }
 

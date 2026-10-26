@@ -1,6 +1,6 @@
 import { ServiceCardData } from "../../../shared/components/ServiceCard";
 
-export type GstServiceItem = ServiceCardData;
+export interface GstServiceItem extends ServiceCardData {}
 
 export interface GstRegistrationDraft {
   createdGstId?: string;

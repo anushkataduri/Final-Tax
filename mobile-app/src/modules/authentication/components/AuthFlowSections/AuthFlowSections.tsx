@@ -4,7 +4,6 @@ import { MobileNumberSection } from "../MobileNumberSection";
 import { OTPSection } from "../OTPSection";
 import { PasscodeLoginSection } from "../PasscodeLoginSection";
 import { ResetPasscodeSection } from "../ResetPasscodeSection";
-import { GoogleLoginSection } from "../GoogleLoginSection";
 
 interface AuthFlowSectionsProps {
   biometricTypeLabel: string;
@@ -84,8 +83,6 @@ export function AuthFlowSections({
               lockoutUntil={otpLockoutUntil}
             />
           )}
-
-          <GoogleLoginSection disabled={isLoading} />
         </>
       )}
 
@@ -114,8 +111,6 @@ export function AuthFlowSections({
             autoFocus={true}
             lockoutUntil={passcodeLockoutUntil}
           />
-
-          <GoogleLoginSection disabled={isLoading} />
         </>
       )}
 

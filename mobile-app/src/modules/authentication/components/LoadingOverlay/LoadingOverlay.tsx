@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { View, Text, ActivityIndicator, Modal } from "react-native";
 import { BrandColors } from "../../../../shared/theme";
 import { styles } from "./LoadingOverlay.styles";

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View } from "react-native";
+import { useRouter } from "expo-router";
 import { ServiceHeader } from "@/shared/components/ServiceHeader";
 import { ServiceList } from "@/shared/components/ServiceList";
 import { useServiceAccessGuard } from "@/shared/hooks";
@@ -8,6 +9,7 @@ import { ItrServiceItem } from "../../types/itr.types";
 import { styles } from "./ItrScreen.styles";
 
 export const ItrScreen: React.FC = () => {
+  const router = useRouter();
   const { accessService } = useServiceAccessGuard();
   const [services, setServices] = useState<ItrServiceItem[]>([]);
 
@@ -17,7 +19,7 @@ export const ItrScreen: React.FC = () => {
 
   const handleCardPress = (item: ItrServiceItem) => {
     if (item.route) {
-      accessService(item.route as unknown as Parameters<typeof accessService>[0]);
+      accessService(item.route);
     }
   };
 

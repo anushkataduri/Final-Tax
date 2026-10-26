@@ -33,7 +33,7 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [ifscCode, setIfscCode] = useState("");
-  const [accountType, _setAccountType] = useState<"Savings" | "Current">("Savings");
+  const [accountType, setAccountType] = useState<"Savings" | "Current">("Savings");
 
   const handleSaveNewBank = () => {
     if (!bankName.trim() || !accountNumber.trim() || !ifscCode.trim()) {

@@ -25,7 +25,7 @@ export interface ServiceCardData {
   badgeBg?: string;
   badgeVariant?: "start" | "rate" | "custom";
   rateText?: string;
-  iconImage?: number | { uri: string };
+  iconImage?: any;
 }
 
 export interface ServiceCardProps {
@@ -79,7 +79,7 @@ const renderCardIcon = (item: ServiceCardData) => {
   return (
     <View style={[styles.iconWrapper, { backgroundColor: bg }]}>
       <Ionicons
-        name={(item.iconName || "document-text") as never}
+        name={(item.iconName || "document-text") as any}
         size={22}
         color={item.iconColor || BrandColors.PRIMARY_BLUE}
       />

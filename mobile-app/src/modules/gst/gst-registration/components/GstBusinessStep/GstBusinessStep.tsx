@@ -219,9 +219,9 @@ export const GstBusinessStep: React.FC<Props> = ({
     [data, errors, updateField],
   );
 
-  const getYesterdayDate = () => {
+  const getEighteenYearsAgo = () => {
     const d = new Date();
-    d.setDate(d.getDate() - 1);
+    d.setFullYear(d.getFullYear() - 18);
     return d;
   };
 
@@ -235,7 +235,7 @@ export const GstBusinessStep: React.FC<Props> = ({
       {renderInput("businessName", "Trade Name *", "Enter your business / trade name", { maxLength: 100, onBlurOverride: (v) => updateField("businessName", v.trim()) })}
       {renderSelect("businessType", "Constitution of Business *", "Select business type", BUSINESS_TYPES)}
       {renderSelect("natureOfBusiness", "Nature of Business *", "Select nature of business", NATURE_OF_BUSINESS)}
-      {renderDatePicker("businessStartDate", "Date of Commencement of Business *", { maximumDate: getYesterdayDate() })}
+      {renderDatePicker("businessStartDate", "Date of Commencement of Business *", { maximumDate: new Date() })}
     </SectionCard>
   );
 
@@ -250,7 +250,7 @@ export const GstBusinessStep: React.FC<Props> = ({
     </SectionCard>
   );
 
-  const { pinLoading, ifscLoading, ifscError, handlePinLookup, handleIfscChange } = useGstFieldLookups({
+  const { pinLoading, handlePinLookup } = useGstFieldLookups({
     data,
     onChange,
   });
@@ -329,11 +329,10 @@ export const GstBusinessStep: React.FC<Props> = ({
           onBlurOverride: (acc) => { updateField("bankAccountNumber", acc.trim()); if (data?.confirmBankAccountNumber) blurField("confirmBankAccountNumber"); },
         })}
         {renderInput("confirmBankAccountNumber", "Confirm Account Number *", "Re-enter account number", { keyboardType: "numeric", maxLength: 18, onBlurOverride: (acc) => updateField("confirmBankAccountNumber", acc.trim()) })}
-        {renderInput("ifscCode", "IFSC Code *", "e.g. HDFC0001234", { autoCapitalize: "characters", maxLength: 11, transform: sanitizeAlphanumericUpper, onChangeOverride: handleIfscChange, errorOverride: ifscError || undefined })}
-        {ifscLoading && <Text style={styles.lookupInfoText}>Looking up IFSC code...</Text>}
+        {renderInput("ifscCode", "IFSC Code *", "e.g. HDFC0001234", { autoCapitalize: "characters", maxLength: 11, transform: sanitizeAlphanumericUpper })}
         <View style={styles.row}>
-          <View style={styles.halfField}>{renderSelect("bankName", "Bank Name *", "Select", BANK_OPTIONS, { searchable: true, allowCustom: true, searchPlaceholder: "Search or enter bank..." })}</View>
-          <View style={styles.halfField}>{renderInput("branchName", "Branch *", "Branch Name", { maxLength: 100, onBlurOverride: (v) => updateField("branchName", v.trim()) })}</View>
+          <View style={styles.halfField}>{renderInput("bankName", "Bank Name *", "Enter Bank Name (e.g. HDFC Bank)", { maxLength: 100, onBlurOverride: (v) => updateField("bankName", v.trim()) })}</View>
+          <View style={styles.halfField}>{renderInput("branchName", "Branch Name *", "Enter Branch Name", { maxLength: 100, onBlurOverride: (v) => updateField("branchName", v.trim()) })}</View>
         </View>
         {renderSelect("accountType", "Account Type *", "Select account type", ACCOUNT_TYPES)}
       </AccordionSection>
@@ -368,7 +367,7 @@ export const GstBusinessStep: React.FC<Props> = ({
         </View>
         <View style={styles.row} onLayout={(e) => { const y = signatoryYRef.current + e.nativeEvent.layout.y; fieldOffsetsRef.current.signatoryPan = y; fieldOffsetsRef.current.signatoryDob = y; onFieldLayout?.("signatoryPan", y); onFieldLayout?.("signatoryDob", y); }}>
           <View style={styles.halfField}>{renderInput("signatoryPan", "Signatory PAN *", "ABCPE1234F", { autoCapitalize: "characters", maxLength: 10, transform: sanitizeAlphanumericUpper })}</View>
-          <View style={styles.halfField}>{renderDatePicker("signatoryDob", "Date of Birth *", { maximumDate: getYesterdayDate() })}</View>
+          <View style={styles.halfField}>{renderDatePicker("signatoryDob", "Date of Birth *", { maximumDate: new Date() })}</View>
         </View>
         <View onLayout={(e) => { const y = signatoryYRef.current + e.nativeEvent.layout.y; fieldOffsetsRef.current.signatoryDesignation = y; onFieldLayout?.("signatoryDesignation", y); }}>
           {renderInput("signatoryDesignation", "Designation *", "Proprietor / Director / Partner", { maxLength: 50 })}

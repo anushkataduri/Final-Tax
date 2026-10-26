@@ -115,24 +115,20 @@ export async function pickDocumentFromDrive(
     }
 
     // 4. Resolve destination URI:
-    // On iOS: only copy if the file is outside the sandbox cache directory (e.g. security-scoped cloud URL)
-    // On Android: use sourceUri directly because copyToCacheDirectory already provided a valid local file
+    // Copy picked files to app internal storage (FileSystem.documentDirectory) to prevent Android cache eviction
     let resolvedUri = sourceUri;
-    if (Platform.OS === "ios") {
-      const cacheDir = FileSystem.cacheDirectory;
-      if (cacheDir && !sourceUri.startsWith(cacheDir)) {
-        try {
-          const sanitizedFileName = originalName.replace(/[^a-zA-Z0-9._-]/g, "_");
-          const localDestinationUri = `${cacheDir}drive_${Date.now()}_${sanitizedFileName}`;
-          await FileSystem.copyAsync({
-            from: sourceUri,
-            to: localDestinationUri,
-          });
-          resolvedUri = localDestinationUri;
-        } catch {
-          // If sandbox copy fails on iOS, fallback to sourceUri directly without throwing a warning
-          resolvedUri = sourceUri;
-        }
+    const targetDir = FileSystem.documentDirectory || FileSystem.cacheDirectory;
+    if (targetDir && !sourceUri.startsWith(targetDir)) {
+      try {
+        const sanitizedFileName = originalName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const localDestinationUri = `${targetDir}doc_${Date.now()}_${sanitizedFileName}`;
+        await FileSystem.copyAsync({
+          from: sourceUri,
+          to: localDestinationUri,
+        });
+        resolvedUri = localDestinationUri;
+      } catch {
+        resolvedUri = sourceUri;
       }
     }
 
@@ -176,10 +172,9 @@ export async function pickDocumentFromDrive(
       mimeType,
       fileTypeLabel: extension.toUpperCase(),
     };
-  } catch (error: unknown) {
-    const e = error as { message?: string; code?: string };
-    const msg = e?.message || "";
-    if (msg.includes("cancel") || e?.code === "ERR_CANCELLED") {
+  } catch (error: any) {
+    const msg = error?.message || "";
+    if (msg.includes("cancel") || error?.code === "ERR_CANCELLED") {
       return null;
     }
     logger.error("[driveDocumentUploader] Error picking document from drive:", { error });

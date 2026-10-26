@@ -4,6 +4,9 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  SafeAreaView,
+  Platform,
+  StatusBar,
   Modal,
   Image,
 } from "react-native";
@@ -15,7 +18,6 @@ import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { styles } from "./NoticePreviewScreen.styles";
-import { logger } from "@/core/logging/logger";
 
 export interface NoticeDocument {
   title?: string;
@@ -29,7 +31,7 @@ const NoticePreviewScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const taxNoticeDraft = useApplicationStore((state) => state.taxNoticeDraft);
 
-  const formData = (taxNoticeDraft?.formData || {}) as Record<string, string | undefined>;
+  const formData = taxNoticeDraft?.formData || {};
   const documents: NoticeDocument[] = taxNoticeDraft?.documents || [];
   const uploadedDocs = documents.filter(
     (d) => d.status === "uploaded" || d.fileUri,
@@ -59,7 +61,7 @@ const NoticePreviewScreen: React.FC = () => {
     try {
       router.push("/service/tax-notice-assistance");
     } catch (error) {
-      logger.error("Navigation Error", error);
+      console.error("Navigation Error:", error);
     }
   };
 
@@ -67,7 +69,7 @@ const NoticePreviewScreen: React.FC = () => {
     try {
       router.push("/service/tax-notice-documents");
     } catch (error) {
-      logger.error("Navigation Error", error);
+      console.error("Navigation Error:", error);
     }
   };
 
@@ -86,7 +88,7 @@ const NoticePreviewScreen: React.FC = () => {
         },
       });
     } catch (error) {
-      logger.error("Navigation Error", error);
+      console.error("Navigation Error:", error);
     }
   };
 

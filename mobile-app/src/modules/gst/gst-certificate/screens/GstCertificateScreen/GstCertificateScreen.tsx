@@ -12,6 +12,7 @@ import {
   st,
   getTopBarStyle,
   getScaleTransformStyle,
+  getOpacityAnimStyle,
 } from "./GstCertificateScreen.styles";
 
 const CERTIFICATE_REQUEST_TYPES = [
@@ -33,19 +34,17 @@ export function GstCertificateScreen() {
 
       {/* Top Header */}
       <View style={[st.topBar, getTopBarStyle(insets.top)]}>
-        <TouchableOpacity
-          style={st.backBtn}
-          activeOpacity={0.7}
-          onPress={() => {
-            if (flow.isCompleted) {
-              flow.router.replace("/(main)/applications");
-            } else {
-              flow.router.back();
-            }
-          }}
-        >
-          <Ionicons name="chevron-back" size={24} color="#0F172A" />
-        </TouchableOpacity>
+        {!flow.isCompleted ? (
+          <TouchableOpacity
+            style={st.backBtn}
+            activeOpacity={0.7}
+            onPress={() => flow.router.back()}
+          >
+            <Ionicons name="chevron-back" size={24} color="#0F172A" />
+          </TouchableOpacity>
+        ) : (
+          <View style={st.backBtn} />
+        )}
         <Text style={st.headerTitle}>GST Certificate (REG-06)</Text>
         <View style={st.taxEdgeBadge}>
           <Text style={st.taxText}>Tax</Text>

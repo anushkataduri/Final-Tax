@@ -9,7 +9,7 @@ export interface EnvironmentConfig {
 export const Environment: EnvironmentConfig = {
   apiUrl: process.env.EXPO_PUBLIC_API_URL?.trim() || "",
 
-  environment: (process.env.NODE_ENV as EnvironmentConfig["environment"]) || "development",
+  environment: (process.env.NODE_ENV as any) || "development",
   enableAnalytics: process.env.NODE_ENV === "production",
   enableLogging: process.env.NODE_ENV !== "production",
   timeoutMs: 15000,

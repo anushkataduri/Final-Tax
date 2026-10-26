@@ -4,7 +4,6 @@ import * as FileSystemLegacy from "expo-file-system/legacy";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { UploadedDocInfo } from "@/modules/gst/validation/complianceSchema";
-import { logger } from "@/core/logging/logger";
 
 export interface ResolvedDocType {
   isImage: boolean;
@@ -143,7 +142,7 @@ export const logSafeDiagnostic = (
   details: { scheme: string; error?: string }
 ): void => {
   if (__DEV__) {
-    logger.warn(
+    console.warn(
       `[GstPreview] ${operation} (platform: ${Platform.OS}, scheme: ${details.scheme}): ${details.error || "ok"}`
     );
   }

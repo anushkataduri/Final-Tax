@@ -26,30 +26,28 @@ export const PreviousYearSelectionScreen: React.FC = () => {
 
   // AY 2023-24 is selected by default as in the design specification
   const [selectedYearId, setSelectedYearId] = useState<string>(() => {
-    return (previousYearDraft?.formData?.selectedYearId as string | undefined) || "ay-2023-24";
+    return previousYearDraft?.formData?.selectedYearId || "ay-2023-24";
   });
 
   useEffect(() => {
     if (previousYearDraft) {
       if (previousYearDraft.formData?.selectedYearId) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setSelectedYearId(previousYearDraft.formData.selectedYearId as string);
+        setSelectedYearId(previousYearDraft.formData.selectedYearId);
       }
-      const draftAy = (previousYearDraft.assessmentYear as string | undefined) || "AY 2023–24";
       if (previousYearDraft.step === 3) {
         router.push({
-          pathname: "/service/previous-year-documents" as never,
-          params: { assessmentYear: draftAy },
+          pathname: "/service/previous-year-documents" as any,
+          params: { assessmentYear: previousYearDraft.assessmentYear || "AY 2023–24" },
         });
       } else if (previousYearDraft.step === 2) {
         router.push({
-          pathname: "/service/previous-year-charges" as never,
-          params: { assessmentYear: draftAy },
+          pathname: "/service/previous-year-charges" as any,
+          params: { assessmentYear: previousYearDraft.assessmentYear || "AY 2023–24" },
         });
       } else if (previousYearDraft.step === 1) {
         router.push({
-          pathname: "/service/previous-year-itr-details" as never,
-          params: { assessmentYear: draftAy },
+          pathname: "/service/previous-year-itr-details" as any,
+          params: { assessmentYear: previousYearDraft.assessmentYear || "AY 2023–24" },
         });
       }
     }
@@ -73,7 +71,7 @@ export const PreviousYearSelectionScreen: React.FC = () => {
     });
 
     router.push({
-      pathname: "/service/previous-year-itr-details" as never,
+      pathname: "/service/previous-year-itr-details" as any,
       params: {
         assessmentYear: ay,
       },

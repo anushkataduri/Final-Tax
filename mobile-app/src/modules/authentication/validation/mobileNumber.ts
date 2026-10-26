@@ -58,17 +58,10 @@ const MAX_REJECTED_PASTE_DIGITS = 15;
  * "+91 98765 43210" becomes 9876543210. A paste that is not a valid number is kept as its digits
  * (not cut to 10) so the validation message can reject it.
  */
-export function applyMobileInput(previous: string, next: string): string {
-  const pasted = next.length - previous.length > 1 || next.includes("+");
-  if (!pasted) {
-    const digits = next.replace(/\D/g, "");
-    return digits.length > 10 ? previous : digits;
-  }
-
-  const normalized = normalizeIndianMobile(next);
-  if (normalized.ok) return normalized.value;
-
-  const compact = next.trim().replace(SEPARATORS, "");
-  const withoutCountryCode = compact.startsWith("+91") ? compact.slice(3) : compact;
-  return withoutCountryCode.replace(/\D/g, "").slice(0, MAX_REJECTED_PASTE_DIGITS);
+export function applyMobileInput(previous: string, next?: string): string {
+  const target = next !== undefined ? next : previous;
+  const clean = target.startsWith("+91") ? target.slice(3) : target;
+  // Strip everything except digits and strictly limit to 10 characters
+  const digits = clean.replace(/\D/g, "").slice(0, 10);
+  return digits;
 }

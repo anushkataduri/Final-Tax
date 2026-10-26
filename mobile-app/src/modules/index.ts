@@ -1,6 +1,5 @@
 export * as AuthenticationModule from './authentication';
 export * as CustomerModule from './customer';
-export * as DashboardModule from './dashboard';
 export * as GSTModule from './gst';
 export * as ITRModule from './itr';
 export * as LoansModule from './loans';

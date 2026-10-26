@@ -1,41 +1,6 @@
 global.__DEV__ = true;
 
-const path = require('path');
-const fs = require('fs');
 const Module = require('module');
-const root = path.resolve(path.dirname(process.argv[1]), "..");
-const SRC = path.join(root, "src");
-const ts = require(path.join(root, "node_modules", "typescript"));
-
-for (const ext of [".ts", ".tsx"]) {
-  require.extensions[ext] = (module, filename) => {
-    const out = ts.transpileModule(fs.readFileSync(filename, "utf8"), {
-      fileName: filename,
-      compilerOptions: {
-        module: ts.ModuleKind.CommonJS,
-        target: ts.ScriptTarget.ES2020,
-        esModuleInterop: true,
-        jsx: ts.JsxEmit.ReactJSX,
-      },
-    });
-    module._compile(out.outputText, filename);
-  };
-}
-
-for (const ext of [".png", ".jpg", ".jpeg", ".gif", ".webp"]) {
-  require.extensions[ext] = (module, filename) => {
-    module.exports = { uri: filename };
-  };
-}
-
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, ...rest) {
-  if (request.startsWith("@/")) {
-    return originalResolve.call(this, path.join(SRC, request.slice(2)), ...rest);
-  }
-  return originalResolve.call(this, request, ...rest);
-};
-
 const originalRequire = Module.prototype.require;
 
 // Mock storage instances

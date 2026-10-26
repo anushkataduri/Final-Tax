@@ -13,26 +13,14 @@ import {
   validateFullAddressLength,
   validateNameField,
   validateNameTyping,
+  EMAIL_LOCAL_REGEX,
+  VALID_TLD_REGEX,
 } from "@/shared/validators/profileValidators";
 import { formatSignupAddress } from "./createProfile.helpers";
 import type { SignupForm } from "./types";
 
-export const sanitizePanInput = (text: string, currentPan: string): string => {
-  const clean = text.toUpperCase().replace(/\s+/g, "");
-  if (clean.length < currentPan.length && currentPan.startsWith(clean)) {
-    return clean;
-  }
-  return Array.from(clean.slice(0, 10)).reduce(
-    (acc, ch, i) =>
-      acc.stopped
-        ? acc
-        : (i < 5 && /[A-Z]/.test(ch)) ||
-            (i >= 5 && i < 9 && /[0-9]/.test(ch)) ||
-            (i === 9 && /[A-Z]/.test(ch))
-          ? { str: acc.str + ch, stopped: false }
-          : { str: acc.str, stopped: true },
-    { str: "", stopped: false }
-  ).str;
+export const sanitizePanInput = (text: string, _currentPan?: string): string => {
+  return text.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
 };
 
 export const formatDobInput = (text: string): string => {
@@ -167,8 +155,28 @@ export const validateRealTimeField = (
     }
     case "email": {
       if (!val) return "";
-      if (val.includes("@") && val.indexOf(".") > val.indexOf("@") + 1) {
-        return validateEmailAddress(val.trim());
+      if (val.includes("..")) return "Email cannot contain consecutive dots";
+      const atIndex = val.indexOf("@");
+      if (atIndex === -1) {
+        if (/[^a-zA-Z0-9._+-]/.test(val)) {
+          return "Email can only contain letters, numbers, and . _ - +";
+        }
+      } else {
+        const local = val.slice(0, atIndex);
+        const domain = val.slice(atIndex + 1);
+        if (/[^a-zA-Z0-9._+-]/.test(local)) {
+          return "Email can only contain letters, numbers, and . _ - +";
+        }
+        if (domain && /[^a-zA-Z0-9.-]/.test(domain)) {
+          return "Email domain contains invalid characters";
+        }
+        if (domain.includes(".")) {
+          const parts = domain.split(".");
+          const tld = parts[parts.length - 1].toLowerCase();
+          if (tld.length >= 3 && !VALID_TLD_REGEX.test(tld)) {
+            return "Enter a valid domain extension (e.g. .com, .in)";
+          }
+        }
       }
       return "";
     }
@@ -180,7 +188,13 @@ export const validateRealTimeField = (
     case "pan": {
       const clean = val.trim().toUpperCase();
       if (!clean) return "";
-      return describePanCategoryError(clean) || (clean.length === 10 ? describePanError(clean) : "");
+      if (clean.length >= 4 && describePanCategoryError(clean)) {
+        return describePanCategoryError(clean);
+      }
+      if (clean.length === 10) {
+        return describePanError(clean);
+      }
+      return "";
     }
     case "aadhaar": {
       const clean = val.replace(/\D/g, "");

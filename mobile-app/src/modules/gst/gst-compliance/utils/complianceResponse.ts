@@ -45,7 +45,7 @@ export function sanitizeComplianceSaveError(error: unknown): string {
   const status =
     (error instanceof ApiError ? error.statusCode : undefined) ??
     (typeof error === "object" && error !== null && "status" in error
-      ? Number((error as { status?: unknown }).status)
+      ? Number((error as any).status)
       : undefined);
 
   const rawMessage = (getErrorMessage(error) || "").trim();

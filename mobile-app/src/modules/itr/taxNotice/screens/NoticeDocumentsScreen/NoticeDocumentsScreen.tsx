@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -20,7 +20,6 @@ import { useApplicationStore } from "@/store/applicationStore";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
 import { taxNoticeApi } from "../../../services/taxNoticeApi";
-import { logger } from "@/core/logging/logger";
 import {
   styles,
   getContainerInsetsStyle,
@@ -48,15 +47,15 @@ export const NoticeDocumentsScreen: React.FC = () => {
 
   const assessmentYear =
     params.assessmentYear ||
-    (taxNoticeDraft?.formData?.assessmentYear as string | undefined) ||
+    taxNoticeDraft?.formData?.assessmentYear ||
     "AY 2025–26";
 
   // Pure functional initial state: restore from draft or start clean
   const [docs, setDocs] = useState<TaxNoticeSupportingDoc[]>(() => {
     const savedDocs = taxNoticeDraft?.documents;
-    const noticeFile = taxNoticeDraft?.formData?.noticeFileName as string | undefined;
-    const noticeUri = taxNoticeDraft?.formData?.noticeFileUri as string | undefined;
-    const noticeSize = taxNoticeDraft?.formData?.noticeFileSize as string | undefined;
+    const noticeFile = taxNoticeDraft?.formData?.noticeFileName;
+    const noticeUri = taxNoticeDraft?.formData?.noticeFileUri;
+    const noticeSize = taxNoticeDraft?.formData?.noticeFileSize;
 
     const savedMap = new Map((savedDocs || []).map((d) => [d.id, d]));
 
@@ -219,8 +218,8 @@ export const NoticeDocumentsScreen: React.FC = () => {
         "doc-other": "otherNoticeSpecificDocuments",
       };
 
-      const mappedDocs: Record<string, { uri: string; name: string; mimeType: string }> = {};
-      docs.forEach((doc) => {
+      const mappedDocs: Record<string, any> = {};
+      docs.forEach((doc: any) => {
         if (doc.status === "uploaded" && doc.fileUri) {
           const backendKey = docKeyMap[doc.id];
           if (backendKey) {
@@ -250,19 +249,19 @@ export const NoticeDocumentsScreen: React.FC = () => {
       });
 
       router.push({
-        pathname: "/service/tax-notice-preview" as never,
+        pathname: "/service/tax-notice-preview" as any,
         params: {
           noticeId,
-          pan: params.pan || (taxNoticeDraft?.formData?.pan as string | undefined),
-          noticeNumber: params.noticeNumber || (taxNoticeDraft?.formData?.noticeNumber as string | undefined),
-          noticeDate: params.noticeDate || (taxNoticeDraft?.formData?.noticeDate as string | undefined),
+          pan: params.pan || taxNoticeDraft?.formData?.pan,
+          noticeNumber: params.noticeNumber || taxNoticeDraft?.formData?.noticeNumber,
+          noticeDate: params.noticeDate || taxNoticeDraft?.formData?.noticeDate,
           assessmentYear: assessmentYear,
-          noticeType: params.noticeType || (taxNoticeDraft?.formData?.noticeType as string | undefined),
+          noticeType: params.noticeType || taxNoticeDraft?.formData?.noticeType,
         },
       });
-    } catch (err: unknown) {
-      logger.error("Failed to upload notice documents", err);
-      Alert.alert("Upload Failed", (err as { message?: string })?.message || "Failed to upload documents.");
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert("Upload Failed", err.message || "Failed to upload documents.");
     } finally {
       setIsSubmitting(false);
     }

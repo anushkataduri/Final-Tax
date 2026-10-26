@@ -1,5 +1,4 @@
 import React from "react";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { GstDocumentCard } from "@/modules/gst/components/GstDocumentCard";
 import { FilingDocItem } from "@/modules/gst/gst-filing/config/gstFilingDocumentsConfig";
 
@@ -29,7 +28,7 @@ export const GstDocItemCard: React.FC<GstDocItemCardProps> = ({
         fileUri: doc.fileUri,
         fileName: doc.fileName,
         fileSize: doc.fileSize,
-        iconName: doc.iconName as React.ComponentProps<typeof Ionicons>["name"],
+        iconName: doc.iconName as any,
         iconBg: doc.iconBg,
         iconColor: doc.iconColor,
       }}

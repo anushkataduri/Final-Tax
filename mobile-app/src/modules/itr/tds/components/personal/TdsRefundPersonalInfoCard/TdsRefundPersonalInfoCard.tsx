@@ -2,11 +2,19 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import { PersonalDetails } from "../../../types/customerIncome.types";
+import {
+  cleanPan,
+  cleanAadhaar,
+  cleanMobile,
+  cleanPinCode,
+} from "../../../utils/tdsValidation";
 import { validatePersonalDetails } from "../../../validation/tdsCustomerSchema";
 import { styles } from "./TdsRefundPersonalInfoCard.styles";
 import { TdsRefundPersonalInfoEditForm } from "./components/TdsRefundPersonalInfoEditForm";
@@ -39,7 +47,6 @@ export const TdsRefundPersonalInfoCard: React.FC<
   // Synchronize local edit buffer when prop updates while not editing
   useEffect(() => {
     if (!isEditing) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditForm(personalData);
     }
   }, [personalData, isEditing]);

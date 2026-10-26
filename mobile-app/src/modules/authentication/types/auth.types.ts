@@ -1,5 +1,4 @@
 import type { Customer, CustomerProfile } from "../../../shared/types/domain";
-import type { CheckUserResponse, DevUser } from "../services/authApi.types";
 
 export type AuthFlowState =
   | "ENTER_MOBILE"
@@ -28,7 +27,30 @@ export interface RegistrationData {
   pushToken?: string;
 }
 
-export type { DevUser };
+export interface DevUser {
+  customerId: string;
+  mobileNumber: string;
+  name: string;
+  email: string;
+  gender?: string;
+  fatherSpouseName?: string;
+  pan?: string;
+  aadhaar?: string;
+  dob?: string;
+  address?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  pincode?: string;
+  state?: string;
+  customerType?: string;
+  avatarUri?: string | null;
+  passcode?: string;
+  hasPasscode?: boolean;
+  pushToken?: string;
+  registrationCompleted?: boolean;
+  createdAt?: string;
+}
 
 /**
  * Field aliases found on user records saved by older app versions or returned
@@ -160,7 +182,7 @@ export interface AuthStoreActions {
 
   // Business Flow Operations
   sendOtp: (overrideMobile?: string) => Promise<boolean>;
-  checkUser: (overrideMobile?: string) => Promise<CheckUserResponse>;
+  checkUser: (overrideMobile?: string) => Promise<any>;
   verifyOtp: (codeToVerify?: string) => Promise<{
     success: boolean;
     isExistingUser?: boolean;

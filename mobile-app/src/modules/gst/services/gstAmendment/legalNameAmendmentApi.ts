@@ -62,3 +62,4 @@ export const legalNameAmendmentApi = {
     return apiClient.post<string>(url);
   },
 };
+

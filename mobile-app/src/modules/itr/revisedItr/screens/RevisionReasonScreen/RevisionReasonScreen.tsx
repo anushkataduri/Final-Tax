@@ -12,8 +12,8 @@ import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useRevisedProgressStore } from "../../store/revisedProgressStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { RevisedItrApiService } from "../../services/RevisedItrApiService";
-import { logger } from "@/core/logging/logger";
 import { RevisedItrHeader } from "../../components/common";
 import { RevisionReasonCard } from "../../components/reason";
 import { REVISION_REASONS } from "../../mock/revisedItrData";
@@ -28,7 +28,7 @@ import {
 export const RevisionReasonScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const _maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
+  const maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
   const storedReason = useRevisedProgressStore((s) => s.revisionReason);
   const setRevisionReason = useRevisedProgressStore((s) => s.setRevisionReason);
   const setDocuments = useRevisedProgressStore((s) => s.setDocuments);
@@ -46,7 +46,7 @@ export const RevisionReasonScreen: React.FC = () => {
   const [otherReasonText, setOtherReasonText] = useState("");
   const [otherError, setOtherError] = useState<string | null>(null);
 
-  const _selectedReasonObj = REVISION_REASONS.find((r) => r.id === selectedReason);
+  const selectedReasonObj = REVISION_REASONS.find((r) => r.id === selectedReason);
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { revisedItrId, revisionReasonId, setBackendIds, setMaxStepReached } = useRevisedProgressStore();
@@ -92,7 +92,7 @@ export const RevisionReasonScreen: React.FC = () => {
 
       // Navigate to Screen 3: Update Changed Details
       router.push({
-        pathname: "/service/revised-itr-update" as never,
+        pathname: "/service/revised-itr-update" as any,
         params: {
           acknowledgementNumber: params.acknowledgementNumber,
           assessmentYear: params.assessmentYear || "AY 2025–26",
@@ -101,7 +101,7 @@ export const RevisionReasonScreen: React.FC = () => {
         },
       });
     } catch (e) {
-      logger.error("Error saving revision reason", e);
+      console.error("Error saving revision reason:", e);
       Alert.alert("Error", "Failed to save revision reason.");
     } finally {
       setIsSubmitting(false);
@@ -140,7 +140,7 @@ export const RevisionReasonScreen: React.FC = () => {
 
       // Redirect back to Review screen
       router.push({
-        pathname: "/service/revised-itr-review" as never,
+        pathname: "/service/revised-itr-review" as any,
         params: {
           acknowledgementNumber: params.acknowledgementNumber,
           assessmentYear: params.assessmentYear || "AY 2025–26",
@@ -149,7 +149,7 @@ export const RevisionReasonScreen: React.FC = () => {
         },
       });
     } catch (e) {
-      logger.error("Error updating revision reason", e);
+      console.error("Error updating revision reason:", e);
       Alert.alert("Error", "Failed to update revision reason.");
     } finally {
       setIsSubmitting(false);

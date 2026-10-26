@@ -1,5 +1,7 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
 import { BrandColors, BorderRadius, BorderWidth, Spacing, Typography } from "@/shared/theme";
+
+const { width } = Dimensions.get("window");
 
 export const styles = StyleSheet.create({
   container: {

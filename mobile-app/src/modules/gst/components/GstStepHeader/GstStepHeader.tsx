@@ -11,8 +11,6 @@ export interface GstStepHeaderProps {
   totalSteps: number; // e.g. 4
   stepLabel: string;
   onBack?: () => void;
-  /** When true, hides the back button (alias for showBack={false}). */
-  hideBack?: boolean;
   showBack?: boolean;
   rightAction?: React.ReactNode;
 }
@@ -23,13 +21,10 @@ export const GstStepHeader: React.FC<GstStepHeaderProps> = ({
   totalSteps,
   stepLabel,
   onBack,
-  hideBack,
   showBack = true,
   rightAction,
 }) => {
   const insets = useSafeAreaInsets();
-  // hideBack takes priority over showBack for backwards compatibility
-  const isBackVisible = hideBack ? false : showBack;
   const safeStep = Math.max(1, Math.min(currentStep, totalSteps));
   const progressPercent = Math.min(100, Math.max(0, (safeStep / totalSteps) * 100));
 
@@ -38,7 +33,7 @@ export const GstStepHeader: React.FC<GstStepHeaderProps> = ({
       <FocusAwareStatusBar barStyle="dark-content" />
       {/* Top App Bar */}
       <View style={styles.topRow}>
-        {isBackVisible && onBack ? (
+        {showBack && onBack ? (
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={onBack}

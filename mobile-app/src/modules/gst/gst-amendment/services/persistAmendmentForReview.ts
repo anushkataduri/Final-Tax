@@ -42,13 +42,12 @@ export const persistAmendmentForReview = async (
           logger.debug("[Review] Updated record in DB by ID:", { amendmentId });
           onReviewData(stripBinaryPayload(updated) || { id: amendmentId, ...formData });
           return;
-        } catch (updateErr: unknown) {
-          const e = updateErr as { response?: { status?: number }; status?: number; message?: string };
+        } catch (updateErr: any) {
           const isNotFound =
-            e?.response?.status === 404 ||
-            e?.status === 404 ||
-            (typeof e?.message === "string" && e.message.includes("404")) ||
-            (typeof e?.message === "string" && e.message.toLowerCase().includes("not found"));
+            updateErr?.response?.status === 404 ||
+            updateErr?.status === 404 ||
+            (typeof updateErr?.message === "string" && updateErr.message.includes("404")) ||
+            (typeof updateErr?.message === "string" && updateErr.message.toLowerCase().includes("not found"));
 
           if (isNotFound) {
             logger.warn("[Review] Stale amendment ID not found (404). Auto-recovering by creating fresh record", { amendmentId });

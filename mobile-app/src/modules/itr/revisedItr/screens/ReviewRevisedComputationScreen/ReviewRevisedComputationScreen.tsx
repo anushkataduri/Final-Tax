@@ -11,6 +11,7 @@ import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRevisedProgressStore } from "../../store/revisedProgressStore";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { RevisedItrHeader } from "../../components/common";
 import {
   ComputationComparisonTable,
@@ -69,7 +70,6 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
   const totalDocs = params.totalDocsCount || "6";
 
   const customerFromAuth = useAuthStore((s) => s.customer);
-  const mobileFromAuth = useAuthStore((s) => s.mobileNumber || "");
   const profileFromCust = useCustomerStore((s) => s.profile);
   const customer = customerFromAuth || profileFromCust;
 
@@ -106,7 +106,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
 
   const handleEditOriginal = () => {
     router.push({
-      pathname: "/service/revised-itr" as never,
+      pathname: "/service/revised-itr" as any,
       params: {
         acknowledgementNumber: ackNo,
         assessmentYear,
@@ -118,7 +118,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
 
   const handleEditChanges = () => {
     router.push({
-      pathname: "/service/revised-itr-update" as never,
+      pathname: "/service/revised-itr-update" as any,
       params: {
         acknowledgementNumber: ackNo,
         assessmentYear,
@@ -130,7 +130,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
 
   const handleEditDocs = () => {
     router.push({
-      pathname: "/service/revised-itr-documents" as never,
+      pathname: "/service/revised-itr-documents" as any,
       params: {
         acknowledgementNumber: ackNo,
         assessmentYear,
@@ -168,7 +168,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
 
     // Navigate to Application Received / Success screen with Revised ITR details
     router.push({
-      pathname: "/service/itr-success" as never,
+      pathname: "/service/itr-success" as any,
       params: {
         serviceType: "revised",
         serviceTitle,
@@ -262,7 +262,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Mobile</Text>
-              <Text style={styles.infoVal}>{mobileFromAuth || "+91 98765 43210"}</Text>
+              <Text style={styles.infoVal}>{(customer as any)?.mobile || "+91 98765 43210"}</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Email</Text>

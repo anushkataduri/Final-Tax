@@ -7,7 +7,6 @@ export function useRegistrationStatus(applicationId?: string) {
 
   useEffect(() => {
     if (!applicationId) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     companyRegistrationApi
       .fetchStatus(applicationId)

@@ -200,6 +200,4 @@ export interface Customer extends CustomerProfile {
   avatarUri?: string | null;
   profileCompleted?: boolean;
   hasPasscode?: boolean;
-  /** Firebase Cloud Messaging token for push notifications. */
-  pushToken?: string;
 }

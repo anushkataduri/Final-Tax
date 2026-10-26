@@ -23,7 +23,6 @@ import { tdsFeeService } from "../../services/tdsFeeService";
 import { tdsApiService } from "../../services/tdsApiService";
 import { tdsDraftService } from "../../services/tdsDraftService";
 import { FeeSummaryCard } from "../../components/payment/FeeSummaryCard";
-import { logger } from "@/core/logging/logger";
 import { PaymentMethodCard } from "../../components/payment/PaymentMethodCard";
 import { styles } from "./TdsPaymentSubmissionScreen.styles";
 
@@ -78,7 +77,7 @@ export const TdsPaymentSubmissionScreen: React.FC = () => {
 
   // Prevent leaving while payment is in-flight
   useEffect(() => {
-    const unsubscribe = (navigation as unknown as { addListener: (event: string, handler: (e: { preventDefault(): void }) => void) => () => void }).addListener("beforeRemove", (e) => {
+    const unsubscribe = (navigation as any).addListener("beforeRemove", (e: any) => {
       if (processingState === "processing") {
         e.preventDefault();
         Alert.alert(
@@ -134,24 +133,23 @@ export const TdsPaymentSubmissionScreen: React.FC = () => {
 
       // Navigate to Screen 5 (Application Status)
       router.replace({
-        pathname: "/service/tds-status" as never,
+        pathname: "/service/tds-status" as any,
         params: {
           applicationId: response?.applicationId || targetAppId,
           refundAmount: formatCurrency(refundEstimate),
           isAdditionalPayable: isAdditionalPayable ? "1" : "0",
         },
       });
-    } catch (err: unknown) {
+    } catch (err: any) {
       if (__DEV__) {
-        logger.warn("Payment API error", err);
+        console.warn("Payment API error:", err);
       }
-      const errMsg = (err as { message?: string })?.message;
-      if (errMsg?.toLowerCase().includes("network")) {
+      if (err?.message?.toLowerCase().includes("network")) {
         setProcessingState("network_error");
         setErrorMessage("Network error connecting to payment gateway. Please check your internet connection.");
       } else {
         setProcessingState("network_error");
-        setErrorMessage(errMsg || "Payment could not be processed. Please try again.");
+        setErrorMessage(err?.message || "Payment could not be processed. Please try again.");
       }
     }
   };
