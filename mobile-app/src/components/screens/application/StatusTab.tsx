@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { styles } from "@/styles/app/application/[id].styles";
 import type { Application, TimelineStep } from "@/types/domain";
@@ -21,6 +21,7 @@ const STAGE_DEFAULT_ICONS = [
   "document-text-outline",
   "folder-open-outline",
   "shield-checkmark-outline",
+  "card-outline",
   "ribbon-outline",
 ] as const;
 
@@ -47,6 +48,9 @@ export function getStageIcon(title?: string, index: number = 0): string {
   ) {
     return "shield-checkmark-outline";
   }
+  if (t.includes("payment") || t.includes("fee") || t.includes("pay")) {
+    return "card-outline";
+  }
   if (
     t.includes("complet") ||
     t.includes("approv") ||
@@ -61,6 +65,91 @@ export function getStageIcon(title?: string, index: number = 0): string {
   return STAGE_DEFAULT_ICONS[index % STAGE_DEFAULT_ICONS.length];
 }
 
+export interface StageVisualConfig {
+  iconName: string;
+  iconColor: string;
+  bgColor: string;
+  borderColor: string;
+  connectorColor: string;
+}
+
+const STAGE_CONFIGS: StageVisualConfig[] = [
+  // 1. Application Submitted (Green icon and connector)
+  {
+    iconName: "document-text-outline",
+    iconColor: "#16A34A",
+    bgColor: "#DCFCE7",
+    borderColor: "#16A34A",
+    connectorColor: "#16A34A",
+  },
+  // 2. Document Collection (Orange icon and connector)
+  {
+    iconName: "folder-open-outline",
+    iconColor: "#EA580C",
+    bgColor: "#FFEDD5",
+    borderColor: "#EA580C",
+    connectorColor: "#EA580C",
+  },
+  // 3. Verification (Blue icon and connector)
+  {
+    iconName: "shield-checkmark-outline",
+    iconColor: "#0284C7",
+    bgColor: "#E0F2FE",
+    borderColor: "#0284C7",
+    connectorColor: "#0284C7",
+  },
+  // 4. Payment (Purple payment icon and connector)
+  {
+    iconName: "card-outline",
+    iconColor: "#7C3AED",
+    bgColor: "#EDE9FE",
+    borderColor: "#7C3AED",
+    connectorColor: "#7C3AED",
+  },
+  // 5. Completed (Grey icon and connector)
+  {
+    iconName: "ribbon-outline",
+    iconColor: "#94A3B8",
+    bgColor: "#F8FAFC",
+    borderColor: "#CBD5E1",
+    connectorColor: "#CBD5E1",
+  },
+];
+
+export function getStageVisualConfig(
+  step: TimelineStep,
+  index: number,
+  isRejected: boolean
+): StageVisualConfig {
+  if (isRejected && step.status === "current") {
+    return {
+      iconName: "close-circle-outline",
+      iconColor: "#DC2626",
+      bgColor: "#FEE2E2",
+      borderColor: "#DC2626",
+      connectorColor: "#CBD5E1",
+    };
+  }
+
+  const baseConfig = STAGE_CONFIGS[index % STAGE_CONFIGS.length];
+  const iconName = getStageIcon(step.title, index);
+
+  if (index === 4 && step.status === "completed") {
+    return {
+      iconName: "checkmark-circle-outline",
+      iconColor: "#16A34A",
+      bgColor: "#DCFCE7",
+      borderColor: "#16A34A",
+      connectorColor: "#16A34A",
+    };
+  }
+
+  return {
+    ...baseConfig,
+    iconName,
+  };
+}
+
 const VARIANT_MAP: Record<
   StatusVisualVariant,
   {
@@ -69,41 +158,31 @@ const VARIANT_MAP: Record<
     iconColor: string;
     badgeBox: any;
     badgeText: string;
-    guidanceCard: any;
-    guidanceIconBox: any;
-    guidanceIconColor: string;
-    actionColor: string;
   }
 > = {
   blue: {
     card: styles.summaryBlue, iconBox: styles.iconBoxBlue, iconColor: "#1D4ED8",
     badgeBox: styles.iconBoxBlue, badgeText: "#1D4ED8",
-    guidanceCard: styles.guidanceBlue, guidanceIconBox: styles.iconBoxBlue, guidanceIconColor: "#1D4ED8", actionColor: "#1D4ED8",
   },
   lightBlue: {
     card: styles.summaryLightBlue, iconBox: styles.iconBoxLightBlue, iconColor: "#0284C7",
     badgeBox: styles.iconBoxLightBlue, badgeText: "#0284C7",
-    guidanceCard: styles.guidanceLightBlue, guidanceIconBox: styles.iconBoxLightBlue, guidanceIconColor: "#0284C7", actionColor: "#0284C7",
   },
   orange: {
     card: styles.summaryOrange, iconBox: styles.iconBoxOrange, iconColor: "#EA580C",
     badgeBox: styles.iconBoxOrange, badgeText: "#EA580C",
-    guidanceCard: styles.guidanceOrange, guidanceIconBox: styles.iconBoxOrange, guidanceIconColor: "#EA580C", actionColor: "#EA580C",
   },
   green: {
     card: styles.summaryGreen, iconBox: styles.iconBoxGreen, iconColor: "#16A34A",
     badgeBox: styles.iconBoxGreen, badgeText: "#16A34A",
-    guidanceCard: styles.guidanceGreen, guidanceIconBox: styles.iconBoxGreen, guidanceIconColor: "#16A34A", actionColor: "#16A34A",
   },
   red: {
     card: styles.summaryRed, iconBox: styles.iconBoxRed, iconColor: "#DC2626",
     badgeBox: styles.iconBoxRed, badgeText: "#DC2626",
-    guidanceCard: styles.guidanceRed, guidanceIconBox: styles.iconBoxRed, guidanceIconColor: "#DC2626", actionColor: "#DC2626",
   },
   gray: {
     card: styles.summaryGray, iconBox: styles.iconBoxGray, iconColor: "#64748B",
     badgeBox: styles.iconBoxGray, badgeText: "#64748B",
-    guidanceCard: styles.guidanceGray, guidanceIconBox: styles.iconBoxGray, guidanceIconColor: "#64748B", actionColor: "#64748B",
   },
 };
 
@@ -120,7 +199,7 @@ export function StatusTab({
       ? timelineSteps
       : statusUI.timelineSteps;
 
-  const { summary, guidance, normalizedStatus } = statusUI;
+  const { summary, normalizedStatus } = statusUI;
   const isOverallRejected = normalizedStatus === "REJECTED";
   const isPendingDocs = normalizedStatus === "PENDING_DOCUMENTS";
   const vTheme = VARIANT_MAP[summary.variant] || VARIANT_MAP.gray;
@@ -165,37 +244,33 @@ export function StatusTab({
             const isCurrent = step.status === "current";
             const isPending = !isCompleted && !isCurrent;
             const isStepRejected = isCurrent && isOverallRejected;
-            const iconName = isStepRejected
-              ? "close-circle-outline"
-              : getStageIcon(step.title, index);
+            const stageConfig = getStageVisualConfig(step, index, isStepRejected);
+
+            const baseCircleStyle = isCompleted
+              ? styles.circleCompleted
+              : isStepRejected
+                ? styles.circleRejected
+                : isCurrent
+                  ? styles.circleCurrent
+                  : styles.circlePending;
 
             return (
               <View key={index} style={styles.timelineStepRow}>
                 {/* Left Column: Icon Circle + Connecting Line */}
                 <View style={styles.timelineLeftCol}>
                   <View
-                    style={
-                      isCompleted
-                        ? styles.circleCompleted
-                        : isStepRejected
-                          ? styles.circleRejected
-                          : isCurrent
-                            ? styles.circleCurrent
-                            : styles.circlePending
-                    }
+                    style={[
+                      baseCircleStyle,
+                      {
+                        backgroundColor: stageConfig.bgColor,
+                        borderColor: stageConfig.borderColor,
+                      },
+                    ]}
                   >
                     <Ionicons
-                      name={iconName as any}
+                      name={stageConfig.iconName as any}
                       size={17}
-                      color={
-                        isCompleted
-                          ? "#16A34A"
-                          : isStepRejected
-                            ? "#DC2626"
-                            : isCurrent
-                              ? "#EA580C"
-                              : "#94A3B8"
-                      }
+                      color={stageConfig.iconColor}
                     />
                   </View>
 
@@ -204,7 +279,7 @@ export function StatusTab({
                       style={[
                         styles.timelineLine,
                         {
-                          backgroundColor: isCompleted ? "#16A34A" : "#E2E8F0",
+                          backgroundColor: stageConfig.connectorColor,
                         },
                       ]}
                     />
@@ -275,51 +350,6 @@ export function StatusTab({
             );
           })}
         </View>
-      </View>
-
-      {/* 3. Dynamic Bottom Guidance Card */}
-      <View style={[styles.statusGuidanceCard, vTheme.guidanceCard]}>
-        <View style={styles.statusGuidanceTopRow}>
-          <View style={[styles.statusGuidanceIconBox, vTheme.guidanceIconBox]}>
-            <Ionicons
-              name={guidance.iconName as any}
-              size={20}
-              color={vTheme.guidanceIconColor}
-            />
-          </View>
-          <View style={styles.statusGuidanceContent}>
-            <Text style={styles.statusGuidanceTitle}>{guidance.heading}</Text>
-            <Text style={styles.statusGuidanceDesc}>{guidance.description}</Text>
-          </View>
-        </View>
-
-        {guidance.action && (
-          <>
-            <View style={styles.statusGuidanceDivider} />
-            <TouchableOpacity
-              style={styles.statusGuidanceActionRow}
-              onPress={() =>
-                onNavigateTab
-                  ? onNavigateTab(guidance.action!.tab as DetailTab)
-                  : undefined
-              }
-            >
-              <Text
-                style={[
-                  styles.statusGuidanceActionText,
-                  { color: vTheme.actionColor },
-                ]}
-              >
-                {guidance.action.label}
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={14}
-                color={vTheme.actionColor}
-              />
-            </TouchableOpacity>
-          </>
-        )}
       </View>
     </View>
   );

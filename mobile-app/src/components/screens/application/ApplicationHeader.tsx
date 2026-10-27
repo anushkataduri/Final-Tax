@@ -2,7 +2,6 @@ import React from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { styles } from "@/styles/app/application/[id].styles";
-import type { ServiceCategoryId } from "@/types/domain";
 
 export type DetailTab = "OVERVIEW" | "STATUS" | "DOCUMENTS" | "PAYMENTS" | "CHAT";
 
@@ -20,11 +19,7 @@ interface ApplicationHeaderProps {
   activeTab: DetailTab;
   setActiveTab: (tab: DetailTab) => void;
   onBack: () => void;
-  serviceId?: string;
-  category?: ServiceCategoryId;
-  displayId?: string;
-  submittedOnText?: string;
-  status?: string;
+  onSettings?: () => void;
 }
 
 export function ApplicationHeader({
@@ -33,6 +28,7 @@ export function ApplicationHeader({
   activeTab,
   setActiveTab,
   onBack,
+  onSettings,
 }: ApplicationHeaderProps) {
   return (
     <>
@@ -51,12 +47,23 @@ export function ApplicationHeader({
 
           <View style={styles.headerTitleWrap}>
             <Text style={styles.navTitle}>Application Details</Text>
-            <Text style={styles.navAppName} numberOfLines={1}>
-              {serviceName}
-            </Text>
           </View>
 
-          <View style={styles.navSpacer} />
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={onSettings}
+            style={styles.settingsButton}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+          >
+            <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.headerTextWrap}>
+          <Text style={styles.navAppName}>
+            {serviceName}
+          </Text>
         </View>
       </View>
 

@@ -95,6 +95,10 @@ export interface ChatMessage {
   sender: ChatSender;
   text: string;
   timestamp: string;
+  imageUrl?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  caption?: string;
 }
 
 /** Answers captured by `DynamicForm`, keyed by `FormField.name`. */

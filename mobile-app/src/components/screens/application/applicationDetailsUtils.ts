@@ -65,68 +65,81 @@ export function getServiceSpecificTimeline(app: Application, appliedDate?: strin
 
   let baseSteps: { title: string; description: string }[] = [];
 
+  const submittedDesc = appliedDate
+    ? `Application successfully submitted on ${appliedDate}.`
+    : "Application successfully submitted on the existing submission date.";
+
   if (sid.includes("amendment")) {
     baseSteps = [
-      { title: "Amendment Submitted", description: "Amendment request submitted with supporting documents" },
-      { title: "Document Collection", description: "Verification of amended proofs and business details" },
-      { title: "Verification", description: "TaxEdge CA and Assessing Officer review" },
-      { title: "Completed", description: "Updated registration certificate issued" },
+      { title: "Amendment Submitted", description: submittedDesc },
+      { title: "Document Collection", description: "Review of identity, premises and constitution proofs." },
+      { title: "Verification", description: "TRN & ARN processing and tax officer scrutiny." },
+      { title: "Payment", description: "The CA manager will assign the amount after verification. Payment progress will appear in the Payments tab." },
+      { title: "Completed", description: "Processing continues after successful payment, according to the service workflow." },
     ];
   } else if (sid.includes("cancellation")) {
     baseSteps = [
-      { title: "Cancellation Submitted", description: "Form REG-16 submitted with grounds for cancellation" },
-      { title: "Document Collection", description: "Verification of stock and ITC liabilities" },
-      { title: "Verification", description: "Tax officer reviewing cancellation grounds" },
-      { title: "Completed", description: "Final registration cancellation order (REG-19) issued" },
+      { title: "Cancellation Submitted", description: submittedDesc },
+      { title: "Document Collection", description: "Review of identity, premises and constitution proofs." },
+      { title: "Verification", description: "TRN & ARN processing and tax officer scrutiny." },
+      { title: "Payment", description: "The CA manager will assign the amount after verification. Payment progress will appear in the Payments tab." },
+      { title: "Completed", description: "Processing continues after successful payment, according to the service workflow." },
     ];
   } else if (sid.includes("filing") && cat === "GST") {
     baseSteps = [
-      { title: "Filing Data Submitted", description: "Sales, purchase & turnover details received" },
-      { title: "Document Collection", description: "Input Tax Credit & invoice records checked" },
-      { title: "Verification", description: "CA reconciliation and return computation" },
-      { title: "Completed", description: "Portal e-filing confirmed and ARN generated" },
+      { title: "Filing Data Submitted", description: submittedDesc },
+      { title: "Document Collection", description: "Review of identity, premises and constitution proofs." },
+      { title: "Verification", description: "TRN & ARN processing and tax officer scrutiny." },
+      { title: "Payment", description: "The CA manager will assign the amount after verification. Payment progress will appear in the Payments tab." },
+      { title: "Completed", description: "Processing continues after successful payment, according to the service workflow." },
     ];
   } else if (cat === "GST" || sid.includes("gst")) {
     baseSteps = [
-      { title: "Application Submitted", description: "GST registration application filed online" },
-      { title: "Document Collection", description: "Review of identity, premises and constitution proofs" },
-      { title: "Verification", description: "TRN & ARN processing and tax officer scrutiny" },
-      { title: "Completed", description: "GST certificate and GSTIN issued" },
+      { title: "Application Submitted", description: submittedDesc },
+      { title: "Document Collection", description: "Review of identity, premises and constitution proofs." },
+      { title: "Verification", description: "TRN & ARN processing and tax officer scrutiny." },
+      { title: "Payment", description: "The CA manager will assign the amount after verification. Payment progress will appear in the Payments tab." },
+      { title: "Completed", description: "Processing continues after successful payment, according to the service workflow." },
     ];
   } else if (sid.includes("notice")) {
     baseSteps = [
-      { title: "Application Submitted", description: "Tax notice and response inputs received" },
-      { title: "Document Collection", description: "Supporting proofs and financial records collected" },
-      { title: "Verification", description: "CA case evaluation and draft reply preparation" },
-      { title: "Completed", description: "Response e-filed on Income Tax compliance portal" },
+      { title: "Application Submitted", description: submittedDesc },
+      { title: "Document Collection", description: "Review of identity, premises and constitution proofs." },
+      { title: "Verification", description: "TRN & ARN processing and tax officer scrutiny." },
+      { title: "Payment", description: "The CA manager will assign the amount after verification. Payment progress will appear in the Payments tab." },
+      { title: "Completed", description: "Processing continues after successful payment, according to the service workflow." },
     ];
   } else if (cat === "ITR" || sid.includes("itr") || sid.includes("tds")) {
     baseSteps = [
-      { title: "Application Submitted", description: "Income, deductions & personal details received" },
-      { title: "Document Collection", description: "Form 16, 26AS/AIS and financial proofs collected" },
-      { title: "Verification", description: "CA computation & dual-regime tax review" },
-      { title: "Completed", description: "ITR filed & CPC acknowledgment generated" },
+      { title: "Application Submitted", description: submittedDesc },
+      { title: "Document Collection", description: "Review of identity, premises and constitution proofs." },
+      { title: "Verification", description: "TRN & ARN processing and tax officer scrutiny." },
+      { title: "Payment", description: "The CA manager will assign the amount after verification. Payment progress will appear in the Payments tab." },
+      { title: "Completed", description: "Processing continues after successful payment, according to the service workflow." },
     ];
   } else if (cat === "LOANS" || sid.startsWith("loan")) {
     baseSteps = [
-      { title: "Loan Application Submitted", description: "Borrower details and financial profiles received" },
-      { title: "Document Collection", description: "KYC, income proofs and credit profile checked" },
-      { title: "Verification", description: "Credit assessment, bureau check and underwriting" },
-      { title: "Completed", description: "Loan sanction and disbursement confirmation" },
+      { title: "Loan Application Submitted", description: submittedDesc },
+      { title: "Document Collection", description: "Review of identity, premises and constitution proofs." },
+      { title: "Verification", description: "TRN & ARN processing and tax officer scrutiny." },
+      { title: "Payment", description: "The CA manager will assign the amount after verification. Payment progress will appear in the Payments tab." },
+      { title: "Completed", description: "Processing continues after successful payment, according to the service workflow." },
     ];
   } else if (cat === "BUSINESS" || sid.includes("company") || sid.includes("incorporation")) {
     baseSteps = [
-      { title: "Application Submitted", description: "Name choices, director details & constitution received" },
-      { title: "Document Collection", description: "DSC, DIN and SPICe+ documents collected" },
-      { title: "Verification", description: "ROC filing, name approval & MCA scrutiny" },
-      { title: "Completed", description: "COI, PAN and TAN issuance" },
+      { title: "Application Submitted", description: submittedDesc },
+      { title: "Document Collection", description: "Review of identity, premises and constitution proofs." },
+      { title: "Verification", description: "TRN & ARN processing and tax officer scrutiny." },
+      { title: "Payment", description: "The CA manager will assign the amount after verification. Payment progress will appear in the Payments tab." },
+      { title: "Completed", description: "Processing continues after successful payment, according to the service workflow." },
     ];
   } else {
     baseSteps = [
-      { title: "Application Submitted", description: "Application submitted successfully" },
-      { title: "Document Collection", description: "Documents are being collected or checked" },
-      { title: "Verification", description: "Application details are being verified" },
-      { title: "Completed", description: "Final filing, approval, or completion confirmation" },
+      { title: "Application Submitted", description: submittedDesc },
+      { title: "Document Collection", description: "Review of identity, premises and constitution proofs." },
+      { title: "Verification", description: "TRN & ARN processing and tax officer scrutiny." },
+      { title: "Payment", description: "The CA manager will assign the amount after verification. Payment progress will appear in the Payments tab." },
+      { title: "Completed", description: "Processing continues after successful payment, according to the service workflow." },
     ];
   }
 
@@ -257,7 +270,27 @@ export function getServiceSpecificTimeline(app: Application, appliedDate?: strin
     }));
   }
 
-  // 7. DEFAULT (Submitted / New Request / etc.):
+  // 7. PAYMENT STAGE
+  const isPaymentStage =
+    s.includes("payment") ||
+    s.includes("pay") ||
+    s.includes("fee");
+
+  if (isPaymentStage) {
+    return baseSteps.map((step, idx) => ({
+      title: step.title,
+      description: step.description,
+      status:
+        idx <= 2
+          ? ("completed" as const)
+          : idx === 3
+            ? ("current" as const)
+            : ("pending" as const),
+      date: idx === 0 ? appliedDate : undefined,
+    }));
+  }
+
+  // 8. DEFAULT (Submitted / New Request / etc.):
   return baseSteps.map((step, idx) => ({
     title: step.title,
     description: step.description,

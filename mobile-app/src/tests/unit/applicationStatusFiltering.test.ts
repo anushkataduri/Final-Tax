@@ -486,7 +486,7 @@ test("Under Verification filter: 10 regression acceptance checks", () => {
 test("getApplicationEmptyState generates correct messages and actions", () => {
   // Empty store
   const emptyStore = getApplicationEmptyState(0, "ALL", "");
-  assert.equal(emptyStore.title, "No applications yet");
+  assert.equal(emptyStore.title, "No Applications Submitted");
   assert.equal(emptyStore.buttonText, null);
 
   // Filtered by In Progress with 0 results

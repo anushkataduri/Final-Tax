@@ -23,6 +23,9 @@ import { styles } from "./ActiveApplicationsScreen.styles";
 import { ApplicationCardItem } from "@/components/screens/applications/ApplicationCardItem";
 import { OverviewCard, type StatusFilterType, type OverviewItem } from "@/components/screens/applications/OverviewCard";
 import { CategoryFilterModal, CATEGORY_FILTER_OPTIONS } from "@/components/screens/applications/CategoryFilterModal";
+import { ApplicationsEmptyState } from "@/components/screens/applications/ApplicationsEmptyState";
+import { useAuthStore } from "@/modules/authentication/store/authStore";
+import { isProfileComplete } from "@/shared/guards/serviceAccess";
 import {
   normalizeApplicationStatus,
   matchesStatusFilter,
@@ -47,7 +50,26 @@ export function ActiveApplicationsScreen() {
   const error = useApplicationStore((s) => s.error);
   const loadApplications = useApplicationStore((s) => s.loadApplications);
 
+  const authCustomer = useAuthStore((s) => s.customer);
+  const authUser = useAuthStore((s) => s.authenticatedUser);
+  const authProfileCompleted = useAuthStore((s) => s.profileCompleted);
+  const authIsExistingUser = useAuthStore((s) => s.isExistingUser);
+  const authCustomerExists = useAuthStore((s) => s.customerExists);
+
+  const isProfileCompleted = useMemo(
+    () =>
+      isProfileComplete({
+        profileCompleted: authProfileCompleted,
+        isExistingUser: authIsExistingUser,
+        customerExists: authCustomerExists,
+        customer: authCustomer,
+        authenticatedUser: authUser,
+      }),
+    [authCustomer, authUser, authProfileCompleted, authIsExistingUser, authCustomerExists]
+  );
+
   const [refreshing, setRefreshing] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilterKey, setSelectedFilterKey] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("ALL");
@@ -58,12 +80,11 @@ export function ActiveApplicationsScreen() {
       await loadApplications();
     } catch (err) {
       logger.warn("[ActiveApplications] Failed to fetch applications:", { error: err });
+    } finally {
+      setHasLoadedOnce(true);
     }
   }, [loadApplications]);
 
-  useEffect(() => {
-    fetchApplications();
-  }, [fetchApplications]);
 
   useFocusEffect(
     useCallback(() => {
@@ -174,13 +195,12 @@ export function ActiveApplicationsScreen() {
     <View style={[styles.container, { backgroundColor: isDark ? colors.background : "#F8FAFC" }]}>
       <FocusAwareStatusBar barStyle="light-content" backgroundColor="#0A2346" />
 
-      {/* ── Navy Header (Screen 1 Reference) ── */}
+      {/* ── Navy Header with KPI Overview Card ── */}
       <View style={[styles.navyHeader, { paddingTop: insets.top + 10 }]}>
         <View style={styles.headerTopRow}>
-          <View style={styles.taxedgeLogoRow}>
-            <Text style={styles.taxedgeLogoText}>
-              Tax<Text style={styles.taxedgeLogoAccent}>Edge</Text>
-            </Text>
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.headerTitle}>My Applications</Text>
+            <Text style={styles.headerSubtitle}>Track all your service applications</Text>
           </View>
           <TouchableOpacity
             activeOpacity={0.8}
@@ -191,29 +211,24 @@ export function ActiveApplicationsScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>My Applications</Text>
-          <Text style={styles.headerSubtitle}>Track all your service applications</Text>
+        {/* ── 4-Column Overview KPI Card (Inside Navy Header) ── */}
+        <View style={styles.overviewCardWrapper}>
+          <OverviewCard
+            items={overviewItems}
+            statusFilter={statusFilter}
+            selectedCategory={selectedFilterKey}
+            isDark={isDark}
+            colors={colors}
+            onSelect={setStatusFilter}
+            onOpenCategoryFilter={() => setShowCategoryFilterModal(true)}
+            cardBg={cardBg}
+            cardBorder={cardBorder}
+          />
         </View>
       </View>
 
-      {/* ── 4-Column Overview KPI Card (Floating) ── */}
-      <View style={styles.overviewCardWrapper}>
-        <OverviewCard
-          items={overviewItems}
-          statusFilter={statusFilter}
-          selectedCategory={selectedFilterKey}
-          isDark={isDark}
-          colors={colors}
-          onSelect={setStatusFilter}
-          onOpenCategoryFilter={() => setShowCategoryFilterModal(true)}
-          cardBg={cardBg}
-          cardBorder={cardBorder}
-        />
-      </View>
-
-      {/* ── Search Bar & Filter Button Row ── */}
-      <View style={styles.searchFilterRow}>
+      {/* ── Full-Width Search Bar (Immediately below curved navy header) ── */}
+      <View style={styles.searchRow}>
         <View style={[styles.searchContainer, isDark && styles.searchContainerDark]}>
           <Ionicons name="search-outline" size={18} color="#94A3B8" />
           <TextInput
@@ -233,13 +248,6 @@ export function ActiveApplicationsScreen() {
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => setShowCategoryFilterModal(true)}
-          style={[styles.filterBtn, isDark && styles.filterBtnDark]}
-        >
-          <Ionicons name="funnel-outline" size={18} color="#0A2346" />
-        </TouchableOpacity>
       </View>
 
       {/* ── Category Filter Pills ── */}
@@ -294,14 +302,14 @@ export function ActiveApplicationsScreen() {
           />
         }
         ListEmptyComponent={
-          isLoading && applications.length === 0 ? (
+          (!hasLoadedOnce || isLoading) && applications.length === 0 ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#FF5722" />
               <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
                 Loading applications...
               </Text>
             </View>
-          ) : error && applications.length === 0 ? (
+          ) : isProfileCompleted && Boolean(error) && applications.length === 0 ? (
             <View style={[styles.errorContainer, { backgroundColor: cardBg, borderColor: isDark ? colors.border : "#FEE2E2" }]}>
               <Ionicons name="alert-circle-outline" size={44} color="#EA580C" />
               <Text style={[styles.errorTitle, { color: isDark ? colors.text : "#0F172A" }]}>
@@ -313,34 +321,18 @@ export function ActiveApplicationsScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons
-                name="folder-open-outline"
-                size={48}
-                color={colors.textSecondary}
-                style={styles.emptyIcon}
-              />
-              <Text
-                style={[
-                  styles.emptyText,
-                  { color: isDark ? colors.text : "#0F172A", fontWeight: "600" },
-                ]}
-              >
-                {emptyState.title}
-              </Text>
-              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                {emptyState.subtitle}
-              </Text>
-              {emptyState.buttonText && (
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={handleEmptyReset}
-                  style={[styles.retryButton, { marginTop: 14 }]}
-                >
-                  <Text style={styles.retryButtonText}>{emptyState.buttonText}</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+            <ApplicationsEmptyState
+              isProfileCompleted={isProfileCompleted}
+              hasApplications={uniqueApplications.length > 0}
+              emptyState={emptyState}
+              onCompleteProfile={() => router.push("/(auth)/createprofile")}
+              onExploreServices={() => router.push("/services")}
+              onResetFilter={handleEmptyReset}
+              isDark={isDark}
+              colors={colors}
+              cardBg={cardBg}
+              cardBorder={cardBorder}
+            />
           )
         }
         renderItem={({ item }) => (

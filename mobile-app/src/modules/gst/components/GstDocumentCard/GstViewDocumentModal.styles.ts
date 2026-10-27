@@ -49,7 +49,7 @@ export const styles = StyleSheet.create({
     overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   previewImage: {
     width: "100%",

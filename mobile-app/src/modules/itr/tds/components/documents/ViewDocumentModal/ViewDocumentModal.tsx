@@ -70,16 +70,6 @@ export const ViewDocumentModal: React.FC<ViewDocumentModalProps> = ({
                 )}
               </View>
 
-              {/* Meta Info */}
-              <View style={styles.metaContainer}>
-                <Text style={styles.fileNameText} numberOfLines={1}>
-                  {fileName || "Document File"}
-                </Text>
-                <Text style={styles.fileMetaText}>
-                  {`${fileTypeLabel || "FILE"} • ${fileSize || "Uploaded"}`}
-                </Text>
-              </View>
-
               {/* Done Button */}
               <TouchableOpacity
                 activeOpacity={0.8}

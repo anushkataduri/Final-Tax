@@ -21,17 +21,29 @@ const MONTH_NAMES = [
 ] as const;
 
 function formatDisplayDate(dateStr?: string): string {
-  if (!dateStr) return "";
-  if (MONTH_NAMES.some((m) => dateStr.includes(m))) return dateStr;
+  if (!dateStr || typeof dateStr !== "string") return "";
+  const trimmed = dateStr.trim();
+  if (!trimmed) return "";
+  if (MONTH_NAMES.some((m) => trimmed.includes(m))) return trimmed;
+  const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const year = match[1];
+    const monthIdx = parseInt(match[2], 10) - 1;
+    const day = parseInt(match[3], 10);
+    const month = MONTH_NAMES[monthIdx];
+    if (month) {
+      return `${day} ${month} ${year}`;
+    }
+  }
   try {
-    const d = new Date(dateStr);
+    const d = new Date(trimmed);
     if (!isNaN(d.getTime())) {
       return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
     }
   } catch {
     // fallback
   }
-  return dateStr;
+  return trimmed;
 }
 
 interface StatusBadgeConfig {
@@ -47,7 +59,9 @@ const STATUS_CONFIGS: StatusBadgeConfig[] = [
       s.includes("complete") ||
       s.includes("disbursed") ||
       s.includes("active") ||
-      s.includes("approved"),
+      s.includes("approved") ||
+      s.includes("sanctioned") ||
+      s.includes("closed"),
     bg: "#DCFCE7",
     text: "#16A34A",
     label: "Completed",
@@ -59,27 +73,41 @@ const STATUS_CONFIGS: StatusBadgeConfig[] = [
     label: "Submitted",
   },
   {
+    matcher: (s) =>
+      s.includes("verification") || s.includes("review") || s.includes("scrutiny"),
+    bg: "#E0F2FE",
+    text: "#0284C7",
+    label: "Under Verification",
+  },
+  {
     matcher: (s) => s.includes("progress") || s.includes("process"),
     bg: "#FFEDD5",
     text: "#EA580C",
     label: "In Progress",
   },
   {
-    matcher: (s) => s.includes("verification") || s.includes("review"),
-    bg: "#E0F2FE",
-    text: "#0284C7",
-    label: "Under Verification",
+    matcher: (s) => s.includes("reject") || s.includes("fail") || s.includes("cancel"),
+    bg: "#FEE2E2",
+    text: "#DC2626",
+    label: "Rejected",
   },
 ];
 
 export function getStatusBadgeStyle(status?: string) {
-  const lower = (status || "").toLowerCase();
+  if (!status || !status.trim()) {
+    return {
+      bg: "#DCFCE7",
+      text: "#16A34A",
+      label: "Submitted",
+    };
+  }
+  const lower = status.trim().toLowerCase();
   const matched = STATUS_CONFIGS.find((cfg) => cfg.matcher(lower));
   return (
     matched ?? {
       bg: "#EFF6FF",
       text: "#083B75",
-      label: status || "Submitted",
+      label: status,
     }
   );
 }
@@ -104,21 +132,23 @@ export function ApplicationCardItem({
   const badge = getStatusBadgeStyle(item.status);
   const isDraft = item.status === "Draft" || Boolean(item.formData?.isDraft);
 
-  const displayId =
-    (item.formData?.arn ? String(item.formData.arn) : null) ||
-    (item.formData?.applicationId ? String(item.formData.applicationId) : null) ||
-    item.id;
-
   const displayName =
     item.serviceId === "gst-cancellation"
       ? "GST Cancellation (REG-16)"
       : item.serviceId === "gst-amendment" && item.formData?.section
         ? `GST Amendment — ${item.formData.section}`
-        : item.serviceName || "TaxEdge Service";
+        : item.serviceId === "gst-compliance" &&
+            item.formData?.requestType &&
+            !item.serviceName?.includes(item.formData.requestType)
+          ? `GST Compliance — ${item.formData.requestType}`
+          : item.serviceName || "TaxEdge Service";
 
-  const formattedDate = formatDisplayDate(
-    item.formData?.submissionDate || item.formData?.appliedDate || item.createdAt
-  );
+  const rawDate =
+    item.formData?.submissionDate ||
+    item.formData?.appliedDate ||
+    item.createdAt ||
+    "";
+  const formattedDate = formatDisplayDate(rawDate);
 
   return (
     <TouchableOpacity
@@ -139,24 +169,17 @@ export function ApplicationCardItem({
       />
 
       <View style={styles.cardContent}>
-        <Text
-          style={[styles.serviceNameText, { color: textColor }]}
-          numberOfLines={1}
-        >
+        <Text style={[styles.serviceNameText, { color: textColor }]}>
           {displayName}
         </Text>
 
-        <Text style={styles.appIdText} numberOfLines={1}>
-          {displayId}
-        </Text>
-
         {formattedDate ? (
-          <Text style={styles.dateText}>{formattedDate}</Text>
+          <Text style={[styles.appliedDateText, isDark && styles.appliedDateTextDark]}>
+            {formattedDate}
+          </Text>
         ) : null}
-      </View>
 
-      <View style={styles.cardRightColumn}>
-        <View style={styles.cardBadgeWithArrow}>
+        <View style={styles.cardBadgeRow}>
           {isDraft ? (
             <View style={styles.resumeBadge}>
               <Text style={styles.resumeBadgeText}>Draft</Text>
@@ -168,13 +191,16 @@ export function ApplicationCardItem({
               </Text>
             </View>
           )}
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color="#94A3B8"
-            style={styles.cardChevron}
-          />
         </View>
+      </View>
+
+      <View style={styles.cardChevronWrap}>
+        <Ionicons
+          name="chevron-forward"
+          size={18}
+          color="#94A3B8"
+          style={styles.cardChevron}
+        />
       </View>
     </TouchableOpacity>
   );

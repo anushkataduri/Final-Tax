@@ -22,9 +22,9 @@ test("ApplicationHeader: source file layout contracts", () => {
     "Header must display Application Details"
   );
 
-  // 2. Application name appears directly underneath
+  // 2. Application name appears directly underneath without line clipping
   assert.ok(
-    content.includes('<Text style={styles.navAppName} numberOfLines={1}>'),
+    content.includes('<Text style={styles.navAppName}>'),
     "Application name must be rendered directly underneath"
   );
   assert.ok(
@@ -32,7 +32,7 @@ test("ApplicationHeader: source file layout contracts", () => {
     "Application name must dynamically render {serviceName}"
   );
 
-  // 3. Back button is preserved
+  // 3. Back button and Settings button are preserved
   assert.ok(
     content.includes('style={styles.backButton}'),
     "Back button must be preserved in header"
@@ -40,6 +40,14 @@ test("ApplicationHeader: source file layout contracts", () => {
   assert.ok(
     content.includes('name="arrow-back"'),
     "Back button arrow icon must be preserved"
+  );
+  assert.ok(
+    content.includes('style={styles.settingsButton}'),
+    "Settings button must be preserved in header"
+  );
+  assert.ok(
+    content.includes('name="settings-outline"'),
+    "Settings icon must be preserved"
   );
 
   // 4. Floating summary card is removed
@@ -247,14 +255,14 @@ test("StatusTab: layout contracts & removal of Current Status card", () => {
     "StatusTab must render exactly 1 card containing the timeline"
   );
 
-  // 3. Top Dynamic Status Summary Card & Bottom Guidance Card
+  // 3. Top Dynamic Status Summary Card & Removal of Bottom Guidance Card
   assert.ok(
     content.includes("styles.statusSummaryCard"),
     "StatusTab must render the dynamic status summary card above timeline"
   );
   assert.ok(
-    content.includes("styles.statusGuidanceCard"),
-    "StatusTab must render the dynamic bottom guidance card below timeline"
+    !content.includes("styles.statusGuidanceCard"),
+    "StatusTab must remove the bottom guidance card below timeline per prompt"
   );
 
   // 4. Circle states: completed, current, pending, rejected
@@ -269,10 +277,10 @@ test("StatusTab: layout contracts & removal of Current Status card", () => {
   assert.ok(content.includes("styles.timelineBadgePending"), "Must use timelineBadgePending");
   assert.ok(content.includes("styles.timelineBadgeRejected"), "Must use timelineBadgeRejected");
 
-  // 6. Progress line reflects progress
+  // 6. Progress line reflects stage visual configs
   assert.ok(
-    content.includes('isCompleted ? "#16A34A" : "#E2E8F0"'),
-    "Connecting vertical line must reflect progress with #16A34A"
+    content.includes("stageConfig.connectorColor"),
+    "Connecting vertical line must reflect stage visual config colors"
   );
 });
 
@@ -297,7 +305,7 @@ test("getServiceSpecificTimeline: representative applications test across catego
     chatHistory: [],
   };
   const gstSteps = getServiceSpecificTimeline(gstApp, appliedDate);
-  assert.equal(gstSteps.length, 4, "GST Registration must have 4 timeline stages");
+  assert.equal(gstSteps.length, 5, "GST Registration must have 5 timeline stages");
   assert.equal(gstSteps[0].title, "Application Submitted");
   assert.equal(gstSteps[0].status, "completed");
   assert.equal(gstSteps[0].date, appliedDate);
@@ -305,8 +313,10 @@ test("getServiceSpecificTimeline: representative applications test across catego
   assert.equal(gstSteps[1].status, "current");
   assert.equal(gstSteps[2].title, "Verification");
   assert.equal(gstSteps[2].status, "pending");
-  assert.equal(gstSteps[3].title, "Completed");
+  assert.equal(gstSteps[3].title, "Payment");
   assert.equal(gstSteps[3].status, "pending");
+  assert.equal(gstSteps[4].title, "Completed");
+  assert.equal(gstSteps[4].status, "pending");
 
   // 2. GST Amendment
   const amendmentApp: Application = {
@@ -317,15 +327,17 @@ test("getServiceSpecificTimeline: representative applications test across catego
     status: "Under Verification",
   };
   const amendSteps = getServiceSpecificTimeline(amendmentApp, appliedDate);
-  assert.equal(amendSteps.length, 4, "GST Amendment must have 4 timeline stages");
+  assert.equal(amendSteps.length, 5, "GST Amendment must have 5 timeline stages");
   assert.equal(amendSteps[0].title, "Amendment Submitted");
   assert.equal(amendSteps[0].status, "completed");
   assert.equal(amendSteps[1].title, "Document Collection");
   assert.equal(amendSteps[1].status, "completed");
   assert.equal(amendSteps[2].title, "Verification");
   assert.equal(amendSteps[2].status, "current");
-  assert.equal(amendSteps[3].title, "Completed");
+  assert.equal(amendSteps[3].title, "Payment");
   assert.equal(amendSteps[3].status, "pending");
+  assert.equal(amendSteps[4].title, "Completed");
+  assert.equal(amendSteps[4].status, "pending");
 
   // 3. Company Registration
   const companyApp: Application = {
@@ -337,15 +349,17 @@ test("getServiceSpecificTimeline: representative applications test across catego
     status: "In Progress",
   };
   const compSteps = getServiceSpecificTimeline(companyApp, appliedDate);
-  assert.equal(compSteps.length, 4, "Company Registration must have 4 timeline stages");
+  assert.equal(compSteps.length, 5, "Company Registration must have 5 timeline stages");
   assert.equal(compSteps[0].title, "Application Submitted");
   assert.equal(compSteps[0].status, "completed");
   assert.equal(compSteps[1].title, "Document Collection");
   assert.equal(compSteps[1].status, "completed");
   assert.equal(compSteps[2].title, "Verification");
   assert.equal(compSteps[2].status, "current");
-  assert.equal(compSteps[3].title, "Completed");
+  assert.equal(compSteps[3].title, "Payment");
   assert.equal(compSteps[3].status, "pending");
+  assert.equal(compSteps[4].title, "Completed");
+  assert.equal(compSteps[4].status, "pending");
 
   // 4. ITR
   const itrApp: Application = {
@@ -357,15 +371,17 @@ test("getServiceSpecificTimeline: representative applications test across catego
     status: "Approved",
   };
   const itrSteps = getServiceSpecificTimeline(itrApp, appliedDate);
-  assert.equal(itrSteps.length, 4, "ITR must have 4 timeline stages");
+  assert.equal(itrSteps.length, 5, "ITR must have 5 timeline stages");
   assert.equal(itrSteps[0].title, "Application Submitted");
   assert.equal(itrSteps[0].status, "completed");
   assert.equal(itrSteps[1].title, "Document Collection");
   assert.equal(itrSteps[1].status, "completed");
   assert.equal(itrSteps[2].title, "Verification");
   assert.equal(itrSteps[2].status, "completed");
-  assert.equal(itrSteps[3].title, "Completed");
+  assert.equal(itrSteps[3].title, "Payment");
   assert.equal(itrSteps[3].status, "completed");
+  assert.equal(itrSteps[4].title, "Completed");
+  assert.equal(itrSteps[4].status, "completed");
   assert.ok(!itrSteps.some((s) => s.description.toLowerCase().includes("gst")), "ITR must not contain GST text");
 
   // 5. Loan Application
@@ -378,13 +394,14 @@ test("getServiceSpecificTimeline: representative applications test across catego
     status: "Draft",
   };
   const loanSteps = getServiceSpecificTimeline(loanApp, appliedDate);
-  assert.equal(loanSteps.length, 4, "Loan application must have 4 timeline stages");
+  assert.equal(loanSteps.length, 5, "Loan application must have 5 timeline stages");
   assert.equal(loanSteps[0].title, "Loan Application Submitted");
   assert.equal(loanSteps[0].status, "current");
   assert.equal(loanSteps[0].date, undefined, "Draft must not fabricate a submission date");
   assert.equal(loanSteps[1].status, "pending");
   assert.equal(loanSteps[2].status, "pending");
   assert.equal(loanSteps[3].status, "pending");
+  assert.equal(loanSteps[4].status, "pending");
   assert.ok(!loanSteps.some((s) => s.description.toLowerCase().includes("gst")), "Loan must not contain GST text");
 });
 
@@ -401,10 +418,26 @@ test("[id].styles.ts: styling requirements", () => {
     "Navy header must use #0A2346 background"
   );
 
-  // 2. Nav app name color is light blue (#8FC5FF) and centered
+  // 2. Nav app name is prominent subtitle with bold white text
   assert.ok(
-    content.includes('navAppName: { fontSize: 14, fontWeight: "600", color: "#8FC5FF", marginTop: 3, textAlign: "center" }'),
-    "Application name must be #8FC5FF, light blue, centered, smaller font"
+    content.includes('navAppName: {'),
+    "Must have navAppName style"
+  );
+  assert.ok(
+    content.includes('fontSize: 18'),
+    "navAppName must have prominent fontSize 18"
+  );
+  assert.ok(
+    content.includes('fontWeight: "700"'),
+    "navAppName must have prominent fontWeight 700"
+  );
+  assert.ok(
+    content.includes('color: "#FFFFFF"'),
+    "navAppName must be prominent white #FFFFFF"
+  );
+  assert.ok(
+    content.includes('settingsButton: {'),
+    "Must have settingsButton style"
   );
 
   // 3. What happens next styles
@@ -429,6 +462,34 @@ test("[id].styles.ts: styling requirements", () => {
     lines < 400,
     `[id].styles.ts must be below 400 lines (current: ${lines})`
   );
+});
+
+test("ApplicationHeader & [id].tsx: header displays only title and prominent dynamic service name without metadata", () => {
+  const headerPath = path.join(
+    process.cwd(),
+    "src/components/screens/application/ApplicationHeader.tsx"
+  );
+  const headerContent = fs.readFileSync(headerPath, "utf-8");
+
+  // 1. Confirm only title and serviceName are in header JSX
+  assert.ok(headerContent.includes("<Text style={styles.navTitle}>Application Details</Text>"));
+  assert.ok(headerContent.includes("<Text style={styles.navAppName}>\n              {serviceName}\n            </Text>") || headerContent.includes("{serviceName}"));
+
+  // 2. Confirm application ID, trader/customer name, and dates are removed from the header JSX
+  assert.ok(!headerContent.includes("APPLICATION #"));
+  assert.ok(!headerContent.includes("{displayId}"));
+  assert.ok(!headerContent.includes("{submittedOnText}"));
+  assert.ok(!headerContent.includes("traderName"));
+  assert.ok(!headerContent.includes("customerName"));
+
+  // 3. Confirm dynamic service name resolution in [id].tsx
+  const idPath = path.join(
+    process.cwd(),
+    "src/app/application/[id].tsx"
+  );
+  const idContent = fs.readFileSync(idPath, "utf-8");
+  assert.ok(idContent.includes("filingPeriod"));
+  assert.ok(idContent.includes("displayName"));
 });
 
 test("Modified files remain strictly below 400 lines", () => {

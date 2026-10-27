@@ -228,20 +228,6 @@ export const GstViewDocumentModal: React.FC<GstViewDocumentModalProps> = ({
                 </View>
               ) : null}
 
-              {/* Meta Info */}
-              <View style={styles.metaContainer}>
-                <Text
-                  style={styles.fileNameText}
-                  numberOfLines={2}
-                  ellipsizeMode="middle"
-                >
-                  {fileName || "Document File"}
-                </Text>
-                <Text style={styles.fileMetaText}>
-                  {`${docType.typeLabel} • ${fileSize || "Uploaded"}`}
-                </Text>
-              </View>
-
               {/* Done Button */}
               <TouchableOpacity
                 activeOpacity={0.8}

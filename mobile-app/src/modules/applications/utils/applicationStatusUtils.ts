@@ -187,8 +187,8 @@ export function getApplicationEmptyState(
 ): ApplicationEmptyStateDetails {
   if (totalCount === 0) {
     return {
-      title: "No applications yet",
-      subtitle: "Your real submitted applications will appear here",
+      title: "No Applications Submitted",
+      subtitle: "You haven't submitted any applications yet. Start by choosing a service that suits your needs.",
       buttonText: null,
       resetType: null,
     };

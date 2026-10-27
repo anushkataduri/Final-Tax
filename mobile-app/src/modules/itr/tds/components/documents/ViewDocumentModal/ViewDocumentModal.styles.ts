@@ -95,7 +95,7 @@ export const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 16,
+    marginTop: 20,
   },
   doneButtonText: {
     fontSize: 14,

@@ -150,7 +150,7 @@ test("Service categories: workflow stages and outcome guidance across diverse se
   });
   const gstRes = resolveApplicationStatusUI(gstApp, appliedDate);
   assert.ok(gstRes.summary.description.includes("GST"));
-  assert.equal(gstRes.timelineSteps.length, 4);
+  assert.equal(gstRes.timelineSteps.length, 5);
   assert.equal(gstRes.timelineSteps[0].title, "Application Submitted");
 
   // 2. GST Amendment
@@ -218,6 +218,7 @@ test("Timeline stages: No fabricated dates or outcomes on Draft, Unknown, or Sub
   assert.equal(draftSteps[1].status, "pending");
   assert.equal(draftSteps[2].status, "pending");
   assert.equal(draftSteps[3].status, "pending");
+  assert.equal(draftSteps[4].status, "pending");
 
   // Unknown: no dates, step 0 current, rest pending
   const unknownSteps = getServiceSpecificTimeline(
@@ -227,7 +228,7 @@ test("Timeline stages: No fabricated dates or outcomes on Draft, Unknown, or Sub
   assert.equal(unknownSteps[0].date, undefined, "Unknown must not fabricate date");
   assert.equal(unknownSteps[0].status, "current");
 
-  // Submitted: step 0 completed on appliedDate, step 1 current, steps 2-3 pending
+  // Submitted: step 0 completed on appliedDate, step 1 current, steps 2-4 pending
   const submittedSteps = getServiceSpecificTimeline(
     createMockApp({ status: "Submitted" }),
     appliedDate
@@ -237,6 +238,7 @@ test("Timeline stages: No fabricated dates or outcomes on Draft, Unknown, or Sub
   assert.equal(submittedSteps[1].status, "current");
   assert.equal(submittedSteps[2].status, "pending");
   assert.equal(submittedSteps[3].status, "pending");
+  assert.equal(submittedSteps[4].status, "pending");
 });
 
 test("StatusTab source structure: dynamic cards and removal of duplicate current status", () => {
@@ -246,18 +248,14 @@ test("StatusTab source structure: dynamic cards and removal of duplicate current
   );
   const content = fs.readFileSync(filePath, "utf-8");
 
-  // Verify all 3 cards are present:
+  // Verify summary and timeline cards are present:
   assert.ok(content.includes("styles.statusSummaryCard"), "Summary card present");
   assert.ok(content.includes("styles.card"), "Timeline card present");
-  assert.ok(content.includes("styles.statusGuidanceCard"), "Guidance card present");
+  assert.ok(!content.includes("styles.statusGuidanceCard"), "Guidance card removed per prompt");
 
   // Verify duplicate Current Status card is absent
   assert.ok(!content.includes("currentStatusCard"), "Old currentStatusCard is absent");
   assert.ok(!content.includes("Current Status"), "Duplicate Current Status is absent");
-
-  // Verify action row for guidance shortcuts
-  assert.ok(content.includes("statusGuidanceActionRow"), "Guidance action row present");
-  assert.ok(content.includes("onNavigateTab"), "onNavigateTab prop is utilized");
 
   // Verify rejection circle & badge handling
   assert.ok(content.includes("circleRejected"), "Rejection circle style handled");

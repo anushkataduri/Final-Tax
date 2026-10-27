@@ -55,6 +55,7 @@ export function OverviewTab({
       label: "Application ID",
       value: resolvedDisplayId,
       icon: "person-outline" as const,
+      isAppId: true,
     },
     {
       label: "Submission Date",
@@ -87,7 +88,7 @@ export function OverviewTab({
       {/* ── 1. Application Details Card ── */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Application Details</Text>
-        <View style={styles.cardRowsGap12}>
+        <View style={styles.detailsRowsWrap}>
           {applicationDetailsRows.map((row) => (
             <View key={row.label} style={styles.itemRow}>
               <View style={styles.itemRowLeft}>
@@ -96,15 +97,17 @@ export function OverviewTab({
                 </View>
                 <Text style={styles.itemRowLabel}>{row.label}</Text>
               </View>
-              <Text
-                style={[
-                  styles.itemRowValue,
-                  row.isStatus ? { color: statusBadge.text } : null,
-                ]}
-                numberOfLines={1}
-              >
-                {row.value}
-              </Text>
+              <View style={styles.itemRowRight}>
+                <Text
+                  style={[
+                    styles.itemRowValue,
+                    row.isStatus ? { color: statusBadge.text } : null,
+                    row.isAppId ? styles.appIdRowValue : null,
+                  ]}
+                >
+                  {row.value}
+                </Text>
+              </View>
             </View>
           ))}
         </View>

@@ -54,15 +54,37 @@ export default function ApplicationDetailScreen() {
         a.formData?.applicationId === id
     ) || remoteApp;
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (
+    attachment?: { uri: string; fileName: string; fileSize?: number; mimeType: string } | null,
+  ) => {
     const text = chatInput.trim();
-    if (!text || !app) return;
-    setChatInput("");
+    if (!text && !attachment) return;
+    if (!app) return;
     setIsSendingChat(true);
     try {
-      await addChatMessage(app.id, "user", text);
-    } catch {
-      // Handled in store
+      let remoteUrl: string | undefined;
+      if (attachment) {
+        const uploaded = await applicationService.uploadChatAttachment(app.id, {
+          uri: attachment.uri,
+          name: attachment.fileName,
+          type: attachment.mimeType,
+          size: attachment.fileSize,
+        });
+        if (uploaded) {
+          remoteUrl = uploaded;
+        }
+      }
+      addChatMessage(app.id, "user", text, attachment ? {
+        uri: attachment.uri,
+        url: remoteUrl,
+        fileName: attachment.fileName,
+        fileSize: attachment.fileSize,
+        mimeType: attachment.mimeType,
+      } : undefined);
+      setChatInput("");
+    } catch (err) {
+      logger.warn("[ApplicationDetails] Failed to send chat message", { error: err });
+      throw err;
     } finally {
       setIsSendingChat(false);
     }
@@ -145,10 +167,21 @@ export default function ApplicationDetailScreen() {
     formData.applicationId ||
     app.id;
 
+  const filingPeriod =
+    formData.filingPeriod ||
+    formData.returnPeriod ||
+    formData.period ||
+    formData.periodData?.filingPeriod ||
+    formData.filingMonth;
+
   const displayName =
     (isGstAmendment && formData.section
       ? `GST Amendment — ${formData.section}`
-      : app.serviceName) || "Application";
+      : filingPeriod &&
+          (app.serviceId?.includes("filing") || app.serviceName?.toLowerCase().includes("filing")) &&
+          !app.serviceName?.includes(filingPeriod)
+        ? `${app.serviceName} (${filingPeriod})`
+        : app.serviceName) || "Application";
 
   const appliedDate =
     (formData.submissionDate ? formatAmendmentSubmissionDate(formData.submissionDate) : null) ||
@@ -176,77 +209,76 @@ export default function ApplicationDetailScreen() {
       {/* Header and horizontal tabs (Screens 2–6 Reference) */}
       <ApplicationHeader
         topInset={insets.top}
-        serviceId={app.serviceId || ""}
         serviceName={displayName}
-        category={app.category}
-        displayId={displayId}
-        submittedOnText={appliedDate}
-        status={app.status || "Submitted"}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onBack={() => router.back()}
+        onSettings={() => router.push("/profile" as any)}
       />
 
       {/* Main Tab Content */}
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + 24 },
-        ]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {activeTab === "OVERVIEW" && (
-          <OverviewTab
-            app={app}
-            displayId={displayId}
-            appliedDate={appliedDate}
-            onChatWithCA={() => setActiveTab("CHAT")}
-          />
-        )}
+      {activeTab === "CHAT" ? (
+        <ChatTab
+          app={app}
+          chatHistory={app.chatHistory}
+          assignedCA={assignedCA}
+          isLoans={isLoans}
+          appliedDate={appliedDate}
+          chatInput={chatInput}
+          setChatInput={setChatInput}
+          isSendingChat={isSendingChat}
+          onSendMessage={handleSendMessage}
+          formatDisplayDate={formatDisplayDate}
+          bottomInset={insets.bottom}
+          onViewApplication={() => setActiveTab("OVERVIEW")}
+        />
+      ) : (
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 24 },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {activeTab === "OVERVIEW" && (
+            <OverviewTab
+              app={app}
+              displayId={displayId}
+              appliedDate={appliedDate}
+              onChatWithCA={() => setActiveTab("CHAT")}
+            />
+          )}
 
-        {activeTab === "STATUS" && (
-          <StatusTab
-            app={app}
-            timelineSteps={timelineSteps}
-            currentStatus={app.status || "Submitted"}
-            appliedDate={appliedDate}
-            onNavigateTab={(tab) => setActiveTab(tab)}
-          />
-        )}
+          {activeTab === "STATUS" && (
+            <StatusTab
+              app={app}
+              timelineSteps={timelineSteps}
+              currentStatus={app.status || "Submitted"}
+              appliedDate={appliedDate}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+            />
+          )}
 
-        {activeTab === "DOCUMENTS" && (
-          <DocumentsTab
-            app={app}
-            isGstAmendment={isGstAmendment}
-            formData={formData}
-            documents={app.documents}
-            appliedDate={appliedDate}
-          />
-        )}
+          {activeTab === "DOCUMENTS" && (
+            <DocumentsTab
+              app={app}
+              isGstAmendment={isGstAmendment}
+              formData={formData}
+              documents={app.documents}
+              appliedDate={appliedDate}
+            />
+          )}
 
-        {activeTab === "PAYMENTS" && (
-          <PaymentsTab
-            app={app}
-            isGstAmendment={isGstAmendment}
-            appliedDate={appliedDate}
-          />
-        )}
-
-        {activeTab === "CHAT" && (
-          <ChatTab
-            chatHistory={app.chatHistory}
-            assignedCA={assignedCA}
-            isLoans={isLoans}
-            appliedDate={appliedDate}
-            chatInput={chatInput}
-            setChatInput={setChatInput}
-            isSendingChat={isSendingChat}
-            onSendMessage={handleSendMessage}
-            formatDisplayDate={formatDisplayDate}
-          />
-        )}
-      </ScrollView>
+          {activeTab === "PAYMENTS" && (
+            <PaymentsTab
+              app={app}
+              isGstAmendment={isGstAmendment}
+              appliedDate={appliedDate}
+            />
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }

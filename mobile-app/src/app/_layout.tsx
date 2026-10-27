@@ -13,7 +13,7 @@ import { AnimatedSplashOverlay } from "@/components";
 import { CompleteProfileModal } from "@/shared/components/CompleteProfileModal";
 import { ErrorBoundary } from "@/core/error-handling/ErrorBoundary";
 import { RootStatusBar } from "@/shared/components/FocusAwareStatusBar";
-import { AppBootstrap } from "@/app/bootstrap/AppBootstrap";
+import { AppBootstrap } from "@/core/bootstrap/AppBootstrap";
 import { logger } from "@/core/logging/logger";
 
 SplashScreen.preventAutoHideAsync();

@@ -26,6 +26,7 @@ import {
 } from "./applicationDraftMappers";
 import { logger } from "@/core/logging/logger";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
+import { sanitizeMessageText } from "@/modules/applications/utils/chatAttachmentUtils";
 
 import {
   DraftSliceState,
@@ -60,7 +61,12 @@ export interface ApplicationState extends DraftSliceState {
     customId?: string,
   ) => string;
   uploadDocument: (appId: string, docName: string, fileUri: string) => void;
-  addChatMessage: (appId: string, sender: ChatSender, text: string) => void;
+  addChatMessage: (
+    appId: string,
+    sender: ChatSender,
+    text: string,
+    attachment?: { uri: string; url?: string; fileName?: string; fileSize?: number; mimeType?: string },
+  ) => void;
   payApplication: (appId: string) => void;
   deleteApplication: (appId: string) => void;
   resetStore: () => void;
@@ -109,9 +115,23 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
 
       if (remoteResult.status === "fulfilled") {
         remoteApps = remoteResult.value;
+        remoteError = null;
       } else {
-        remoteError = getErrorMessage(remoteResult.reason) || null;
-        logger.warn("[ApplicationStore] Remote applications request failed", { error: remoteError || undefined });
+        const reason = remoteResult.reason;
+        const errMsg = getErrorMessage(reason) || "";
+        const isNotFound =
+          errMsg.includes("404") ||
+          errMsg.toLowerCase().includes("not found") ||
+          errMsg.toLowerCase().includes("no applications") ||
+          errMsg.toLowerCase().includes("no static resource");
+
+        if (isNotFound) {
+          remoteApps = [];
+          remoteError = null;
+        } else {
+          remoteError = errMsg || "Failed to load applications. Please try again.";
+          logger.warn("[ApplicationStore] Remote applications request failed", { error: remoteError });
+        }
       }
 
       const mergedMap = new Map<string, Application>();
@@ -134,23 +154,25 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
         return match ? match[0] : null;
       };
 
-      localApps.forEach((app) => {
+      localApps.reduce((map, app) => {
         const matchedKey = findExistingKey(app);
         if (matchedKey) {
-          mergedMap.set(matchedKey, { ...mergedMap.get(matchedKey)!, ...app });
+          map.set(matchedKey, { ...map.get(matchedKey)!, ...app });
         } else {
-          mergedMap.set(app.id, app);
+          map.set(app.id, app);
         }
-      });
+        return map;
+      }, mergedMap);
 
-      remoteApps.forEach((app) => {
+      remoteApps.reduce((map, app) => {
         const matchedKey = findExistingKey(app);
         if (matchedKey) {
-          mergedMap.set(matchedKey, { ...mergedMap.get(matchedKey)!, ...app });
+          map.set(matchedKey, { ...map.get(matchedKey)!, ...app });
         } else {
-          mergedMap.set(app.id, app);
+          map.set(app.id, app);
         }
-      });
+        return map;
+      }, mergedMap);
 
       const submittedServiceIds = new Set(
         Array.from(mergedMap.values())
@@ -295,12 +317,17 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
       return { applications: updatedApplications };
     }),
 
-  addChatMessage: (appId, sender, text) => {
+  addChatMessage: (appId, sender, text, attachment) => {
+    const cleanText = sanitizeMessageText(text);
     const newMessage: ChatMessage = {
       id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       sender,
-      text,
+      text: cleanText,
+      caption: cleanText || undefined,
       timestamp: timeStamp(),
+      imageUrl: attachment?.url || attachment?.uri,
+      attachmentUrl: attachment?.url || attachment?.uri,
+      attachmentName: attachment?.fileName,
     };
     set((state) => {
       const updatedApps = state.applications.map((app) => {
