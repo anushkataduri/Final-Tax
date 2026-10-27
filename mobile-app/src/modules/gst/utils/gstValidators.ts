@@ -5,6 +5,7 @@ import {
 import { isNotEmpty, PaymentValidators } from "@/shared/validators/paymentValidators";
 import { isIanaDelegatedTld } from "./ianaTldData";
 import { hsnSacPolicy } from "./hsnSacPolicy";
+import { validateGstinFull } from "./gstValidation";
 
 /**
  * GST & Tax Validation Utilities
@@ -285,9 +286,7 @@ export const GstValidators = {
    * Validates Indian 15-character GSTIN (e.g. 29PAVAN1234K1Z5)
    */
   isValidGstin: (gstin: string): boolean => {
-    const cleanGstin = gstin.trim().toUpperCase();
-    const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-    return gstinRegex.test(cleanGstin);
+    return validateGstinFull(gstin) === null;
   },
 
   /**

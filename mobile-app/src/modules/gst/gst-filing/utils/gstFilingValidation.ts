@@ -6,6 +6,7 @@ import {
   ALLOWED_PAN_CATEGORIES,
   extractPanFromGstin,
 } from "@/shared/validators/gstValidators";
+import { validateGstinFull } from "@/modules/gst/utils/gstValidation";
 
 export {
   GSTIN_REGEX,
@@ -18,7 +19,8 @@ export {
 export const MAX_ESTIMATED_AMOUNT = 9999999999;
 
 /**
- * Validates a GSTIN string with granular real-time feedback.
+ * Validates a GSTIN string with real-time feedback.
+ * Delegates full-format check to the canonical validateGstinFull.
  *
  * @param gstin Raw or cleaned GSTIN string
  * @param isTouched Whether the field has been touched or a form submit was attempted
@@ -30,64 +32,11 @@ export function validateGstin(gstin: string, isTouched = true): string | null {
     return isTouched ? "Enter GSTIN" : null;
   }
 
-  // Real-time State Code check: evaluate as soon as 2 digits are present
-  if (clean.length >= 2) {
-    const stateCode = clean.slice(0, 2);
-    if (!VALID_GSTIN_STATE_CODES.has(stateCode)) {
-      return "Enter a valid GSTIN state code";
-    }
-  }
-
   if (clean.length < 15) {
     return isTouched ? "GSTIN must contain 15 characters" : null;
   }
 
-  if (clean.length > 15) {
-    return "GSTIN must contain 15 characters";
-  }
-
-  // Full 15-character statutory structure validation
-  // Position 1-2: State code
-  const stateCode = clean.slice(0, 2);
-  if (!VALID_GSTIN_STATE_CODES.has(stateCode)) {
-    return "Enter a valid GSTIN state code";
-  }
-
-  // Position 3-12: Embedded PAN (10 chars)
-  const chars1to3 = clean.slice(2, 5);
-  const panCategory = clean[5]; // Position 6 of GSTIN (4th char of PAN)
-  const fifth = clean[6];
-  const digits6to9 = clean.slice(7, 11);
-  const tenth = clean[11];
-
-  if (
-    !/^[A-Z]{3}$/.test(chars1to3) ||
-    !/^[A-Z]$/.test(fifth) ||
-    !/^\d{4}$/.test(digits6to9) ||
-    !/^[A-Z]$/.test(tenth) ||
-    !ALLOWED_PAN_CATEGORIES.has(panCategory)
-  ) {
-    return "Enter a valid GSTIN";
-  }
-
-  // Position 13: Entity registration number (1-9 or A-Z)
-  const entityCode = clean[12];
-  if (!/^[1-9A-Z]$/.test(entityCode)) {
-    return "Enter a valid GSTIN";
-  }
-
-  // Position 14: Mandatory letter 'Z'
-  if (clean[13] !== "Z") {
-    return "Enter a valid GSTIN";
-  }
-
-  // Position 15: Check character (alphanumeric)
-  const checkChar = clean[14];
-  if (!/^[0-9A-Z]$/.test(checkChar)) {
-    return "Enter a valid GSTIN";
-  }
-
-  return null;
+  return validateGstinFull(clean);
 }
 
 /**

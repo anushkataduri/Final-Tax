@@ -1,5 +1,6 @@
 import { parseDDMMYYYY } from "@/shared/formatters/dateFormatter";
 import { isValidEmailAddress, isValidPersonName } from "./profileValidators";
+import { validateGstinFull } from "@/modules/gst/utils/gstValidation";
 
 /**
  * Valid 4th characters of a PAN, the taxpayer category: A association of persons, B body of
@@ -23,7 +24,7 @@ export function validatePan(pan: string): boolean {
 
 export function validateGstin(gstin: string): boolean {
   if (!gstin) return false;
-  return GSTIN_REGEX.test(gstin.trim().toUpperCase());
+  return validateGstinFull(gstin) === null;
 }
 
 export function validateAadhaar(aadhaar: string): boolean {

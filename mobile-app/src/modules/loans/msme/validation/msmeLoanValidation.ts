@@ -1,4 +1,5 @@
 import { INDIAN_STATES_AND_UTS } from "@/components/screens/create-profile/types";
+import { validateGstinFull } from "@/modules/gst/utils/gstValidation";
 import {
   MSME_BUSINESS_ACTIVITY_OPTIONS,
   MSME_CONSTITUTION_OPTIONS,
@@ -56,9 +57,6 @@ const PINCODE_REGEX = /^[1-9]\d{5}$/;
 // Standard Udyam Registration format: UDYAM-XX-00-0000000
 const UDYAM_REGEX = /^UDYAM-[A-Z]{2}-\d{2}-\d{7}$/;
 
-// Standard Indian GSTIN format: 15 alphanumeric characters with strict checksum positions
-const GSTIN_REGEX =
-  /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
 /**
  * Checks for emoji, control characters, script/html, and SQL injection payloads.
@@ -316,7 +314,8 @@ export function validateGstin(
   if (hasMaliciousOrDecorativeChars(clean)) {
     return "GSTIN contains invalid characters or emoji";
   }
-  if (clean.length !== 15 || !GSTIN_REGEX.test(clean)) {
+  const formatError = validateGstinFull(clean);
+  if (formatError) {
     return "Enter a valid 15-character GSTIN";
   }
   return undefined;

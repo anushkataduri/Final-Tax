@@ -4,6 +4,8 @@
  * Format: 2-digit state code + 10-char PAN + 1-char entity number + 'Z' + 1-char check digit.
  */
 
+import { validateGstinFull } from "@/modules/gst/utils/gstValidation";
+
 export const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
 /**
@@ -53,7 +55,8 @@ export function verifyGstinPanConsistency(gstin: string, pan: string): boolean {
 }
 
 /**
- * Comprehensive GSTIN validation with real-time statutory feedback.
+ * Comprehensive GSTIN validation with real-time feedback.
+ * Delegates full-format check to the canonical validateGstinFull.
  */
 export function validateGstin(gstin: string, isTouched = true): string | null {
   const clean = (gstin || "").trim().toUpperCase();
@@ -62,39 +65,16 @@ export function validateGstin(gstin: string, isTouched = true): string | null {
     return isTouched ? "Enter GSTIN" : null;
   }
 
-  // Real-time State Code check: evaluate once at least 2 digits are entered
-  if (clean.length >= 2) {
-    const stateCode = clean.slice(0, 2);
-    if (!isValidGstinStateCode(stateCode)) {
-      return "Enter a valid GSTIN state code (01-38, 97, or 99)";
-    }
-  }
-
   if (clean.length < 15) {
     return isTouched ? "GSTIN must contain 15 characters" : null;
   }
 
-  if (clean.length > 15) {
-    return "GSTIN must contain 15 characters";
-  }
-
-  // Regex check for statutory structure
-  if (!GSTIN_REGEX.test(clean)) {
-    return "Enter a valid GSTIN";
-  }
-
-  // Position 6: 4th char of PAN must be a recognized taxpayer category
-  const panCategory = clean[5];
-  if (!ALLOWED_PAN_CATEGORIES.has(panCategory)) {
-    return "Enter a valid GSTIN";
-  }
-
-  return null;
+  return validateGstinFull(clean);
 }
 
 /**
  * Boolean validator for GSTIN format.
  */
 export function isValidGstin(gstin: string): boolean {
-  return validateGstin(gstin, true) === null;
+  return validateGstinFull(gstin) === null;
 }

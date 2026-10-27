@@ -47,11 +47,7 @@ export const NOTICE_ALLOWED_EXTENSIONS = [
 ];
 
 export function isValidGstin(gstin: string): boolean {
-  if (!gstin) return false;
-  const clean = gstin.trim().toUpperCase();
-  if (!GSTIN_REGEX.test(clean)) return false;
-  const stateCode = clean.slice(0, 2);
-  return isValidGstStateCode(stateCode);
+  return validateGstinFull(gstin) === null;
 }
 
 export function validateGstinFull(gstin: string): string | null {
