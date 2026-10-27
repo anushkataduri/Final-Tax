@@ -3,7 +3,7 @@ import { Alert, type ScrollView } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useApplicationStore } from "@/store/applicationStore";
 import { useNotificationStore } from "@/store/notificationStore";
-import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
+import { useGstRegistrationDraftGuard } from "./useGstRegistrationDraftGuard";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { tokenManager, JwtUtils } from "@/core/authentication/tokenManager";
 import { authStorage } from "@/modules/authentication/services/authStorage";
@@ -15,7 +15,7 @@ import { INITIAL_DOCUMENTS } from "@/modules/gst/gst-registration/components/Gst
 import { DocumentItem } from "@/modules/gst/gst-registration/components/GstUnifiedDocumentStep/GstUnifiedDocumentStep.types";
 import {
   INITIAL_BUSINESS_DATA, isBackendGstId, extractGstId, resolveTargetGstId,
-  hasAnyGstDataEntered, sanitizeRestoredDocuments, isValidCustomerId,
+  isValidCustomerId,
   getFirstErrorScrollOffset, getFirstErrorSection, getFirstErrorField,
 } from "@/modules/gst/gst-registration/utils/gstDraftLifecycle";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
@@ -42,7 +42,6 @@ export const useGstRegistrationFlow = (scrollViewRef: React.RefObject<ScrollView
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [isFetchingReview, setIsFetchingReview] = useState(false);
   const [reviewFetchError, setReviewFetchError] = useState<string | null>(null);
-  const hasRestoredDraftRef = useRef(false);
   const hasFetchedReviewForRef = useRef("");
   const isFetchingReviewRef = useRef(false);
   const sectionPositionsRef = useRef<Record<string, number>>({ bank: 0, signatory: 0, consent: 0 });
@@ -53,7 +52,7 @@ export const useGstRegistrationFlow = (scrollViewRef: React.RefObject<ScrollView
   const handleFieldLayout = useCallback((field: string, y: number) => { fieldPositionsRef.current[field] = y; }, []);
 
   // Store Hooks
-  const { gstDraft, saveGstDraft, clearGstDraft, createApplication } = useApplicationStore();
+  const { gstDraft, createApplication } = useApplicationStore();
   const addNotification = useNotificationStore((s) => s.addNotification);
   const { customer: authCustomer, authenticatedUser: authUser } = useAuthStore();
 
@@ -85,77 +84,11 @@ export const useGstRegistrationFlow = (scrollViewRef: React.RefObject<ScrollView
     return () => { isMounted = false; };
   }, [getResolvedCustomerId]);
 
-  // Draft Syncing & Guard (Bug 20: Snapshot-based dirty check)
-  const hasAnyDataEntered = useCallback((): boolean => {
-    return hasAnyGstDataEntered(businessData, documents, INITIAL_BUSINESS_DATA);
-  }, [businessData, documents]);
-
-  const syncDraft = useCallback(
-    (stepOverride?: number, gstIdOverride?: string, docsOverride?: DocumentItem[]) => {
-      try {
-        const targetGstId = gstIdOverride ?? createdGstId;
-        saveGstDraft({
-          id: "draft-gst",
-          stepIndex: stepOverride ?? screenIndex,
-          personalData: {},
-          businessData: { ...businessData, ...(targetGstId ? { gstId: targetGstId } : {}) } as any,
-          createdGstId: targetGstId,
-          documents: (docsOverride ?? documents) as any,
-          updatedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          ...(documentId ? { documentId } : {}),
-        });
-      } catch (err) { logger.warn("[useGstRegistrationFlow] Failed to sync GST draft:", { error: err }); }
-    },
-    [businessData, createdGstId, documentId, documents, saveGstDraft, screenIndex],
-  );
-
-  const draftGuard = useUniversalDraftGuard({
-    isDirty: hasAnyDataEntered,
-    onSaveDraft: syncDraft,
-    onDiscardDraft: clearGstDraft,
-    isSubmitted: () => screenIndex >= 3,
+  const { syncDraft, draftGuard, hasAnyDataEntered, clearGstDraft } = useGstRegistrationDraftGuard({
+    businessData, documents, screenIndex, createdGstId, documentId,
+    setBusinessData, setDocuments, setScreenIndex, setCreatedGstId, setDocumentId, setIsEditMode,
+    params,
   });
-
-  // Auto-restore draft & Handle Route Parameters (Runs once on mount) - Bug 13 & 18
-  useEffect(() => {
-    if (hasRestoredDraftRef.current) return;
-    hasRestoredDraftRef.current = true;
-    try {
-      const rawRouteGstId = params.gstId || params.id || params.appId;
-      const routeGstId = isBackendGstId(rawRouteGstId) ? rawRouteGstId : undefined;
-
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (params.edit === "true" || params.isEdit === "true") setIsEditMode(true);
-      if (params.step) {
-        const parsed = parseInt(params.step, 10);
-        if (!isNaN(parsed) && parsed >= 0 && parsed <= 3) setScreenIndex(parsed);
-      }
-
-      if (gstDraft) {
-        if (gstDraft.businessData) {
-          setBusinessData((prev) => ({
-            ...prev, ...gstDraft.businessData,
-            businessName: gstDraft.businessData.businessName || (gstDraft.businessData as any).registeredBusinessName || "",
-            businessType: gstDraft.businessData.businessType || "",
-          }));
-        }
-        if (Array.isArray(gstDraft.documents) && gstDraft.documents.length > 0) {
-          setDocuments(sanitizeRestoredDocuments(gstDraft.documents as DocumentItem[], INITIAL_DOCUMENTS));
-        }
-        if (typeof gstDraft.stepIndex === "number" && gstDraft.stepIndex < 3 && !params.step) setScreenIndex(gstDraft.stepIndex);
-        const draftGstId = isBackendGstId(gstDraft.createdGstId) ? gstDraft.createdGstId : isBackendGstId((gstDraft.businessData as any)?.gstId) ? (gstDraft.businessData as any).gstId : undefined;
-        if (draftGstId) setCreatedGstId(draftGstId);
-        if (gstDraft.documentId) setDocumentId(gstDraft.documentId);
-      }
-      if (routeGstId) {
-        setCreatedGstId(routeGstId);
-        setBusinessData((prev) => ({ ...prev, gstId: routeGstId }));
-        gstApi.getBusiness(routeGstId)
-          .then((dto) => dto && setBusinessData((p) => ({ ...p, ...mapDtoToGstBusinessFormData(dto), gstId: routeGstId })))
-          .catch((e) => logger.warn("[useGstRegistrationFlow] Could not fetch business details:", { error: e }));
-      }
-    } catch (err) { logger.warn("[useGstRegistrationFlow] Failed to restore GST draft/params:", { error: err }); }
-  }, [params.gstId, params.id, params.appId, params.edit, params.isEdit, params.step, gstDraft]);
 
   // Database Review Fetcher (Bug 14: Deduplication guard & clean loading lifecycle)
   const fetchRegistrationDetails = useCallback(async (gstIdToFetch?: string, docIdToFetch?: string) => {

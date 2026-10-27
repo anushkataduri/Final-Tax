@@ -33,6 +33,7 @@ interface CompanyRegistrationState {
   clearEditingStep: () => void;
   processPayment: (paymentMethod: string) => void;
   submitRegistrationSuccess: (appId: string, statusText?: string) => void;
+  setDraft: (draft: CompanyRegistrationDraft) => void;
   resetRegistration: () => void;
 }
 
@@ -258,6 +259,7 @@ export const useCompanyRegistrationStore = create<CompanyRegistrationState>((set
       useApplicationStore.getState().addApplication(mappedApp);
       return { draft: { ...state.draft, id: realId, status: 'Submitted', createdAt: dateStr, currentStep: 7 }, editingStep: null };
     }),
+  setDraft: (newDraft) => set({ draft: newDraft }),
   resetRegistration: () =>
     set({
       registrationId: null,

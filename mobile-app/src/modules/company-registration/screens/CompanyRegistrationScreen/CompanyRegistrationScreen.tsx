@@ -7,8 +7,8 @@ import { KeyboardAwareScrollView } from '@/shared/components/KeyboardAwareFormLa
 import { KeyboardStickyFooter } from '@/shared/components/KeyboardStickyFooter';
 import { LoanStepIndicator } from '@/shared/components/LoanStepIndicator';
 import { UniversalDraftModal } from '@/shared/components/UniversalDraftModal';
-import { useUniversalDraftGuard } from '@/shared/hooks/useUniversalDraftGuard';
 import { useCompanyRegistrationStore } from '../../store/companyRegistrationSlice';
+import { useCompanyRegistrationDraftGuard } from '../../hooks/useCompanyRegistrationDraftGuard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { validateRegistrationStep } from '../../validation/companyStepValidation';
 import { getErrorMessage } from '@/core/error-handling/errorMessage';
@@ -50,6 +50,14 @@ export const CompanyRegistrationScreen: React.FC = () => {
   const submitRegistrationSuccess = useCompanyRegistrationStore((state) => state.submitRegistrationSuccess);
   const resetRegistration = useCompanyRegistrationStore((state) => state.resetRegistration);
 
+  const {
+    showDraftModal,
+    handleSaveAndExit,
+    handleDiscardAndExit,
+    handleCancel,
+    clearCompanyRegistrationDraft,
+  } = useCompanyRegistrationDraftGuard();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentStep = draft.currentStep;
@@ -57,7 +65,6 @@ export const CompanyRegistrationScreen: React.FC = () => {
   const isEditing = editingStep !== null && editingStep === currentStep;
 
   useEffect(() => {
-    // If mounting with a previously submitted application, reset immediately to open a fresh form
     const initialDraftState = useCompanyRegistrationStore.getState().draft;
     if (initialDraftState.status === 'Submitted' || initialDraftState.currentStep === 7) {
       resetRegistration();
@@ -71,25 +78,6 @@ export const CompanyRegistrationScreen: React.FC = () => {
       }
     };
   }, [clearEditingStep, resetRegistration]);
-
-  const {
-    showDraftModal,
-    handleSaveAndExit,
-    handleDiscardAndExit,
-    handleCancel,
-  } = useUniversalDraftGuard({
-    isDirty: () => {
-      return currentStep > 0 || !!draft.company.companyType;
-    },
-    onSaveDraft: () => {
-      clearEditingStep();
-    },
-    onDiscardDraft: () => {
-      resetRegistration();
-    },
-    isSubmitted: () => draft.status === 'Submitted' || currentStep === 7,
-    discardDestination: '/(main)/home',
-  });
 
   const handleHeaderBack = () => {
     if (currentStep > 0) {
@@ -192,6 +180,7 @@ export const CompanyRegistrationScreen: React.FC = () => {
         draft.id ||
         `APP-${Date.now().toString().slice(-6)}`;
       submitRegistrationSuccess(appId, 'Submitted');
+      clearCompanyRegistrationDraft();
       return;
     }
 

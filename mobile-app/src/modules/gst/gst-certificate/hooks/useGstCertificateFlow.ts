@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Alert, Animated, Platform, BackHandler } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getActiveCustomerMobile } from "@/store/applicationStorage";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 
@@ -66,8 +68,23 @@ export function useGstCertificateFlow() {
       if (gstCertificateDraft.formData.requestType) {
         setRequestType(String(gstCertificateDraft.formData.requestType));
       }
+    } else {
+      void (async () => {
+        const clean = getActiveCustomerMobile();
+        try {
+          const raw = await AsyncStorage.getItem(`@taxedge_draft_${clean}_gst-certificate`);
+          if (!raw) return;
+          const parsed = JSON.parse(raw) as { formData?: Record<string, unknown> };
+          if (parsed.formData?.gstin && !gstin) {
+            setGstin(String(parsed.formData.gstin));
+          }
+          if (parsed.formData?.requestType) {
+            setRequestType(String(parsed.formData.requestType));
+          }
+        } catch {}
+      })();
     }
-  }, [gstCertificateDraft]);
+  }, [gstCertificateDraft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isCompleted) return;

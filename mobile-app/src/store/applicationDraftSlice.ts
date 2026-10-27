@@ -24,6 +24,7 @@ export interface DraftSliceState {
   gstCancellationDraft: GenericServiceDraft | null;
   gstAmendmentDraft: GenericServiceDraft | null;
   gstCertificateDraft: GenericServiceDraft | null;
+  companyRegistrationDraft: GenericServiceDraft | null;
 
   saveGstDraft: (draft: GstRegistrationDraft) => void;
   clearGstDraft: () => void;
@@ -47,6 +48,8 @@ export interface DraftSliceState {
   clearGstAmendmentDraft: () => void;
   saveGstCertificateDraft: (draft: GenericServiceDraft) => void;
   clearGstCertificateDraft: () => void;
+  saveCompanyRegistrationDraft: (draft: GenericServiceDraft) => void;
+  clearCompanyRegistrationDraft: () => void;
 }
 
 const timeStamp = (): string =>
@@ -64,6 +67,7 @@ export const initialDraftState = {
   gstCancellationDraft: null,
   gstAmendmentDraft: null,
   gstCertificateDraft: null,
+  companyRegistrationDraft: null,
 };
 
 export const createDraftSlice = <T extends DraftSliceState>(
@@ -277,6 +281,16 @@ export const createDraftSlice = <T extends DraftSliceState>(
     clearGstCertificateDraft: () => {
       set(() => ({ gstCertificateDraft: null } as Partial<T>));
       clearGeneric("gst-certificate");
+    },
+
+    saveCompanyRegistrationDraft: (draft) => {
+      set(() => ({ companyRegistrationDraft: draft } as Partial<T>));
+      saveGeneric("company-registration", "Company Incorporation", "BUSINESS", draft);
+    },
+
+    clearCompanyRegistrationDraft: () => {
+      set(() => ({ companyRegistrationDraft: null } as Partial<T>));
+      clearGeneric("company-registration");
     },
   };
 };

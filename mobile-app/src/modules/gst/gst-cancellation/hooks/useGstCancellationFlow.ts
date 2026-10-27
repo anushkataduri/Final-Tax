@@ -1,9 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useApplicationStore } from "@/store/applicationStore";
+import { getActiveCustomerMobile } from "@/store/applicationStorage";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
 import { validateGstinFull } from "@/modules/gst/utils/gstValidation";
@@ -86,6 +88,30 @@ export function useGstCancellationFlow() {
     onDiscardDraft: clearGstCancellationDraft,
     isSubmitted: () => step === "SUCCESS" || isSubmittedSuccess,
   });
+
+  useEffect(() => {
+    const restore = async () => {
+      const zustandDraft = useApplicationStore.getState().gstCancellationDraft;
+      if (zustandDraft?.formData) {
+        setForm((prev) => ({ ...prev, ...(zustandDraft.formData as Partial<CancellationFormData>) }));
+        const savedStep = zustandDraft.step as unknown as string;
+        if (savedStep === "FORM" || savedStep === "REVIEW") setStep(savedStep as CancellationStep);
+        return;
+      }
+      const clean = getActiveCustomerMobile();
+      try {
+        const raw = await AsyncStorage.getItem(`@taxedge_draft_${clean}_gst-cancellation`);
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as { formData?: Partial<CancellationFormData>; step?: unknown };
+        if (parsed.formData) {
+          setForm((prev) => ({ ...prev, ...parsed.formData }));
+        }
+        const savedStep = parsed.step as string;
+        if (savedStep === "FORM" || savedStep === "REVIEW") setStep(savedStep as CancellationStep);
+      } catch {}
+    };
+    restore();
+  }, []);
 
   const pickDoc = useCallback(async () => {
     try {

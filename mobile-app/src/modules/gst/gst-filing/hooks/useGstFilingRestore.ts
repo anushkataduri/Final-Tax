@@ -5,7 +5,9 @@
  */
 
 import { useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useApplicationStore } from "@/store/applicationStore";
+import { getActiveCustomerMobile } from "@/store/applicationStorage";
 import { FilingDocItem } from "@/modules/gst/gst-filing/config/gstFilingDocumentsConfig";
 import { GstFilingPeriodData } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstFilingPeriodStep";
 import { syncPreviousAppDocuments } from "@/modules/gst/gst-filing/hooks/gstFilingHelpers";
@@ -120,6 +122,24 @@ export function useGstFilingRestore({
         ) {
           setCurrentStep(gstFilingDraft.stepIndex);
         }
+      } else {
+        void (async () => {
+          const clean = getActiveCustomerMobile();
+          try {
+            const raw = await AsyncStorage.getItem(`@taxedge_draft_${clean}_gst-filing`);
+            if (!raw) return;
+            const parsed = JSON.parse(raw) as { formData?: Partial<GstFilingPeriodData>; documents?: FilingDocItem[]; step?: number };
+            if (parsed.formData) {
+              setPeriodData((prev) => ({ ...prev, ...parsed.formData }));
+            }
+            if (Array.isArray(parsed.documents) && parsed.documents.length > 0) {
+              setDocuments(parsed.documents as FilingDocItem[]);
+            }
+            if (typeof parsed.step === "number" && parsed.step < 4 && !params.step) {
+              setCurrentStep(parsed.step);
+            }
+          } catch {}
+        })();
       }
     }, 0);
 
