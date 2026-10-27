@@ -20,8 +20,8 @@ import {
 import { AMENDMENT_SECTIONS } from "../config/gstNonCoreAmendmentConfig";
 import {
   validateGstinInput, validateSectionForm, validateFieldRealtime, isFormDataDirty,
-  VALID_GSTIN_STATE_CODES, ALLOWED_PAN_CATEGORIES,
 } from "../utils/gstAmendmentValidation";
+import { validateGstinLive } from "@/modules/gst/utils/gstValidation";
 import { resolveTargetGstId } from "../utils/gstAmendmentHelpers";
 import { useGstAmendmentDetails } from "./useGstAmendmentDetails";
 import { submitAmendmentService } from "../services/submitAmendmentService";
@@ -218,19 +218,13 @@ export function useGstAmendmentWorkflow() {
     // Live validation feedback
     if (!cleaned) {
       clearError("gstin");
-    } else if (cleaned.length >= 2 && !VALID_GSTIN_STATE_CODES.has(cleaned.slice(0, 2))) {
-      setErrors((prev) => ({ ...prev, gstin: "Enter a valid GSTIN state code" }));
-    } else if (cleaned.length >= 6 && !ALLOWED_PAN_CATEGORIES.has(cleaned[5])) {
-      setErrors((prev) => ({ ...prev, gstin: "Enter a valid PAN segment in GSTIN" }));
-    } else if (cleaned.length === 15) {
-      const res = validateGstinInput(cleaned);
-      if (!res.isValid) {
-        setErrors((prev) => ({ ...prev, gstin: res.error || "Enter a valid 15-character GSTIN" }));
+    } else {
+      const err = validateGstinLive(cleaned);
+      if (err) {
+        setErrors((prev) => ({ ...prev, gstin: err }));
       } else {
         clearError("gstin");
       }
-    } else {
-      clearError("gstin");
     }
   }, [clearError]);
 

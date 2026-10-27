@@ -6,7 +6,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { useApplicationStore } from "@/store/applicationStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
-import { GstValidators } from "@/modules/gst/utils/gstValidators";
+import { validateGstinFull } from "@/modules/gst/utils/gstValidation";
 import { pickImageFromCamera } from "@/modules/gst/utils/imageUploadHelper";
 import { gstCancellationApi } from "@/modules/gst/services/gstCancellationApi";
 
@@ -132,9 +132,10 @@ export function useGstCancellationFlow() {
   const validate = useCallback((): boolean => {
     const errs: Record<string, string> = {};
     if (!form.gstin.trim()) {
-      errs.gstin = "GSTIN is required";
-    } else if (!GstValidators.isValidGstin(form.gstin)) {
-      errs.gstin = "Valid 15-character GSTIN is required (e.g. 29AAAAA0000A1Z5)";
+      errs.gstin = "Enter GSTIN";
+    } else {
+      const gstinErr = validateGstinFull(form.gstin);
+      if (gstinErr) errs.gstin = gstinErr;
     }
 
     if (!form.reason) {

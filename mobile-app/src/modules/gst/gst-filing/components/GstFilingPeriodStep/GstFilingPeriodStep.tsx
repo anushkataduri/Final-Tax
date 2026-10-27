@@ -20,6 +20,7 @@ import {
   validateGstin,
   validateEstimatedAmount,
 } from "@/modules/gst/gst-filing/utils/gstFilingValidation";
+import { validateGstinLive } from "@/modules/gst/utils/gstValidation";
 import {
   FILING_PERIODS,
   FILING_NATURE_OPTIONS,
@@ -167,21 +168,8 @@ export const GstFilingPeriodStep: React.FC<GstFilingPeriodStepProps> = ({
       state: undefined,
     });
 
-    // Field-level real-time validation:
-    // 1. If empty, clear error
-    // 2. If >= 2 and < 15 characters, validate state code in real time
-    // 3. Immediately upon reaching 15 characters, run full structural validation
-    if (cleaned.length === 0) {
-      onError?.("gstin", "");
-    } else if (cleaned.length >= 2 && cleaned.length < 15) {
-      const stateErr = validateGstin(cleaned, false);
-      onError?.("gstin", stateErr || "");
-    } else if (cleaned.length === 15) {
-      const fullErr = validateGstin(cleaned, true);
-      onError?.("gstin", fullErr || "");
-    } else {
-      onError?.("gstin", "");
-    }
+    // Progressive live validation — error appears at the relevant character position
+    onError?.("gstin", validateGstinLive(cleaned) ?? "");
   };
 
   const currentPeriods = useMemo(

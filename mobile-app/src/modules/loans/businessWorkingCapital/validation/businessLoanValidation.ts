@@ -1,8 +1,8 @@
 import {
-  validateGstin,
   validatePincode,
   validateDateOfBirth,
 } from "@/shared/validators/indianTaxValidators";
+import { validateGstinFull } from "@/modules/gst/utils/gstValidation";
 import { parseDDMMYYYY } from "@/shared/formatters/dateFormatter";
 import type {
   BusinessLoanFormData,
@@ -105,9 +105,10 @@ export function validateBusinessLoanForm(data: BusinessLoanFormData): {
 
   if (businessProfile.isGstRegistered) {
     if (!businessProfile.gstin?.trim()) {
-      errors.gstin = "GSTIN is required when registered";
-    } else if (!validateGstin(businessProfile.gstin.trim())) {
-      errors.gstin = "Enter a valid 15-character GSTIN (e.g. 29ABCDE1234F1Z5)";
+      errors.gstin = "Enter GSTIN";
+    } else {
+      const gstinErr = validateGstinFull(businessProfile.gstin.trim());
+      if (gstinErr) errors.gstin = gstinErr;
     }
   }
 

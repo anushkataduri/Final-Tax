@@ -1,4 +1,5 @@
-import { validateGstin, validatePan, validatePincode, validateEmail, validatePhone } from "../../../shared/validators/indianTaxValidators";
+import { validatePan, validatePincode, validateEmail, validatePhone } from "../../../shared/validators/indianTaxValidators";
+import { validateGstinFull } from "../utils/gstValidation";
 
 export function validateGstRegistration(values: {
   businessName?: string;
@@ -38,8 +39,9 @@ export function validateGstFiling(values: {
 }): Record<string, string> {
   const errors: Record<string, string> = {};
 
-  if (values.gstin && !validateGstin(values.gstin)) {
-    errors.gstin = "Valid 15-character GSTIN is required";
+  if (values.gstin) {
+    const gstinErr = validateGstinFull(values.gstin);
+    if (gstinErr) errors.gstin = gstinErr;
   }
 
   if (!values.filingPeriod?.trim()) {

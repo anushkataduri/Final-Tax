@@ -303,22 +303,8 @@ export function validateGstin(
   status: string
 ): string | undefined {
   if (status !== "Registered") return undefined;
-  const raw = gstin || "";
-  if (!raw.trim()) {
-    return "Please enter your 15-character GSTIN";
-  }
-  if (/\s/.test(raw)) {
-    return "GSTIN cannot contain spaces";
-  }
-  const clean = raw.trim().toUpperCase();
-  if (hasMaliciousOrDecorativeChars(clean)) {
-    return "GSTIN contains invalid characters or emoji";
-  }
-  const formatError = validateGstinFull(clean);
-  if (formatError) {
-    return "Enter a valid 15-character GSTIN";
-  }
-  return undefined;
+  if (!gstin || !gstin.trim()) return "Enter GSTIN";
+  return validateGstinFull(gstin) ?? undefined;
 }
 
 /**

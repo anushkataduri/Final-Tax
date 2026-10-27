@@ -1,11 +1,11 @@
 import {
   validatePan,
-  validateGstin,
   validateEmail,
   validatePhone,
   validateDateOfBirth,
   validateIfsc,
 } from "../validators/indianTaxValidators";
+import { validateGstinFull } from "@/modules/gst/utils/gstValidation";
 
 export type ValidationRule<T = any> = (value: T) => string | null;
 
@@ -186,10 +186,9 @@ export const validators = {
   },
 
   /** GSTIN validator */
-  gstin: (fieldName = "GSTIN"): ValidationRule<string | undefined> => (value) => {
-    if (!value || String(value).trim() === "") return `${fieldName} is required`;
-    if (!validateGstin(String(value))) return "Enter valid 15-character GSTIN";
-    return null;
+  gstin: (): ValidationRule<string | undefined> => (value) => {
+    if (!value || String(value).trim() === "") return "Enter GSTIN";
+    return validateGstinFull(String(value));
   },
 };
 

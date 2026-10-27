@@ -1,6 +1,5 @@
 import {
-  isValidGstin,
-  isValidGstStateCode,
+  validateGstinFull,
   isFileSizeValid,
   isFileTypeAllowed,
   RECONCILIATION_ALLOWED_EXTENSIONS,
@@ -166,14 +165,8 @@ export function validateComplianceForm(data: ComplianceFormData): {
   const errors: ValidationErrors = {};
 
   // Section 1: GSTIN
-  const trimmedGstin = data.gstin.trim().toUpperCase();
-  if (!trimmedGstin) {
-    errors.gstin = "Enter 15-character GSTIN";
-  } else if (trimmedGstin.length === 15 && !isValidGstStateCode(trimmedGstin.slice(0, 2))) {
-    errors.gstin = "Invalid State/UT code in GSTIN (format: 29AAAAA0000A1Z5)";
-  } else if (!isValidGstin(trimmedGstin)) {
-    errors.gstin = "Invalid GSTIN (format: 29AAAAA0000A1Z5)";
-  }
+  const gstinErr = validateGstinFull(data.gstin);
+  if (gstinErr) errors.gstin = gstinErr;
 
   // Section 1: Financial Year
   if (!data.financialYear) {

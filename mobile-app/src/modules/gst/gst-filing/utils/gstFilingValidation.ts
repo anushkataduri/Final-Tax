@@ -27,15 +27,8 @@ export const MAX_ESTIMATED_AMOUNT = 9999999999;
  */
 export function validateGstin(gstin: string, isTouched = true): string | null {
   const clean = (gstin || "").trim().toUpperCase();
-
-  if (!clean) {
-    return isTouched ? "Enter GSTIN" : null;
-  }
-
-  if (clean.length < 15) {
-    return isTouched ? "GSTIN must contain 15 characters" : null;
-  }
-
+  if (!clean) return isTouched ? "Enter GSTIN" : null;
+  if (!isTouched && clean.length < 15) return null;
   return validateGstinFull(clean);
 }
 

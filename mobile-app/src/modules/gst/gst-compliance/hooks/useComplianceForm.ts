@@ -9,8 +9,7 @@ import {
 } from "@/modules/gst/validation/complianceSchema";
 import {
   cleanGstinInput,
-  isValidGstin,
-  isValidGstStateCode,
+  validateGstinLive,
 } from "@/modules/gst/utils/gstValidation";
 import {
   submitComplianceRequest,
@@ -182,26 +181,14 @@ export function useComplianceForm(options?: UseComplianceFormOptions) {
     []
   );
 
-  // Instant GSTIN sanitization and validation
+  // Instant GSTIN sanitization and live validation
   const handleGstinChange = useCallback(
     (text: string) => {
       const cleaned = cleanGstinInput(text);
       updateField("gstin", cleaned);
-
-      if (cleaned.length === 15) {
-        if (!isValidGstStateCode(cleaned.slice(0, 2))) {
-          setErrors((prev) => ({
-            ...prev,
-            gstin: "Invalid State/UT code in GSTIN (format: 29AAAAA0000A1Z5)",
-          }));
-        } else if (!isValidGstin(cleaned)) {
-          setErrors((prev) => ({
-            ...prev,
-            gstin: "Invalid GSTIN format (e.g. 29AAAAA0000A1Z5)",
-          }));
-        } else {
-          clearError("gstin");
-        }
+      const err = validateGstinLive(cleaned);
+      if (err) {
+        setErrors((prev) => ({ ...prev, gstin: err }));
       } else {
         clearError("gstin");
       }
