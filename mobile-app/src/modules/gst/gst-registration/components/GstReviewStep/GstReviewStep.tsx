@@ -120,6 +120,7 @@ export const GstReviewStep: React.FC<GstReviewStepProps> = ({
           label="Date of Commencement"
           value={businessData.businessStartDate}
         />
+        <ReviewRow label="Business PAN" value={businessData.businessPan} />
         <ReviewRow
           label="Reason for Reg."
           value={businessData.reasonForRegistration}

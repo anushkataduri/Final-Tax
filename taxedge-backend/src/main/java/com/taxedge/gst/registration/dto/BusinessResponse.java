@@ -69,6 +69,8 @@ public class BusinessResponse {
 
     private String signatoryName;
 
+    private String businessPan;
+
     private String signatoryPan;
 
     private LocalDate signatoryDob;

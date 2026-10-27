@@ -42,7 +42,7 @@ export interface GstBusinessFormData {
   hsnCode: string; accountHolderName: string; bankAccountNumber: string; confirmBankAccountNumber: string;
   ifscCode: string; bankName: string; branchName: string; accountType: string; signatoryName: string;
   signatoryPan: string; signatoryDob: string; signatoryDesignation: string; signatoryMobile: string;
-  signatoryEmail: string; addressProofType: string; aadhaarConsent: boolean;
+  signatoryEmail: string; addressProofType: string; aadhaarConsent: boolean; businessPan: string;
 }
 
 export type FormErrors = Partial<Record<keyof GstBusinessFormData, string>>;
@@ -236,6 +236,7 @@ export const GstBusinessStep: React.FC<Props> = ({
       {renderSelect("businessType", "Constitution of Business *", "Select business type", BUSINESS_TYPES)}
       {renderSelect("natureOfBusiness", "Nature of Business *", "Select nature of business", NATURE_OF_BUSINESS)}
       {renderDatePicker("businessStartDate", "Date of Commencement of Business *", { maximumDate: new Date() })}
+      {renderInput("businessPan", "Business PAN *", "ABCDE1234F", { autoCapitalize: "characters", maxLength: 10, transform: sanitizeAlphanumericUpper })}
     </SectionCard>
   );
 

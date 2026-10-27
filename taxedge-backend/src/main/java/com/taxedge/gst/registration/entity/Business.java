@@ -118,6 +118,9 @@ public class Business {
 	@Column(name = "signatory_name", nullable = false, length = 100)
 	private String signatoryName;
 
+	@Column(name = "business_pan", nullable = true, length = 10)
+	private String businessPan;
+
 	@Column(name = "signatory_pan", nullable = false, length = 10)
 	private String signatoryPan;
 

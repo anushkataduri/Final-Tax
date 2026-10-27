@@ -64,6 +64,7 @@ public class BusinessServiceImpl implements BusinessService {
 				.bankName(businessRequest.getBankName()).branchName(businessRequest.getBranchName())
 				.accountType(businessRequest.getAccountType())
 				.authorisedSignatory(businessRequest.getAuthorisedSignatory())
+				.businessPan(businessRequest.getBusinessPan())
 				.signatoryName(businessRequest.getSignatoryName()).signatoryPan(businessRequest.getSignatoryPan())
 				.signatoryDob(businessRequest.getSignatoryDob()).designation(businessRequest.getDesignation())
 				.signatoryMobile(businessRequest.getSignatoryMobile())

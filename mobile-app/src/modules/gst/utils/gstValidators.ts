@@ -412,6 +412,7 @@ export const GstValidators = {
         return GstValidators.isValidBranchName(value) ? "" : "Enter a valid branch name";
       case "accountType": return GstValidators.isNotEmpty(value, 2) ? "" : "Account type is required";
       case "signatoryName": return GstValidators.validateSignatoryName(value);
+      case "businessPan": return GstValidators.validateSignatoryPan(value);
       case "signatoryPan": return GstValidators.validateSignatoryPan(value);
       case "signatoryDob": return GstValidators.validateSignatoryDob(value);
       case "signatoryDesignation": return GstValidators.validateSignatoryDesignation(value);
@@ -431,7 +432,7 @@ export const GstValidators = {
       "businessStartDate", "reasonForRegistration", "compositionScheme", "businessAddress",
       "city", "district", "state", "pinCode", "hsnCode", "accountHolderName",
       "bankAccountNumber", "confirmBankAccountNumber", "ifscCode", "bankName",
-      "branchName", "accountType", "signatoryName", "signatoryPan", "signatoryDob",
+      "branchName", "accountType", "businessPan", "signatoryName", "signatoryPan", "signatoryDob",
       "signatoryDesignation", "signatoryMobile", "signatoryEmail", "aadhaarConsent",
     ];
     const errors = fields.reduce<Record<string, string>>((acc, key) => {

@@ -96,6 +96,9 @@ public class BusinessRequest {
 	private String signatoryName;
 
 	@NotBlank
+	private String businessPan;
+
+	@NotBlank
 	private String signatoryPan;
 
 	@NotNull

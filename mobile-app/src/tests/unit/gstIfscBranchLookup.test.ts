@@ -44,6 +44,7 @@ const createInitialFormData = (overrides: Partial<GstBusinessFormData> = {}): Gs
   signatoryEmail: "jane@acmecorp.com",
   addressProofType: "Electricity Bill",
   aadhaarConsent: true,
+  businessPan: "ABCPE1234F",
   ...overrides,
 });
 

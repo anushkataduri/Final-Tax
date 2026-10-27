@@ -40,6 +40,7 @@ export const INITIAL_BUSINESS_DATA: GstBusinessFormData = {
   signatoryEmail: "",
   addressProofType: "Rental Agreement",
   aadhaarConsent: false,
+  businessPan: "",
 };
 
 export const isBackendGstId = (id?: unknown): id is string => {
@@ -185,7 +186,7 @@ export const SIGNATORY_FIELD_NAMES = [
 ];
 export const GST_ALL_FIELD_ORDER = [
   "legalName", "businessName", "businessType", "natureOfBusiness", "placeOfBusiness",
-  "businessStartDate", "reasonForRegistration", "compositionScheme", "businessAddress",
+  "businessStartDate", "businessPan", "reasonForRegistration", "compositionScheme", "businessAddress",
   "city", "district", "state", "pinCode", "hsnCode", "accountHolderName",
   "bankAccountNumber", "confirmBankAccountNumber", "ifscCode", "bankName",
   "branchName", "accountType", "signatoryName", "signatoryPan", "signatoryDob",
