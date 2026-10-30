@@ -1,0 +1,1 @@
+export { getPropertyDocumentRequirements } from "./propertyDocuments";

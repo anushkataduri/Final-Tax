@@ -1,0 +1,1 @@
+export { TdsHeroIllustration } from "./TdsHeroIllustration";

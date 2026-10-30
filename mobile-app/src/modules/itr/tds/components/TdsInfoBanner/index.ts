@@ -1,0 +1,1 @@
+export { TdsInfoBanner } from "./TdsInfoBanner";

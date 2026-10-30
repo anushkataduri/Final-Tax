@@ -1,0 +1,1 @@
+export { ProfessionIcon } from "./ProfessionIcons";

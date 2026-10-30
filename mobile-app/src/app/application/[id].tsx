@@ -1,0 +1,319 @@
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  BackHandler,
+} from "react-native";
+import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useApplicationStore } from "@/store/applicationStore";
+import { applicationService } from "@/modules/applications/services/applicationService";
+import { logger } from "@/core/logging/logger";
+import type { Application, TimelineStep } from "@/types/domain";
+import { styles } from "@/styles/app/application/[id].styles";
+
+import {
+  ApplicationHeader,
+  type DetailTab,
+} from "@/components/screens/application/ApplicationHeader";
+import { OverviewTab } from "@/components/screens/application/OverviewTab";
+import { StatusTab } from "@/components/screens/application/StatusTab";
+import { DocumentsTab } from "@/components/screens/application/DocumentsTab";
+import { PaymentsTab } from "@/components/screens/application/PaymentsTab";
+import { ChatTab } from "@/components/screens/application/ChatTab";
+import {
+  formatDisplayDate,
+  calculateExpectedDate,
+  getServiceSpecificTimeline,
+} from "@/components/screens/application/applicationDetailsUtils";
+import { formatAmendmentSubmissionDate } from "@/modules/gst/gst-amendment/utils/gstAmendmentHelpers";
+
+export default function ApplicationDetailScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { id } = useLocalSearchParams<{ id: string }>();
+
+  const applications = useApplicationStore((state) => state.applications);
+  const addChatMessage = useApplicationStore((state) => state.addChatMessage);
+
+  const [remoteApp, setRemoteApp] = useState<Application | null>(null);
+  const [isLoadingRemote, setIsLoadingRemote] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [isSendingChat, setIsSendingChat] = useState(false);
+  const [activeTab, setActiveTab] = useState<DetailTab>("OVERVIEW");
+
+  const app =
+    applications.find(
+      (a) =>
+        a.id === id ||
+        a.formData?.arn === id ||
+        a.formData?.gstId === id ||
+        a.formData?.applicationId === id
+    ) || remoteApp;
+
+  const handleSendMessage = async (
+    attachment?: { uri: string; fileName: string; fileSize?: number; mimeType: string } | null,
+  ) => {
+    const text = chatInput.trim();
+    if (!text && !attachment) return;
+    if (!app) return;
+    setIsSendingChat(true);
+    try {
+      let remoteUrl: string | undefined;
+      if (attachment) {
+        const uploaded = await applicationService.uploadChatAttachment(app.id, {
+          uri: attachment.uri,
+          name: attachment.fileName,
+          type: attachment.mimeType,
+          size: attachment.fileSize,
+        });
+        if (uploaded) {
+          remoteUrl = uploaded;
+        }
+      }
+      addChatMessage(app.id, "user", text, attachment ? {
+        uri: attachment.uri,
+        url: remoteUrl,
+        fileName: attachment.fileName,
+        fileSize: attachment.fileSize,
+        mimeType: attachment.mimeType,
+      } : undefined);
+      setChatInput("");
+    } catch (err) {
+      logger.warn("[ApplicationDetails] Failed to send chat message", { error: err });
+      throw err;
+    } finally {
+      setIsSendingChat(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!app && id) {
+      setIsLoadingRemote(true);
+      applicationService
+        .getApplicationById(id)
+        .then((fetched) => {
+          if (fetched) setRemoteApp(fetched);
+        })
+        .finally(() => setIsLoadingRemote(false));
+    }
+  }, [id, app]);
+
+  if (isLoadingRemote) {
+    return (
+      <View
+        style={[
+          styles.container,
+          styles.loadingWrap,
+          { paddingTop: insets.top + 20 },
+        ]}
+      >
+        <FocusAwareStatusBar barStyle="light-content" backgroundColor="#0A2346" />
+        <ActivityIndicator size="large" color="#FF5722" />
+        <Text style={styles.loadingText}>Loading application details...</Text>
+      </View>
+    );
+  }
+
+  if (!app) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: "#0A2346", paddingTop: insets.top + 20 },
+        ]}
+      >
+        <FocusAwareStatusBar barStyle="light-content" backgroundColor="#0A2346" />
+        <View style={styles.topNavRow}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="chevron-back" size={22} color="#FFF" />
+          </TouchableOpacity>
+          <Text style={styles.navTitle}>Not Found</Text>
+          <View style={styles.navSpacer} />
+        </View>
+        <View style={styles.errorContent}>
+          <Ionicons name="warning-outline" size={48} color="#EA580C" />
+          <Text style={styles.errorText}>Application not found.</Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.actionBtnFilled}
+          >
+            <Text style={styles.actionBtnFilledText}>
+              Return to Applications
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // ── Derived Application Metadata ──────────────────────────────────────────
+
+  const isGstAmendment = app.serviceId === "gst-amendment";
+  const formData = (app.formData || {}) as Record<string, any>;
+  const isLoans =
+    app.category === "LOANS" ||
+    (app.serviceId || "").startsWith("loan") ||
+    app.serviceId === "machinery-loan";
+
+  const displayId =
+    (isGstAmendment && formData.arn ? String(formData.arn) : null) ||
+    formData.applicationId ||
+    app.id;
+
+  const filingPeriod =
+    formData.filingPeriod ||
+    formData.returnPeriod ||
+    formData.period ||
+    formData.periodData?.filingPeriod ||
+    formData.filingMonth;
+
+  const displayName =
+    (isGstAmendment && formData.section
+      ? `GST Amendment — ${formData.section}`
+      : filingPeriod &&
+          (app.serviceId?.includes("filing") || app.serviceName?.toLowerCase().includes("filing")) &&
+          !app.serviceName?.includes(filingPeriod)
+        ? `${app.serviceName} (${filingPeriod})`
+        : app.serviceName) || "Application";
+
+  let timeStr = formData.submissionTime || formData.time || "";
+  if (!timeStr && app?.createdAt) {
+    const cd = new Date(app.createdAt);
+    if (!isNaN(cd.getTime())) {
+      timeStr = cd.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    }
+  }
+
+  const baseAppliedDate =
+    (formData.submissionDate ? formatAmendmentSubmissionDate(formData.submissionDate) : null) ||
+    formData.appliedDate ||
+    formatDisplayDate(app.createdAt, timeStr);
+
+  const appliedDate =
+    timeStr && !baseAppliedDate.includes(timeStr)
+      ? `${baseAppliedDate}, ${timeStr}`
+      : baseAppliedDate;
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(main)/applications" as any);
+    }
+  };
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      handleBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
+
+  const assignedCA =
+    app.assignedExecutive && app.assignedExecutive.trim() !== ""
+      ? app.assignedExecutive.trim()
+      : isLoans
+        ? "Loan Processing Officer"
+        : "CA not assigned yet";
+
+  const expectedDate = calculateExpectedDate(app.createdAt);
+
+  const timelineSteps: TimelineStep[] =
+    app.timeline && app.timeline.length > 0
+      ? app.timeline
+      : getServiceSpecificTimeline(app, appliedDate);
+
+  return (
+    <View style={styles.container}>
+      <FocusAwareStatusBar barStyle="light-content" backgroundColor="#0A2346" />
+
+      {/* Header and horizontal tabs (Screens 2–6 Reference) */}
+      <ApplicationHeader
+        topInset={insets.top}
+        serviceName={displayName}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onBack={handleBack}
+        onSettings={() => router.push("/profile" as any)}
+      />
+
+      {/* Main Tab Content */}
+      {activeTab === "CHAT" ? (
+        <ChatTab
+          app={app}
+          chatHistory={app.chatHistory}
+          assignedCA={assignedCA}
+          isLoans={isLoans}
+          appliedDate={appliedDate}
+          chatInput={chatInput}
+          setChatInput={setChatInput}
+          isSendingChat={isSendingChat}
+          onSendMessage={handleSendMessage}
+          formatDisplayDate={formatDisplayDate}
+          bottomInset={insets.bottom}
+          onViewApplication={() => setActiveTab("OVERVIEW")}
+        />
+      ) : (
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 24 },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {activeTab === "OVERVIEW" && (
+            <OverviewTab
+              app={app}
+              displayId={displayId}
+              appliedDate={appliedDate}
+              onChatWithCA={() => setActiveTab("CHAT")}
+            />
+          )}
+
+          {activeTab === "STATUS" && (
+            <StatusTab
+              app={app}
+              timelineSteps={timelineSteps}
+              currentStatus={app.status || "Submitted"}
+              appliedDate={appliedDate}
+              onNavigateTab={(tab) => setActiveTab(tab)}
+            />
+          )}
+
+          {activeTab === "DOCUMENTS" && (
+            <DocumentsTab
+              app={app}
+              isGstAmendment={isGstAmendment}
+              formData={formData}
+              documents={app.documents}
+              appliedDate={appliedDate}
+            />
+          )}
+
+          {activeTab === "PAYMENTS" && (
+            <PaymentsTab
+              app={app}
+              isGstAmendment={isGstAmendment}
+              appliedDate={appliedDate}
+            />
+          )}
+        </ScrollView>
+      )}
+    </View>
+  );
+}

@@ -1,0 +1,1 @@
+export { TdsDocumentsGrid } from "./TdsDocumentsGrid";
