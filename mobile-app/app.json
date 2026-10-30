@@ -93,11 +93,15 @@
       "reactCompiler": false
     },
     "extra": {
-      "router": {},
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
       "eas": {
-        "projectId": "9d9291f5-c430-43b9-bbea-0e96ffb55776"
+        "projectId": "007a5353-78e2-492b-8dcc-d0c3a9491ddb"
       }
     },
-    "owner": "reddynaru"
+    "owner": "shashiprakash833"
   }
 }
