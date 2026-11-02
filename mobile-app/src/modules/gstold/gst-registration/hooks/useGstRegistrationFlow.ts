@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Alert, type ScrollView } from "react-native";
+import { Alert, type ScrollViewInstance } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useApplicationStore } from "@/store/applicationStore";
 import { useNotificationStore } from "@/store/notificationStore";
@@ -21,7 +21,9 @@ import { logger } from "@/core/logging/logger";
 
 export { isBackendGstId, extractGstId, resolveTargetGstId };
 
-export const useGstRegistrationFlow = (scrollViewRef: React.RefObject<ScrollView | null>) => {
+export type GstScrollViewRef = React.RefObject<ScrollViewInstance | { scrollTo: (options: { x?: number; y?: number; animated?: boolean }) => void } | null> | React.RefObject<any>;
+
+export const useGstRegistrationFlow = (scrollViewRef: GstScrollViewRef) => {
   const router = useRouter(), params = useLocalSearchParams<{ gstId?: string; id?: string; appId?: string; isEdit?: string; edit?: string; step?: string }>();
 
   // State
@@ -48,7 +50,7 @@ export const useGstRegistrationFlow = (scrollViewRef: React.RefObject<ScrollView
   const getResolvedCustomerId = useCallback(async (): Promise<string> => {
     try {
       if (businessData.customerId?.trim()) return businessData.customerId.trim();
-      const storeCustId = authCustomer?.customerId || authUser?.customerId || authUser?.custId || (authCustomer as Record<string, unknown>)?.custId;
+      const storeCustId = authCustomer?.customerId || authUser?.customerId || authUser?.custId || (authCustomer as unknown as Record<string, unknown>)?.custId;
       if (storeCustId && String(storeCustId).trim()) return String(storeCustId).trim();
       const u = authStorage.getUser(), s = authStorage.getSession();
       const storageCustId = u?.customerId || u?.custId || s?.activeCustId;
@@ -263,7 +265,7 @@ export const useGstRegistrationFlow = (scrollViewRef: React.RefObject<ScrollView
     }
     const targetGstId = resolveTargetGstId([
       createdGstId, businessData.gstId, params.gstId, params.id,
-      params.appId, gstDraft?.createdGstId, gstDraft?.gstId, (gstDraft?.businessData as Record<string, unknown>)?.gstId as string,
+      params.appId, gstDraft?.createdGstId, gstDraft?.gstId, (gstDraft?.businessData as unknown as Record<string, unknown>)?.gstId as string,
     ]);
     const payload = mapGstRegistrationPayload(businessData, custId, targetGstId);
     const nextStep = isEditMode ? 2 : 1;
