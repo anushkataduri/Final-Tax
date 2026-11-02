@@ -7,8 +7,11 @@ import {
   Alert,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { Keyboard } from "react-native";
 import { useAuthStore } from "@/store/authStore";
 import { biometricService } from "@/modules/authentication/services/biometricService";
+import { validatePan } from "@/shared/validators/indianTaxValidators";
+import { useAadhaarOtp } from "./useAadhaarOtp";
 import {
   sanitizePanInput,
   formatDobInput,
@@ -124,6 +127,50 @@ export function useCreateProfile(
       setForm((p) => ({ ...p, mobileNumber: storeMobileNumber }));
   }, [storeMobileNumber]);
 
+  // ─── PAN Validity ────────────────────────────────────────────────────────────
+  const isPanValid = useMemo(() => validatePan(form.pan), [form.pan]);
+
+  // ─── Aadhaar OTP Hook ────────────────────────────────────────────────────────
+  const {
+    isAadhaarValid,
+    isOtpButtonEnabled,
+    isAadhaarOtpSent,
+    isAadhaarVerified,
+    aadhaarOtp,
+    aadhaarOtpTimer,
+    aadhaarOtpError,
+    handleSendAadhaarOtp,
+    handleResendAadhaarOtp,
+    handleVerifyAadhaarOtp,
+    handleAadhaarOtpChange,
+    resetAadhaarVerification,
+    formatOtpTime,
+  } = useAadhaarOtp({
+    aadhaarNumber: form.aadhaar,
+    onVerificationSuccess: () => {
+      setProfileErrors((prev) => {
+        const next = { ...prev };
+        delete next.aadhaar;
+        return next;
+      });
+    },
+    onClearAadhaarError: () => {
+      setProfileErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.aadhaar;
+        return copy;
+      });
+    },
+    onSetAadhaarError: (error: string) => {
+      setProfileErrors((prev) => ({ ...prev, aadhaar: error }));
+    },
+  });
+
+  const handleResetAadhaarVerification = () => {
+    resetAadhaarVerification();
+    setTimeout(() => aadhaarRef.current?.focus(), 150);
+  };
+
   // ─── PAN Keyboard Type ───────────────────────────────────────────────────────
   const panKeyboardType: "default" | "number-pad" =
     form.pan.length >= 5 && form.pan.length < 9 ? "number-pad" : "default";
@@ -135,6 +182,11 @@ export function useCreateProfile(
 
   // ─── Form Update with Real-Time Validation ──────────────────────────────────
   const updateForm = (key: keyof SignupForm, rawVal: string) => {
+    // If Aadhaar changes, reset verification status
+    if (key === "aadhaar" && rawVal !== form.aadhaar) {
+      resetAadhaarVerification();
+    }
+
     // No leading or doubled spaces while typing (email: no spaces at all).
     const val = cleanFieldWhileTyping(key, rawVal);
     setForm((p) => ({ ...p, [key]: val }));
@@ -203,12 +255,14 @@ export function useCreateProfile(
 
   // ─── Form Validity (memoized) ────────────────────────────────────────────────
   const isFormValid = useMemo(() => {
-    return checkFormValidity(
-      form,
-      agreedToTerms,
-      form.mobileNumber || storeMobileNumber
+    return (
+      checkFormValidity(
+        form,
+        agreedToTerms,
+        form.mobileNumber || storeMobileNumber
+      ) && isAadhaarVerified
     );
-  }, [form, agreedToTerms, storeMobileNumber]);
+  }, [form, agreedToTerms, storeMobileNumber, isAadhaarVerified]);
 
   // ─── Step Navigation ─────────────────────────────────────────────────────────
   const handleProceedToRegistration = () => {
@@ -308,6 +362,17 @@ export function useCreateProfile(
     const addressTooLong = validateFormAddressLength(form);
     if (addressTooLong && !errs.addressLine1) errs.addressLine1 = addressTooLong;
 
+    // Aadhaar OTP Verification enforcement
+    if (!isAadhaarVerified) {
+      if (!form.aadhaar.trim()) {
+        errs.aadhaar = "Required";
+      } else if (!isAadhaarOtpSent) {
+        errs.aadhaar = "Please send OTP and verify your Aadhaar number";
+      } else {
+        errs.aadhaar = "Please complete Aadhaar OTP verification to continue";
+      }
+    }
+
     const hasErrors = Object.keys(errs).length > 0;
     hasErrors
       ? (() => {
@@ -402,5 +467,19 @@ export function useCreateProfile(
     biometricType,
     handleEnableBiometric,
     handleNotNowBiometric,
+    isPanValid,
+    isAadhaarValid,
+    isOtpButtonEnabled,
+    isAadhaarOtpSent,
+    isAadhaarVerified,
+    aadhaarOtp,
+    aadhaarOtpTimer,
+    aadhaarOtpError,
+    handleSendAadhaarOtp,
+    handleResendAadhaarOtp,
+    handleVerifyAadhaarOtp,
+    handleAadhaarOtpChange,
+    handleResetAadhaarVerification,
+    formatOtpTime,
   };
 }

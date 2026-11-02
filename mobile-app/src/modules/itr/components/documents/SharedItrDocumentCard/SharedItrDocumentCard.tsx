@@ -277,6 +277,9 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
           visible={showViewModal}
           fileUri={item.fileUri}
           title={item.title}
+          fileName={item.fileName}
+          fileSize={item.fileSize}
+          mimeType={item.mimeType}
           onClose={() => setShowViewModal(false)}
         />
       )}
@@ -443,7 +446,7 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
         documentTitle={item.title}
         maxSizeText="Maximum file size: 10 MB"
         onChooseFiles={handleChooseFiles}
-        onSelectGallery={() => {}}
+        onSelectGallery={handlePickGallery}
         onTakePhoto={handleTakePhoto}
         onClose={() => setShowSourceModal(false)}
       />
@@ -460,6 +463,9 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
           visible={showViewModal}
           fileUri={item.fileUri}
           title={item.title}
+          fileName={item.fileName}
+          fileSize={item.fileSize}
+          mimeType={item.mimeType}
           onClose={() => setShowViewModal(false)}
         />
       )}

@@ -1,6 +1,5 @@
 import { TdsFormData, TdsFormErrors, TdsFormFieldKey } from "../types/tdsForm.types";
-
-const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+import { describePanError } from "@/shared/validators/indianTaxValidators";
 const TAN_REGEX = /^[A-Z]{4}[0-9]{5}[A-Z]{1}$/;
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 const ACCOUNT_REGEX = /^\d{9,18}$/;
@@ -17,11 +16,12 @@ const validateSingleField = (
   const value = (data[key] || "").trim();
 
   switch (key) {
-    case "panNumber":
+    case "panNumber": {
       if (!value) return "PAN Number is required";
-      if (value.length !== 10) return "PAN must be exactly 10 characters";
-      if (!PAN_REGEX.test(value)) return "Invalid PAN format (e.g. ABCDE1234F)";
+      const panErr = describePanError(value);
+      if (panErr) return panErr;
       return undefined;
+    }
 
     case "assessmentYear":
       if (!value) return "Please select an Assessment Year";

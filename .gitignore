@@ -1,0 +1,16 @@
+# Secrets and environment files
+.env
+.env.*
+*.env
+env
+*.pem
+*.key
+*.p12
+*.jks
+
+# Dependencies and build outputs
+node_modules/
+target/
+dist/
+.expo/
+.DS_Store

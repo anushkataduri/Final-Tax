@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -211,18 +211,23 @@ export const RevisedDocumentsScreen: React.FC = () => {
   };
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const isSubmittingRef = useRef(false);
   const { revisedItrId, documentId, setBackendIds, setMaxStepReached } = useRevisedProgressStore();
 
   // POST Method - Normal Flow (Continue)
   const handleContinue = async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     const checkReq = documents.filter((d) => isDocRequired(d.id, params.revisionReason));
     const missing = checkReq.filter((d) => d.status !== "uploaded");
     if (missing.length > 0) {
+      isSubmittingRef.current = false;
       Alert.alert("Missing Documents", "Please upload all required documents before continuing.");
       return;
     }
 
     if (!revisedItrId) {
+      isSubmittingRef.current = false;
       Alert.alert("Error", "Missing revised ITR ID. Please start from Step 1.");
       return;
     }
@@ -253,20 +258,25 @@ export const RevisedDocumentsScreen: React.FC = () => {
       console.error("Error saving documents:", e);
       Alert.alert("Error", "Failed to upload documents");
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
 
   // PUT Method - Editing Flow (Update & Continue)
   const handleUpdateAndContinue = async () => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     const checkReq = documents.filter((d) => isDocRequired(d.id, params.revisionReason));
     const missing = checkReq.filter((d) => d.status !== "uploaded");
     if (missing.length > 0) {
+      isSubmittingRef.current = false;
       Alert.alert("Missing Documents", "Please upload all required documents before continuing.");
       return;
     }
 
     if (!documentId) {
+      isSubmittingRef.current = false;
       Alert.alert("Error", "No document ID found to update.");
       return;
     }
@@ -275,6 +285,8 @@ export const RevisedDocumentsScreen: React.FC = () => {
       setIsSubmitting(true);
       
       await RevisedItrApiService.updateRevisedDocuments(documentId, documents);
+
+      setMaxStepReached(5);
 
       // Redirect back to Review screen
       router.push({
@@ -293,6 +305,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
       console.error("Error updating documents:", e);
       Alert.alert("Error", "Failed to update documents");
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -313,6 +326,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
           fileUri: item.fileUri,
           fileName: item.fileName,
           fileSize: item.fileSize,
+          mimeType: item.mimeType,
           iconType: "business_income",
         }}
         onUploadSuccess={(id, fileInfo) => {
@@ -325,6 +339,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
                     fileUri: fileInfo.uri,
                     fileName: fileInfo.name,
                     fileSize: fileInfo.size,
+                    mimeType: fileInfo.mimeType,
                   }
                 : d
             )

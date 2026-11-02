@@ -32,6 +32,7 @@ import { useCustomerStore } from "@/modules/customer/store/customerStore";
 import { useApplicationStore } from "@/store/applicationStore";
 import { DEFAULT_REVISED_FORM_FIELDS } from "../../mock/revisedItrData";
 import { RevisedFormFields } from "../../types/revisedItr.types";
+import { buildComparisonRows, computeRevisedRefund } from "../../services/revisedItrCalculations";
 
 export const ReviewRevisedComputationScreen: React.FC = () => {
   React.useEffect(() => {
@@ -41,6 +42,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const storeIsSubmitted = useRevisedProgressStore((s) => s.isSubmitted);
   const params = useLocalSearchParams<{
     acknowledgementNumber?: string;
     assessmentYear?: string;
@@ -68,12 +70,19 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
     onDiscardDraft: () => {
       useApplicationStore.getState().clearRevisedItrDraft();
     },
-    isSubmitted: () => isSubmitting,
+    isSubmitted: () => isSubmitting || useRevisedProgressStore.getState().isSubmitted,
   });
   const assessmentYear = params.assessmentYear || "AY 2025–26";
   const ackNo = params.acknowledgementNumber || "284419250714208";
-  const uploadedDocs = params.uploadedDocsCount || "2";
-  const totalDocs = params.totalDocsCount || "6";
+
+  // BUG-ITR-060: compute live from store so doc count stays accurate after editing income/Changes.
+  const storeDocumentsForCount = useRevisedProgressStore((s) => s.documents);
+  const uploadedDocs = storeDocumentsForCount
+    ? storeDocumentsForCount.filter((d) => d.status === "uploaded" || !!d.fileUri).length.toString()
+    : params.uploadedDocsCount || "0";
+  const totalDocs = storeDocumentsForCount
+    ? storeDocumentsForCount.length.toString()
+    : params.totalDocsCount || "6";
 
   const customerFromAuth = useAuthStore((s) => s.customer);
   const profileFromCust = useCustomerStore((s) => s.profile);
@@ -83,7 +92,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
   if (params.revisedDetails) {
     try {
       formDetails = JSON.parse(params.revisedDetails);
-    } catch {}
+    } catch { }
   }
 
   const maskPan = (pan?: string): string => {
@@ -147,9 +156,47 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
   };
 
   const createApplication = useApplicationStore((state) => state.createApplication);
+  const applications = useApplicationStore((state) => state.applications);
+
+  // Resolve original gross income from the previously filed application record.
+  const originalApp = applications.find(
+    (a) =>
+      (a.formData as any)?.previousAckNumber === ackNo ||
+      a.id === ackNo,
+  );
+  const rawOriginalGross: unknown = (originalApp?.formData as any)?.grossTotalIncome;
+  const originalGrossIncomeStr =
+    rawOriginalGross != null
+      ? `₹${Number(rawOriginalGross).toLocaleString("en-IN")}`
+      : undefined;
+
+  const comparisonRows = buildComparisonRows(
+    formDetails,
+    params.revisionReason ?? null,
+    originalGrossIncomeStr,
+  );
+
+  // Extract tax outcome fields stored when the original ITR was filed.
+  const rawTaxesPaid: unknown = (originalApp?.formData as any)?.totalTaxesPaid;
+  const totalTaxesPaid = rawTaxesPaid != null ? Number(rawTaxesPaid) : undefined;
+  const rawFinalAmount: unknown = (originalApp?.formData as any)?.finalAmount;
+  const originalFinalAmount = rawFinalAmount != null ? Number(rawFinalAmount) : undefined;
+  const rawFinalType: unknown = (originalApp?.formData as any)?.finalType;
+  const originalFinalType = typeof rawFinalType === "string" ? rawFinalType : undefined;
+  const rawRegime: unknown = (originalApp?.formData as any)?.regime;
+  const originalRegime = typeof rawRegime === "string" ? rawRegime : undefined;
+
+  const refundSummary = computeRevisedRefund(
+    formDetails.taxableIncome,
+    originalRegime,
+    totalTaxesPaid,
+    originalFinalAmount,
+    originalFinalType,
+    assessmentYear,
+  );
 
   const handleSubmitRevisedItr = async () => {
-    if (isSubmitting) return;
+    if (isSubmitting || storeIsSubmitted) return;
     setIsSubmitting(true);
 
     try {
@@ -280,30 +327,32 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
       // 5. Clear draft & reset progress
       try {
         useApplicationStore.getState().clearRevisedItrDraft();
-        useRevisedProgressStore.getState().reset();
-      } catch {}
+        useRevisedProgressStore.getState().setIsSubmitted(true);
+      } catch { }
 
       // Mark submitted to disable navigation draft prevention
       markSubmitted();
 
-      // Dismiss all wizard screens from the navigation stack so back navigation doesn't return to them
+      // 6. Navigate to Application Success screen, clearing service screens from the stack.
+      // When canDismiss() is true (service screens sit above the root tab), dismissAll() pops
+      // back to the root and navigate() pushes success as the only service entry — preventing
+      // back navigation into the Revised ITR wizard. When canDismiss() is false, replace() swaps
+      // just the current entry as before.
+      const successParams = {
+        serviceType: "revised",
+        serviceTitle,
+        assessmentYear,
+        applicationId: targetAppId,
+        uploadedDocsCount: uploadedDocs,
+        totalDocsCount: totalDocs,
+        status: "Submitted",
+      };
       if (router.canDismiss()) {
         router.dismissAll();
+        router.navigate({ pathname: "/service/itr-success" as any, params: successParams });
+      } else {
+        router.replace({ pathname: "/service/itr-success" as any, params: successParams });
       }
-
-      // 6. Navigate directly to Application Success / Received screen
-      router.replace({
-        pathname: "/service/itr-success" as any,
-        params: {
-          serviceType: "revised",
-          serviceTitle,
-          assessmentYear,
-          applicationId: targetAppId,
-          uploadedDocsCount: uploadedDocs,
-          totalDocsCount: totalDocs,
-          status: "Submitted",
-        },
-      });
     } catch (err: any) {
       console.error("[Revised ITR Submit] Error:", err);
       Alert.alert(
@@ -479,11 +528,16 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* 5. Tax Calculation Comparison */}
-        <ComputationComparisonTable />
+        {/* 5. Tax Calculation Comparison — rows derived from active revised form data */}
+        <ComputationComparisonTable rows={comparisonRows} />
 
-        {/* 6. Revised Refund Summary Card */}
-        <RevisedRefundHeroCard />
+        {/* 6. Revised Refund Summary Card — computed when original return data is available */}
+        <RevisedRefundHeroCard
+          revisedRefund={refundSummary.revisedRefund}
+          originalRefund={refundSummary.originalRefund}
+          changeRefund={refundSummary.changeRefund}
+          additionalTaxPayable={refundSummary.additionalTaxPayable}
+        />
       </ScrollView>
 
       {/* Sticky Bottom Action Button */}
@@ -496,7 +550,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleSubmitRevisedItr}
-          disabled={isSubmitting}
+          disabled={isSubmitting || storeIsSubmitted}
           style={styles.proceedButton}
         >
           {isSubmitting ? (

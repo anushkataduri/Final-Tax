@@ -28,7 +28,6 @@ import { PaymentsTab } from "@/components/screens/application/PaymentsTab";
 import { ChatTab } from "@/components/screens/application/ChatTab";
 import {
   formatDisplayDate,
-  calculateExpectedDate,
   getServiceSpecificTimeline,
 } from "@/components/screens/application/applicationDetailsUtils";
 import { formatAmendmentSubmissionDate } from "@/modules/gst/gst-amendment/utils/gstAmendmentHelpers";
@@ -47,14 +46,40 @@ export default function ApplicationDetailScreen() {
   const [isSendingChat, setIsSendingChat] = useState(false);
   const [activeTab, setActiveTab] = useState<DetailTab>("OVERVIEW");
 
+  const cleanId = id ? String(id).trim() : "";
+
   const app =
-    applications.find(
-      (a) =>
-        a.id === id ||
-        a.formData?.arn === id ||
-        a.formData?.gstId === id ||
-        a.formData?.applicationId === id
-    ) || remoteApp;
+    (cleanId
+      ? applications.find(
+        (a) =>
+          a.id === cleanId ||
+          (a.formData?.arn && String(a.formData.arn).trim() === cleanId) ||
+          (a.formData?.gstId && String(a.formData.gstId).trim() === cleanId) ||
+          (a.formData?.applicationId && String(a.formData.applicationId).trim() === cleanId)
+      )
+      : null) ||
+    (remoteApp &&
+      (remoteApp.id === cleanId ||
+        String(remoteApp.formData?.applicationId || "").trim() === cleanId ||
+        String(remoteApp.formData?.arn || "").trim() === cleanId)
+      ? remoteApp
+      : null);
+
+  const handleBack = React.useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(main)/applications" as any);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      handleBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleBack]);
 
   const handleSendMessage = async (
     attachment?: { uri: string; fileName: string; fileSize?: number; mimeType: string } | null,
@@ -93,15 +118,21 @@ export default function ApplicationDetailScreen() {
   };
 
   useEffect(() => {
+    let isCancelled = false;
     if (!app && id) {
-      setIsLoadingRemote(true);
-      applicationService
-        .getApplicationById(id)
-        .then((fetched) => {
-          if (fetched) setRemoteApp(fetched);
-        })
-        .finally(() => setIsLoadingRemote(false));
+      const loadRemote = async () => {
+        try {
+          const fetched = await applicationService.getApplicationById(id);
+          if (!isCancelled && fetched) setRemoteApp(fetched);
+        } finally {
+          if (!isCancelled) setIsLoadingRemote(false);
+        }
+      };
+      loadRemote();
     }
+    return () => {
+      isCancelled = true;
+    };
   }, [id, app]);
 
   if (isLoadingRemote) {
@@ -180,8 +211,8 @@ export default function ApplicationDetailScreen() {
     (isGstAmendment && formData.section
       ? `GST Amendment — ${formData.section}`
       : filingPeriod &&
-          (app.serviceId?.includes("filing") || app.serviceName?.toLowerCase().includes("filing")) &&
-          !app.serviceName?.includes(filingPeriod)
+        (app.serviceId?.includes("filing") || app.serviceName?.toLowerCase().includes("filing")) &&
+        !app.serviceName?.includes(filingPeriod)
         ? `${app.serviceName} (${filingPeriod})`
         : app.serviceName) || "Application";
 
@@ -207,21 +238,6 @@ export default function ApplicationDetailScreen() {
       ? `${baseAppliedDate}, ${timeStr}`
       : baseAppliedDate;
 
-  const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/(main)/applications" as any);
-    }
-  };
-
-  useEffect(() => {
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      handleBack();
-      return true;
-    });
-    return () => sub.remove();
-  }, []);
 
   const assignedCA =
     app.assignedExecutive && app.assignedExecutive.trim() !== ""
@@ -230,7 +246,6 @@ export default function ApplicationDetailScreen() {
         ? "Loan Processing Officer"
         : "CA not assigned yet";
 
-  const expectedDate = calculateExpectedDate(app.createdAt);
 
   const timelineSteps: TimelineStep[] =
     app.timeline && app.timeline.length > 0

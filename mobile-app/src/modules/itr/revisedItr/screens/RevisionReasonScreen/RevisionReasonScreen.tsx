@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   Alert,
 } from "react-native";
@@ -18,6 +17,8 @@ import { RevisedItrHeader } from "../../components/common";
 import { RevisionReasonCard } from "../../components/reason";
 import { REVISION_REASONS } from "../../mock/revisedItrData";
 import { RevisionReasonId } from "../../types/revisedItr.types";
+import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
+import { useKeyboard } from "@/shared/hooks/useKeyboard";
 import {
   styles,
   getContainerInsetsStyle,
@@ -28,6 +29,7 @@ import {
 export const RevisionReasonScreen: React.FC = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { keyboardShown, keyboardHeight } = useKeyboard();
   const maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
   const storedReason = useRevisedProgressStore((s) => s.revisionReason);
   const setRevisionReason = useRevisedProgressStore((s) => s.setRevisionReason);
@@ -164,12 +166,13 @@ export const RevisionReasonScreen: React.FC = () => {
       <RevisedItrHeader subtitle="Reason for Revision" />
 
       {/* Main Content */}
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.scrollContent,
           getScrollContentInsetsStyle(insets.bottom),
         ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Title Section */}
         <View style={styles.titleSection}>
@@ -215,13 +218,14 @@ export const RevisionReasonScreen: React.FC = () => {
             ) : null}
           </View>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Sticky Bottom Action Button */}
       <View
         style={[
           styles.bottomBar,
           getBottomBarInsetsStyle(insets.bottom),
+          { bottom: keyboardShown ? keyboardHeight : 0 },
         ]}
       >
         {params.isEditing === "true" ? (

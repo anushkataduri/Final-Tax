@@ -246,7 +246,7 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
                   placeholder="e.g. SBIN0001234"
                   placeholderTextColor="#94A3B8"
                   value={ifscCode}
-                  onChangeText={(val) => setIfscCode(val.toUpperCase())}
+                  onChangeText={(val) => setIfscCode(val.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
                   maxLength={11}
                 />
               </View>

@@ -114,6 +114,7 @@ export const TdsDocumentChecklistScreen: React.FC = () => {
     onDiscardDraft: async () => {
       await tdsDraftService.clearDraft();
     },
+    isSubmitted: () => useTdsProgressStore.getState().isSubmitted,
   });
 
   // Functional count of uploaded documents - zero loops

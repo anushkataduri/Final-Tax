@@ -112,7 +112,12 @@ export const Step2SalaryIncome: React.FC<Props> = ({ data, onUpdate, onPressInfo
               placeholderTextColor="#94A3B8"
               value={data.employerName}
               onChangeText={(val) =>
-                onUpdate({ employerName: val.replace(/[^a-zA-Z\s]/g, "") })
+                onUpdate({
+                  employerName: val
+                    .replace(/[^a-zA-Z\s]/g, "")
+                    .trimStart()
+                    .replace(/  +/g, " "),
+                })
               }
               maxLength={100}
             />
@@ -130,15 +135,15 @@ export const Step2SalaryIncome: React.FC<Props> = ({ data, onUpdate, onPressInfo
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
-                keyboardType="numeric"
-                placeholder="e.g. 8,50,000"
+                keyboardType="decimal-pad"
+                placeholder="e.g. 850000"
                 placeholderTextColor="#94A3B8"
                 value={data.grossSalary}
-                onChangeText={(val) =>
-                  onUpdate({
-                    grossSalary: val.replace(/[^0-9]/g, ""),
-                  })}
-                maxLength={12}
+                onChangeText={(val) => {
+                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                  onUpdate({ grossSalary: clean });
+                }}
+                maxLength={15}
               />
             </View>
           </View>
@@ -153,13 +158,15 @@ export const Step2SalaryIncome: React.FC<Props> = ({ data, onUpdate, onPressInfo
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
-                keyboardType="numeric"
-                placeholder="e.g. 50,000 (0 if none)"
+                keyboardType="decimal-pad"
+                placeholder="e.g. 50000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={data.allowances}
-                onChangeText={(val) =>
-                  onUpdate({ allowances: val.replace(/[^0-9]/g, "") })}
-                maxLength={12}
+                onChangeText={(val) => {
+                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                  onUpdate({ allowances: clean });
+                }}
+                maxLength={15}
               />
             </View>
           </View>
@@ -175,15 +182,15 @@ export const Step2SalaryIncome: React.FC<Props> = ({ data, onUpdate, onPressInfo
             <Text style={styles.currencyPrefix}>₹</Text>
             <TextInput
               style={styles.textInput}
-              keyboardType="numeric"
-              placeholder="e.g. 45,000 (0 if none)"
+              keyboardType="decimal-pad"
+              placeholder="e.g. 45000 (0 if none)"
               placeholderTextColor="#94A3B8"
               value={data.tdsDeducted}
-              onChangeText={(val) =>
-                onUpdate({
-                  tdsDeducted: val.replace(/[^0-9]/g, ""),
-                })}
-              maxLength={12}
+              onChangeText={(val) => {
+                const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                onUpdate({ tdsDeducted: clean });
+              }}
+              maxLength={15}
             />
           </View>
         </View>

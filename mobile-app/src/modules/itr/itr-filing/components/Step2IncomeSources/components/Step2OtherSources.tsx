@@ -108,13 +108,15 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
-                keyboardType="numeric"
-                placeholder="e.g. 10,000 (0 if none)"
+                keyboardType="decimal-pad"
+                placeholder="e.g. 10000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.savingsInterest}
-                onChangeText={(val) =>
-                  onUpdateOtherSources({ savingsInterest: val.replace(/[^0-9]/g, "") })}
-                maxLength={12}
+                onChangeText={(val) => {
+                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                  onUpdateOtherSources({ savingsInterest: clean });
+                }}
+                maxLength={15}
               />
             </View>
           </View>
@@ -128,13 +130,15 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
-                keyboardType="numeric"
-                placeholder="e.g. 25,000 (0 if none)"
+                keyboardType="decimal-pad"
+                placeholder="e.g. 25000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.fdInterest}
-                onChangeText={(val) =>
-                  onUpdateOtherSources({ fdInterest: val.replace(/[^0-9]/g, "") })}
-                maxLength={12}
+                onChangeText={(val) => {
+                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                  onUpdateOtherSources({ fdInterest: clean });
+                }}
+                maxLength={15}
               />
             </View>
           </View>
@@ -150,13 +154,15 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
-                keyboardType="numeric"
-                placeholder="e.g. 5,000 (0 if none)"
+                keyboardType="decimal-pad"
+                placeholder="e.g. 5000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.dividendIncome}
-                onChangeText={(val) =>
-                  onUpdateOtherSources({ dividendIncome: val.replace(/[^0-9]/g, "") })}
-                maxLength={12}
+                onChangeText={(val) => {
+                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                  onUpdateOtherSources({ dividendIncome: clean });
+                }}
+                maxLength={15}
               />
             </View>
           </View>
@@ -170,13 +176,15 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
-                keyboardType="numeric"
+                keyboardType="decimal-pad"
                 placeholder="e.g. 0 if none"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.otherIncome}
-                onChangeText={(val) =>
-                  onUpdateOtherSources({ otherIncome: val.replace(/[^0-9]/g, "") })}
-                maxLength={12}
+                onChangeText={(val) => {
+                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                  onUpdateOtherSources({ otherIncome: clean });
+                }}
+                maxLength={15}
               />
             </View>
           </View>

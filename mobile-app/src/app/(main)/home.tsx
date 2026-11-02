@@ -19,24 +19,22 @@ import { useServiceAccessGuard } from "@/shared/hooks/useServiceAccessGuard";
 import { SCREEN_BOTTOM_PADDING } from "@/shared/components/ScreenLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Spacing } from "@/shared/theme";
-import { styles } from "@/styles/app/(main)/home.styles";
+import { styles, getScrollGreetingThemedStyle } from "@/styles/app/(main)/home.styles";
 import type { DashboardServiceTile } from "@/types/home.types";
-
+ 
 // ── Extracted sub-components ──────────────────────────────────────────────────
 import { HomeHeader } from "@/components/screens/home/HomeHeader";
 import { ApplyBannerCarousel, type ApplyBanner } from "@/components/screens/home/ApplyBannerCarousel";
 import { ServicesGrid } from "@/components/screens/home/ServicesGrid";
-import { StatsGrid, type StatTile } from "@/components/screens/home/StatsGrid";
 import { DraftBanner } from "@/components/screens/home/DraftBanner";
-import { RecentApplicationCard } from "@/components/screens/home/RecentApplicationCard";
 import { HomeProfileSetupCard } from "@/components/screens/home/HomeProfileSetupCard";
-
+ 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
+ 
 export type { DashboardServiceTile };
-
+ 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
+ 
 const SERVICE_3D_IMAGES = {
   incorporation: require("../../../assets/images/services_3d/incorporation.png"),
   gst: require("../../../assets/images/services_3d/gst.png"),
@@ -46,20 +44,87 @@ const SERVICE_3D_IMAGES = {
   insurance: require("../../../assets/images/services_3d/insurance.png"),
   business: require("../../../assets/images/services_3d/business.png"),
 };
-
+ 
+// Standardized dual-color theme (Warm Orange and Cool Blue alternating)
+const THEME_ORANGE = {
+  bgColor: "#FFF8F1",
+  borderColor: "#FED7AA",
+  arrowColor: "#EA580C",
+};
+ 
+const THEME_BLUE = {
+  bgColor: "#F0F7FF",
+  borderColor: "#BFDBFE",
+  arrowColor: "#2563EB",
+};
+ 
 export const DASHBOARD_SERVICES: DashboardServiceTile[] = [
-  { id: "incorporation", label: "Incorporation", image: SERVICE_3D_IMAGES.incorporation, route: "/service/company-registration", description: "Company\nregistration", bgColor: "#FFF8F1", borderColor: "#FED7AA", arrowColor: "#EA580C" },
-  { id: "gst", label: "GST", image: SERVICE_3D_IMAGES.gst, route: "/service/gst", description: "Registration,\nfiling & compliance", bgColor: "#F0F7FF", borderColor: "#BFDBFE", arrowColor: "#2563EB" },
-  { id: "itr", label: "ITR", image: SERVICE_3D_IMAGES.itr, route: "/service/itr", description: "Income Tax\nFiling", bgColor: "#F5F3FF", borderColor: "#DDD6FE", arrowColor: "#7C3AED" },
-  { id: "projects", label: "Projects", image: SERVICE_3D_IMAGES.projects, route: { pathname: "/service/loans", params: { category: "project-finance" } }, description: "Project\nManagement", bgColor: "#F0FDF4", borderColor: "#BBF7D0", arrowColor: "#059669" },
-  { id: "loans", label: "Loans", image: SERVICE_3D_IMAGES.loans, route: "/service/loans", description: "Personal, Home\n& Business Loans", bgColor: "#FFFBEB", borderColor: "#FDE68A", arrowColor: "#D97706" },
-  { id: "insurance", label: "Insurance", image: SERVICE_3D_IMAGES.insurance, route: "/service/health-insurance", description: "Coverage\nfor your future", bgColor: "#F0F9FF", borderColor: "#BAE6FD", arrowColor: "#0284C7" },
-  { id: "business", label: "Business", image: SERVICE_3D_IMAGES.business, route: "/service/accounting-bookkeeping", description: "Business Solutions & Support", bgColor: "#F5F3FF", borderColor: "#DDD6FE", arrowColor: "#7C3AED", isFullWidth: true },
+  // Row 1: Orange | Blue
+  {
+    id: "incorporation",
+    label: "Incorporation",
+    image: SERVICE_3D_IMAGES.incorporation,
+    route: "/service/company-registration",
+    description: "Company\nregistration",
+    ...THEME_ORANGE,
+  },
+  {
+    id: "gst",
+    label: "GST",
+    image: SERVICE_3D_IMAGES.gst,
+    route: "/service/gst",
+    description: "Registration,\nfiling & compliance",
+    ...THEME_BLUE,
+  },
+  // Row 2: Blue | Orange (Checkerboard)
+  {
+    id: "itr",
+    label: "ITR",
+    image: SERVICE_3D_IMAGES.itr,
+    route: "/service/itr",
+    description: "Income Tax\nFiling",
+    ...THEME_BLUE,
+  },
+  {
+    id: "projects",
+    label: "Projects",
+    image: SERVICE_3D_IMAGES.projects,
+    route: { pathname: "/service/loans", params: { category: "project-finance" } },
+    description: "Project\nManagement",
+    ...THEME_ORANGE,
+  },
+  // Row 3: Orange | Blue
+  {
+    id: "loans",
+    label: "Loans",
+    image: SERVICE_3D_IMAGES.loans,
+    route: "/service/loans",
+    description: "Personal, Home\n& Business Loans",
+    ...THEME_ORANGE,
+  },
+  {
+    id: "insurance",
+    label: "Insurance",
+    image: SERVICE_3D_IMAGES.insurance,
+    route: "/service/health-insurance",
+    description: "Coverage\nfor your future",
+    ...THEME_BLUE,
+  },
+  // Row 4: Full-width bottom card
+  {
+    id: "business",
+    label: "Business",
+    image: SERVICE_3D_IMAGES.business,
+    route: "/service/accounting-bookkeeping",
+    description: "Business Solutions & Support",
+    ...THEME_BLUE,
+    isFullWidth: true,
+  },
 ];
-
+ 
 const BANNER_NAVY = "#083B75";
 const BANNER_NAVY_DEEP = "#052750";
-
+ 
 export const APPLY_BANNERS: ApplyBanner[] = (
   [
     { key: "b-gst", id: "GST", route: "/service/gst", title: "GST", desc: "Registration, filing & compliance", cta: "Apply Now", icon: "receipt" },
@@ -70,18 +135,9 @@ export const APPLY_BANNERS: ApplyBanner[] = (
     { key: "b-acct", id: "BUSINESS", route: "/service/accounting-bookkeeping", title: "ACCOUNTING", desc: "Bookkeeping & monthly reports", cta: "Know More", icon: "stats-chart" },
   ] as const
 ).map((banner, i) => ({ ...banner, bg: i % 2 === 0 ? BANNER_NAVY : BANNER_NAVY_DEEP }));
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const statusTone = (status: string) => {
-  if (status === "Completed") return { fg: "#047857", bg: "#E6F5F0" };
-  if (status === "Rejected") return { fg: "#B91C1C", bg: "#FDEBEB" };
-  if (status === "Verification") return { fg: "#6D28D9", bg: "#F1ECFE" };
-  return { fg: "#1D4ED8", bg: "#EAF1FE" };
-};
-
+ 
 // ── Screen ────────────────────────────────────────────────────────────────────
-
+ 
 export default function HomeScreen() {
   const colors = useTheme();
   const scheme = useColorScheme();
@@ -89,18 +145,21 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { accessService } = useServiceAccessGuard();
-
+ 
   const customer = useAuthStore((s) => s.customer);
-  const applications = useApplicationStore((s) => s.applications);
   const gstDraft = useApplicationStore((s) => s.gstDraft);
   const gstFilingDraft = useApplicationStore((s) => s.gstFilingDraft);
   const itrDraft = useApplicationStore((s) => s.itrDraft);
   const unreadCount = useNotificationStore((s) => s.unreadCount);
-
+ 
   useFocusEffect(
     useCallback(() => {
-      useApplicationStore.getState().loadApplications();
-
+      try {
+        useApplicationStore.getState().loadApplications();
+      } catch {
+        // Safe fallback
+      }
+ 
       const onBackPress = () => {
         Alert.alert(
           "Exit TaxEdge",
@@ -116,93 +175,92 @@ export default function HomeScreen() {
         );
         return true;
       };
-
+ 
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
         onBackPress
       );
-
+ 
       return () => subscription.remove();
     }, [])
   );
-
+ 
   // ── Derived values ──────────────────────────────────────────────────────────
-
+ 
+  const isProfileComplete = Boolean(customer?.profileCompleted);
+ 
   const hasRealName = Boolean(
     customer?.name &&
     customer.name.trim() !== "" &&
     customer.name.toLowerCase() !== "valued client" &&
     customer.name.toLowerCase() !== "valued" &&
     customer.name.toLowerCase() !== "priya" &&
-    customer.profileCompleted
+    isProfileComplete
   );
-
+ 
   const greetingTitle = hasRealName
     ? `Hello, ${customer!.name.trim().split(" ")[0]} 👋`
     : "Welcome to TaxEdge 👋";
-
-  const activeCount = (applications || []).filter((a) => a?.status !== "Completed").length;
-  const pendingDocsCount = (applications || []).reduce(
-    (sum, a) => sum + ((a?.documents || []).filter((d) => d?.status === "Pending").length), 0
-  );
-  const completedCount = (applications || []).filter((a) => a?.status === "Completed").length;
-  const paymentDue = (applications || [])
-    .filter((a) => a?.paymentStatus === "Pending")
-    .reduce((sum, a) => sum + (a?.paymentAmount || 0), 0);
-
-  const recentApps = applications.slice(0, 3);
-
-  const STATS: StatTile[] = [
-    { id: "active", label: "Active\nApplications", value: `${activeCount}`, tint: "#059669", tintBg: "#E6F5F0", icon: "folder", route: "/(main)/applications" },
-    { id: "docs", label: "Pending\nDocuments", value: `${pendingDocsCount}`, tint: "#EA580C", tintBg: "#FEF0E6", icon: "document-attach", route: "/(main)/applications" },
-    { id: "due", label: "Payment Due", value: `₹${paymentDue.toLocaleString("en-IN")}`, tint: "#DC2626", tintBg: "#FDEBEB", icon: "card", route: "/(main)/payments" },
-    { id: "done", label: "Completed\nServices", value: `${completedCount}`, tint: "#2563EB", tintBg: "#EAF1FE", icon: "checkbox", route: "/(main)/applications" },
-  ];
-
+ 
   // ── Handlers ────────────────────────────────────────────────────────────────
-
+ 
   const handleBannerSelect = (banner: ApplyBanner) => {
     accessService(banner.route);
   };
-
+ 
   const openTile = (tile: DashboardServiceTile) => {
-    // accessService applies the one profile rule (shared/guards/serviceAccess) for every tile.
     if (tile.route) accessService(tile.route);
   };
-
+ 
   // ── Render ───────────────────────────────────────────────────────────────────
-
+ 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FocusAwareStatusBar barStyle="light-content" />
-
-      {/* Blue hero header */}
+ 
+      {/* Blue hero header (Compact top bar when profile is completed) */}
       <HomeHeader
         greetingTitle={greetingTitle}
         unreadCount={unreadCount}
         colors={colors}
         topInset={insets.top + Spacing.sm}
+        compact={isProfileComplete}
         onNotificationsPress={() => router.push("/notifications")}
       />
-
+ 
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: SCREEN_BOTTOM_PADDING }]}
         showsVerticalScrollIndicator={false}
       >
-        {!customer?.profileCompleted && (
+        {/* When profile is completed, greeting row scrolls down under the fixed header */}
+        {isProfileComplete && (
+          <View
+            style={[
+              styles.scrollGreetingContainer,
+              getScrollGreetingThemedStyle(colors.primaryDark),
+            ]}
+          >
+            <Text style={styles.welcomeText}>{greetingTitle}</Text>
+            <Text style={styles.welcomeSubText}>
+              What can we help you with today?
+            </Text>
+          </View>
+        )}
+ 
+        {!isProfileComplete && (
           <HomeProfileSetupCard
             onComplete={() => router.push("/(auth)/createprofile")}
             completionPercentage={60}
           />
         )}
-
+ 
         {/* Apply-for banner carousel */}
         <ApplyBannerCarousel
           banners={APPLY_BANNERS}
           colors={colors}
           onSelect={handleBannerSelect}
         />
-
+ 
         {/* Services section */}
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Services</Text>
@@ -213,23 +271,7 @@ export default function HomeScreen() {
           colors={colors}
           onPress={openTile}
         />
-
-        {/* Financial overview section */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Your Financial Overview</Text>
-          <TouchableOpacity
-            onPress={() => router.push("/(main)/applications")}
-            hitSlop={8}
-            style={styles.linkRow}
-            accessibilityRole="button"
-            accessibilityLabel="View All Applications"
-          >
-            <Text style={[styles.viewAllText, { color: colors.primary }]}>View All</Text>
-            <Ionicons name="arrow-forward" size={14} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-        <StatsGrid stats={STATS} isDark={isDark} colors={colors} />
-
+ 
         {/* In-progress draft banners */}
         {gstDraft && (
           <DraftBanner
@@ -282,34 +324,7 @@ export default function HomeScreen() {
             onPress={() => accessService("/service/itr-filing")}
           />
         )}
-
-        {/* Recent applications */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Applications</Text>
-          <TouchableOpacity onPress={() => router.push("/(main)/applications")} hitSlop={8} style={styles.linkRow}>
-            <Text style={[styles.viewAllText, { color: colors.primary }]}>View All</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-
-        {recentApps.length === 0 ? (
-          <View style={[styles.card, styles.cardPadded, { backgroundColor: colors.backgroundElement, borderColor: colors.border }]}>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              No applications yet. Start a service to see it here.
-            </Text>
-          </View>
-        ) : (
-          recentApps.map((app) => (
-            <RecentApplicationCard
-              key={app.id}
-              app={app}
-              isDark={isDark}
-              colors={colors}
-              statusTone={statusTone}
-            />
-          ))
-        )}
-
+ 
         {/* Need help */}
         <TouchableOpacity
           activeOpacity={0.9}
@@ -331,3 +346,5 @@ export default function HomeScreen() {
     </View>
   );
 }
+ 
+ 

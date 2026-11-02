@@ -16,6 +16,7 @@ import { RevisedItrHeader } from "../../components/common";
 import { RevisedFormField } from "../../components/update";
 import { DEFAULT_REVISED_FORM_FIELDS } from "../../mock/revisedItrData";
 import { RevisedFormFields } from "../../types/revisedItr.types";
+import { useKeyboard } from "@/shared/hooks/useKeyboard";
 import {
   styles,
   getContainerInsetsStyle,
@@ -27,6 +28,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
   const router = useRouter();
   const maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
   const insets = useSafeAreaInsets();
+  const { keyboardShown, keyboardHeight } = useKeyboard();
   const params = useLocalSearchParams<{
       acknowledgementNumber?: string;
       assessmentYear?: string;
@@ -386,6 +388,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
         style={[
           styles.bottomBar,
           getBottomBarInsetsStyle(insets.bottom),
+          { bottom: keyboardShown ? keyboardHeight : 0 },
         ]}
       >
         {params.isEditing === "true" ? (

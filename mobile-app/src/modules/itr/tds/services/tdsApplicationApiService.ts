@@ -7,6 +7,7 @@ import { tdsCalculationService } from "./tdsCalculationService";
 import { BackendApplicationResponse, RefundBankAccountDto } from "./tdsApiTypes";
 import { tdsBankAndIncomeApiService } from "./tdsBankAndIncomeApiService";
 import { tdsDocumentsApiService } from "./tdsDocumentsApiService";
+import { getTdsCustId } from "./tdsDraftService";
 
 export const tdsApplicationApiService = {
   // ----------------------------------------------------
@@ -310,7 +311,12 @@ export const tdsApplicationApiService = {
     existingAppId?: string,
   ): Promise<BackendApplicationResponse> => {
     // First save all structured sections to DB backend
-    const custId = formData.personal.mobileNumber || "CUST-DEFAULT";
+    const custId = getTdsCustId(formData.personal.mobileNumber);
+    if (!custId) {
+      throw new Error(
+        "Mobile number is required to save the TDS application. Please complete Step 1.",
+      );
+    }
     const savedId = await tdsApplicationApiService.saveFullTdsApplication(
       formData,
       documents as any,

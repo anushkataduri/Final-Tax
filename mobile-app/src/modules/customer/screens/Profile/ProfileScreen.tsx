@@ -10,14 +10,18 @@ import {
   BackHandler,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/hooks/use-theme";
 import { useApplicationStore } from "@/store/applicationStore";
+import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
+import { SCREEN_BOTTOM_PADDING } from "@/shared/components/ScreenLayout";
 import {
-  ScreenLayout,
-  SCREEN_BOTTOM_PADDING,
-} from "@/shared/components/ScreenLayout";
-import { styles, getProfileScrollStyle, getKycPillStyle } from "./ProfileScreen.styles";
+  styles,
+  getProfileScrollStyle,
+  getKycPillStyle,
+  getProfileHeroThemedStyle,
+} from "./ProfileScreen.styles";
 
 import type { IconName } from "@/types/domain";
 import { useProfileManager } from "@/components/screens/profile/useProfileManager";
@@ -38,6 +42,7 @@ const compactRupees = (value: number): string =>
 
 export function ProfileScreen() {
   const colors = useTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const applications = useApplicationStore((state) => state.applications);
 
@@ -145,17 +150,19 @@ export function ProfileScreen() {
   );
 
   return (
-    <ScreenLayout
-      title="My Profile"
-      showBack
-      onBack={() => router.replace("/(main)/home")}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <FocusAwareStatusBar barStyle="light-content" backgroundColor={colors.primaryDark} />
       <ScrollView
         contentContainerStyle={getProfileScrollStyle(SCREEN_BOTTOM_PADDING)}
         showsVerticalScrollIndicator={false}
       >
         {/* Hero */}
-        <View style={[styles.hero, { backgroundColor: colors.primaryDark }]}>
+        <View
+          style={[
+            styles.hero,
+            getProfileHeroThemedStyle(colors.primaryDark, insets.top),
+          ]}
+        >
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={handleChangePhoto}
@@ -423,7 +430,7 @@ export function ProfileScreen() {
         modalType={activeProfileModal}
         applications={applications}
       />
-    </ScreenLayout>
+    </View>
   );
 }
 

@@ -62,6 +62,7 @@ export const useTdsRefundForm = () => {
     onDiscardDraft: async () => {
       await tdsDraftService.clearDraft();
     },
+    isSubmitted: () => useTdsProgressStore.getState().isSubmitted,
   });
 
   useEffect(() => {
@@ -91,7 +92,10 @@ export const useTdsRefundForm = () => {
           draftBusiness = savedDraft.business;
         } else {
           await tdsDraftService.clearDraft();
+          useTdsProgressStore.getState().reset();
         }
+      } else if (!isEditingParam) {
+        useTdsProgressStore.getState().reset();
       }
 
       let backendApp: any = null;

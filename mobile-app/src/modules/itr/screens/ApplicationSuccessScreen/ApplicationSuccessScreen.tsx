@@ -77,15 +77,17 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
   const handleBack = () => {
     if (router.canDismiss()) {
       router.dismissAll();
+    } else {
+      router.replace("/(main)/home" as any);
     }
-    router.replace("/(main)/home" as any);
   };
 
   const handleGoHome = () => {
     if (router.canDismiss()) {
       router.dismissAll();
+    } else {
+      router.replace("/(main)/home" as any);
     }
-    router.replace("/(main)/home" as any);
   };
 
   const handleTrackStatus = () => {
@@ -95,8 +97,10 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
     }
     if (router.canDismiss()) {
       router.dismissAll();
+      router.navigate("/(main)/applications" as any);
+    } else {
+      router.replace("/(main)/applications" as any);
     }
-    router.replace("/(main)/applications" as any);
   };
 
   React.useEffect(() => {

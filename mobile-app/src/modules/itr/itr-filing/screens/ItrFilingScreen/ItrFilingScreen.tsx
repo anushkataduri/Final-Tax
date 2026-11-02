@@ -84,7 +84,8 @@ export const ItrFilingScreen: React.FC = () => {
     },
     onDiscardDraft: () => {
       clearItrDraft();
-      resetForm();
+      // resetForm() is NOT called here — the async clear sets _storageCleanFailed when needed,
+      // and the next mount's init() calls resetForm() after restoreItrDraft() returns false.
     },
     isSubmitted: () => currentStep >= 4,
   });
@@ -113,7 +114,9 @@ export const ItrFilingScreen: React.FC = () => {
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   }, [currentStep]);
 
-  // Restore saved draft and last saved step on entry, then sync profile
+  // Restore saved draft on entry. For a fresh start, pre-fill personal info from auth profile.
+  // fetchAndPopulateUserProfile is intentionally skipped when restoring a draft to avoid
+  // overwriting the user's previously entered (and potentially corrected) personal details.
   useEffect(() => {
     async function init() {
       const restored = await useITRStore.getState().restoreItrDraft();
@@ -125,8 +128,8 @@ export const ItrFilingScreen: React.FC = () => {
       } else {
         useITRStore.getState().resetForm();
         setIsCategoryConfirmed(false);
+        await useITRStore.getState().fetchAndPopulateUserProfile();
       }
-      await useITRStore.getState().fetchAndPopulateUserProfile();
     }
     init();
   }, []);

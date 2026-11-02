@@ -24,6 +24,7 @@ import { useITRStore } from "../../../store/itrStore";
 import { styles } from "./Step1PersonalInfo.styles";
 import { Step1PriorItrImport } from "./components/Step1PriorItrImport";
 import { Step1TaxpayerIdentityCard } from "./components/Step1TaxpayerIdentityCard";
+import { validators } from "@/shared/validation/validators";
 
 interface Step1PersonalInfoProps {
   isLoading?: boolean;
@@ -140,6 +141,18 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
         "Missing Refund Bank Account",
         "Please select or add a bank account to receive direct income tax refund credit."
       );
+      return;
+    }
+
+    const accountError = validators.bankAccountNumber()(bankDetails.accountNumber);
+    if (accountError) {
+      Alert.alert("Invalid Account Number", accountError);
+      return;
+    }
+
+    const ifscError = validators.ifsc()(bankDetails.ifscCode);
+    if (ifscError) {
+      Alert.alert("Invalid IFSC Code", ifscError);
       return;
     }
 

@@ -131,6 +131,15 @@ export const homeHeaderStyles = {
     fontWeight: Typography.fontWeight.medium,
   },
 
+  scrollGreetingContainer: {
+    paddingHorizontal: H_PADDING,
+    paddingBottom: Spacing.md,
+    paddingTop: Spacing.xs,
+    marginHorizontal: -H_PADDING,
+    marginTop: -H_PADDING,
+    marginBottom: Spacing.xs,
+  },
+
   /* Scroll body */
   scrollContent: {
     padding: H_PADDING,
@@ -220,3 +229,7 @@ export const homeHeaderStyles = {
     width: CARD_WIDTH,
   },
 };
+
+export const getScrollGreetingThemedStyle = (backgroundColor: string) => ({
+  backgroundColor,
+});

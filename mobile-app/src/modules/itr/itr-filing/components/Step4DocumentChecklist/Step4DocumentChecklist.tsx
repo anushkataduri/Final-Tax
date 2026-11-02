@@ -75,19 +75,33 @@ export const Step4DocumentChecklist: React.FC<Step4DocumentChecklistProps> = ({
     );
   };
 
-  const handleContinuePress = () => {
+  const checkMandatoryDocuments = (): boolean => {
     const missingRequired = requiredDocs.filter((doc) => !doc.fileUri);
-
     if (missingRequired.length > 0) {
-      const missingNames = missingRequired.map((d) => `• ${d.name} *`).join("\n");
+      const missingNames = missingRequired.map((d) => `• ${d.name}`).join("\n");
       Alert.alert(
         "Required Documents Missing",
-        `Please upload the following required documents before proceeding:\n\n${missingNames}`
+        `Please upload the following mandatory documents before proceeding:\n\n${missingNames}`
       );
-      return;
+      return false;
     }
+    return true;
+  };
 
-    onContinue();
+  const handleContinuePress = () => {
+    if (checkMandatoryDocuments()) {
+      onContinue();
+    }
+  };
+
+  const handleUpdateAndContinuePress = () => {
+    if (checkMandatoryDocuments()) {
+      if (onUpdateAndContinue) {
+        onUpdateAndContinue();
+      } else {
+        onContinue();
+      }
+    }
   };
 
   const renderDocCard = (doc: ItrDocumentItem) => {
@@ -162,7 +176,7 @@ export const Step4DocumentChecklist: React.FC<Step4DocumentChecklistProps> = ({
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.continueButton}
-          onPress={onUpdateAndContinue || handleContinuePress}
+          onPress={handleUpdateAndContinuePress}
           disabled={isLoading}
         >
           {isLoading ? (

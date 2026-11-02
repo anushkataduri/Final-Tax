@@ -17,6 +17,7 @@ interface HomeHeaderProps {
   unreadCount: number;
   colors: ReturnType<typeof useTheme>;
   topInset: number;
+  compact?: boolean;
   onMenuPress?: () => void;
   onNotificationsPress: () => void;
 }
@@ -26,6 +27,7 @@ export function HomeHeader({
   unreadCount,
   colors,
   topInset,
+  compact = false,
   onNotificationsPress,
 }: HomeHeaderProps) {
   return (
@@ -69,15 +71,17 @@ export function HomeHeader({
         </View>
       </View>
 
-      {/* Greeting row */}
-      <View style={styles.greetingRow}>
-        <View style={styles.greetingContainer}>
-          <Text style={styles.welcomeText}>{greetingTitle}</Text>
-          <Text style={styles.welcomeSubText}>
-            What can we help you with today?
-          </Text>
+      {/* Greeting row - only shown in fixed header when not in compact mode */}
+      {!compact && (
+        <View style={styles.greetingRow}>
+          <View style={styles.greetingContainer}>
+            <Text style={styles.welcomeText}>{greetingTitle}</Text>
+            <Text style={styles.welcomeSubText}>
+              What can we help you with today?
+            </Text>
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 }

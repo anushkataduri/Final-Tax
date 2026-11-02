@@ -12,7 +12,7 @@ interface UseItrFilingWorkflowProps {
   setBackendIds: (ids: { itrId?: string; incomeId?: string; documentId?: string }) => void;
   createApplication: (...args: any[]) => string;
   markSubmitted: () => void;
-  clearItrDraft: () => void;
+  clearItrDraft: () => void | Promise<void>;
   resetForm?: () => void;
 }
 
@@ -255,7 +255,7 @@ export function useItrFilingWorkflow({
       const submittedRegime = formData.regime === "new" ? "New Tax Regime" : "Old Tax Regime";
 
       markSubmitted();
-      clearItrDraft();
+      await clearItrDraft();
       resetForm?.();
       setIsSubmitting(false);
 

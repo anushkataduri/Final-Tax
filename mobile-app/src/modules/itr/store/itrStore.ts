@@ -29,6 +29,7 @@ import { determineApplicableItrForm } from "../itr-filing/engine/itrFormEngine";
 import { calculateItrTax } from "../itr-filing/engine/itrTaxCalculator";
 import { generateDynamicDocumentChecklist } from "../itr-filing/engine/itrDocumentEngine";
 import { getCurrentAssessmentYear } from "../taxRules";
+import { logger } from "@/core/logging/logger";
 export interface ItrDraftState {
   id: string;
   stepIndex: number;
@@ -69,15 +70,23 @@ interface ITRState {
   setBackendIds: (ids: { itrId?: string; incomeId?: string; documentId?: string }) => void;
   // Draft handling
   itrDraft: ItrDraftState | null;
+  /** True between clearItrDraft() and the next saveItrDraft(). Blocks restoreItrDraft() so
+   *  a stale AsyncStorage entry left by an in-flight removal cannot pollute a new application. */
+  _draftCleared: boolean;
+  /** True when AsyncStorage.removeItem failed in clearItrDraft(). resetForm() propagates this
+   *  into _draftCleared so restoration is blocked until saveItrDraft() overwrites the stale key. */
+  _storageCleanFailed: boolean;
   saveItrDraft: () => void;
   restoreItrDraft: () => Promise<boolean>;
-  clearItrDraft: () => void;
+  clearItrDraft: () => Promise<void>;
   resetForm: () => void;
   fetchAndPopulateUserProfile: () => Promise<void>;
 }
 export const useITRStore = create<ITRState>((set, get) => ({
   currentStep: 0,
   maxStepReached: 0,
+  _draftCleared: false,
+  _storageCleanFailed: false,
   setStep: (step) => set((state) => ({
     currentStep: step,
     maxStepReached: Math.max(state.maxStepReached, step)
@@ -363,7 +372,7 @@ export const useITRStore = create<ITRState>((set, get) => ({
       formData,
       updatedAt: new Date().toISOString(),
     };
-    set({ itrDraft: draft });
+    set({ itrDraft: draft, _draftCleared: false, _storageCleanFailed: false });
     const auth = useAuthStore.getState();
     const rawMobile = auth.customer?.mobile || auth.authenticatedUser?.mobileNumber || auth.mobileNumber || "user";
     const clean = String(rawMobile).replace(/\D/g, "") || "user";
@@ -411,6 +420,9 @@ export const useITRStore = create<ITRState>((set, get) => ({
     ).catch(() => {});
   },
   restoreItrDraft: async () => {
+    // If the draft was cleared in this session (e.g. after submit), skip restoration.
+    // This prevents a stale AsyncStorage entry from being read before the async removal finishes.
+    if (get()._draftCleared) return false;
     try {
       const authState = useAuthStore.getState();
       const mobile =
@@ -455,22 +467,34 @@ export const useITRStore = create<ITRState>((set, get) => ({
       return false;
     }
   },
-  clearItrDraft: () => {
-    set({ itrDraft: null });
+  clearItrDraft: async (): Promise<void> => {
+    // Set the flag synchronously so restoreItrDraft() sees it immediately,
+    // even before the async storage operations below complete.
+    set({ itrDraft: null, _draftCleared: true, _storageCleanFailed: false });
     const auth = useAuthStore.getState();
     const rawMobile = auth.customer?.mobile || auth.authenticatedUser?.mobileNumber || auth.mobileNumber || "user";
     const clean = String(rawMobile).replace(/\D/g, "") || "user";
-    removeDraftFromIndex(clean, "itr-filing");
     useApplicationStore.getState().clearItrDraft();
-    AsyncStorage.removeItem(`@taxedge_draft_${clean}_itr-filing`).catch(() => {});
+    const results = await Promise.allSettled([
+      removeDraftFromIndex(clean, "itr-filing"),
+      AsyncStorage.removeItem(`@taxedge_draft_${clean}_itr-filing`),
+    ]);
+    if (results[1].status === "rejected") {
+      set({ _storageCleanFailed: true });
+      logger.warn("[ITRStore] Draft AsyncStorage removal failed; restoration guard stays active", {
+        reason: results[1].reason instanceof Error ? results[1].reason.message : String(results[1].reason),
+      });
+    }
   },
   resetForm: () =>
-    set({
+    set((state) => ({
       currentStep: 0,
-  maxStepReached: 0,
+      maxStepReached: 0,
       formData: getInitialFormData(),
       itrDraft: null,
-    }),
+      // Keep the guard active if storage removal failed — cleared only when saveItrDraft overwrites the key.
+      _draftCleared: state._storageCleanFailed,
+    })),
   fetchAndPopulateUserProfile: async () => {
     try {
       const p = authStorage.getUser() as any;

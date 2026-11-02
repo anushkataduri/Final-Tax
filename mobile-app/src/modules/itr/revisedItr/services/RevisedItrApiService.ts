@@ -189,10 +189,7 @@ export const RevisedItrApiService = {
         if (doc.fileUri && fieldMapping[doc.id]) {
           const paramName = fieldMapping[doc.id];
           try {
-            const response = await fetch(doc.fileUri);
-            const rawBlob = await response.blob();
-            
-            let mimeType = doc.mimeType;
+            let mimeType = doc.mimeType as string | undefined;
             let extension = "pdf";
 
             const lowerName = (doc.fileName || "").toLowerCase();
@@ -206,13 +203,11 @@ export const RevisedItrApiService = {
               mimeType = mimeType || "application/pdf";
             }
 
-            const fileBlob = new Blob([rawBlob], { type: mimeType });
             const finalFileName = doc.fileName || `${doc.id}.${extension}`;
-            
-            formData.append(paramName, fileBlob, finalFileName);
+            formData.append(paramName, { uri: doc.fileUri, name: finalFileName, type: mimeType } as any);
             hasUploadedAny = true;
           } catch (err) {
-            console.error(`Failed to read file ${doc.id} at ${doc.fileUri}`, err);
+            console.error(`Failed to attach file ${doc.id} at ${doc.fileUri}`, err);
           }
         }
       }
@@ -221,7 +216,7 @@ export const RevisedItrApiService = {
         const dummyBlob = new Blob(['%PDF-1.4 dummy content'], { type: 'application/pdf' });
         formData.append("panCard", dummyBlob, "dummy.pdf");
       }
-      
+
       const token = await tokenManager.getAccessToken();
       const targetUrl = await getApiUrl(`/${revisedItrId}/document/register`);
       const response = await fetch(targetUrl, {
@@ -256,10 +251,7 @@ export const RevisedItrApiService = {
         if (doc.fileUri && fieldMapping[doc.id]) {
           const paramName = fieldMapping[doc.id];
           try {
-            const response = await fetch(doc.fileUri);
-            const rawBlob = await response.blob();
-            
-            let mimeType = doc.mimeType;
+            let mimeType = doc.mimeType as string | undefined;
             let extension = "pdf";
 
             const lowerName = (doc.fileName || "").toLowerCase();
@@ -273,13 +265,11 @@ export const RevisedItrApiService = {
               mimeType = mimeType || "application/pdf";
             }
 
-            const fileBlob = new Blob([rawBlob], { type: mimeType });
             const finalFileName = doc.fileName || `${doc.id}.${extension}`;
-            
-            formData.append(paramName, fileBlob, finalFileName);
+            formData.append(paramName, { uri: doc.fileUri, name: finalFileName, type: mimeType } as any);
             hasUploadedAny = true;
           } catch (err) {
-            console.error(`Failed to read file ${doc.id} at ${doc.fileUri}`, err);
+            console.error(`Failed to attach file ${doc.id} at ${doc.fileUri}`, err);
           }
         }
       }
@@ -288,7 +278,7 @@ export const RevisedItrApiService = {
         const dummyBlob = new Blob(['%PDF-1.4 dummy content'], { type: 'application/pdf' });
         formData.append("panCard", dummyBlob, "dummy.pdf");
       }
-      
+
       const token = await tokenManager.getAccessToken();
       const targetUrl = await getApiUrl(`/document/update/${documentId}`);
       const response = await fetch(targetUrl, {

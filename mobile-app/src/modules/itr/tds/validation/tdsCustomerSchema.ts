@@ -3,16 +3,15 @@ import {
   PersonalDetails,
 } from "../types/customerIncome.types";
 import {
-  isValidPan,
   isValidAadhaar,
   isValidMobile,
-  isValidEmail,
   isValidPinCode,
   isValidIfsc,
   isValidAccountNumber,
   isValidDob,
   parsePositiveNumber,
 } from "../utils/tdsValidation";
+import { validatePan, validateEmail } from "@/shared/validators/indianTaxValidators";
 
 export type CustomerFormErrors = Record<string, string>;
 
@@ -30,7 +29,7 @@ export function validatePersonalDetails(personal: PersonalDetails): {
 
   if (!personal.pan || !personal.pan.trim()) {
     errors["pan"] = "PAN is required";
-  } else if (!isValidPan(personal.pan)) {
+  } else if (!validatePan(personal.pan)) {
     errors["pan"] = "Enter valid 10-character PAN (e.g. ABCDE1234F)";
   }
 
@@ -53,7 +52,7 @@ export function validatePersonalDetails(personal: PersonalDetails): {
 
   if (!personal.email || !personal.email.trim()) {
     errors["email"] = "Email address is required";
-  } else if (!isValidEmail(personal.email)) {
+  } else if (!validateEmail(personal.email)) {
     errors["email"] = "Enter a valid email address";
   }
 
@@ -101,7 +100,7 @@ export function validateBusinessDetails(business: any): {
 
   if (!business.pan || !business.pan.trim()) {
     errors["pan"] = "Business PAN is required";
-  } else if (!isValidPan(business.pan)) {
+  } else if (!validatePan(business.pan)) {
     errors["pan"] = "Enter valid 10-character PAN";
   }
 

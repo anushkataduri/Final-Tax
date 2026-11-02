@@ -4,6 +4,7 @@ import {
   validatePhone,
   validateDateOfBirth,
   validateIfsc,
+  validateBankAccountNumber,
 } from "../validators/indianTaxValidators";
 import { validateGstinFull } from "@/modules/gst/utils/gstValidation";
 
@@ -182,6 +183,16 @@ export const validators = {
   ifsc: (fieldName = "IFSC Code"): ValidationRule<string | undefined> => (value) => {
     if (!value || String(value).trim() === "") return `${fieldName} is required`;
     if (!validateIfsc(String(value))) return "Enter valid 11-character IFSC code (e.g. SBIN0001234)";
+    return null;
+  },
+
+  /** Bank account number: 9–18 digits, digits only, not all zeros */
+  bankAccountNumber: (fieldName = "Account Number"): ValidationRule<string | undefined> => (value) => {
+    if (!value || String(value).trim() === "") return `${fieldName} is required`;
+    const clean = String(value).trim();
+    if (!/^[0-9]+$/.test(clean)) return `${fieldName} must contain digits only`;
+    if (/^0+$/.test(clean)) return `${fieldName} cannot be all zeros`;
+    if (!validateBankAccountNumber(clean)) return `${fieldName} must be between 9 and 18 digits`;
     return null;
   },
 

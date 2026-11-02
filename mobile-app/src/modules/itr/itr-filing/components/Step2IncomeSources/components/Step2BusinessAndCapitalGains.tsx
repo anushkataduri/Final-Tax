@@ -149,13 +149,15 @@ export const BusinessIncomeForm: React.FC<BusinessFormProps> = ({
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
-                keyboardType="numeric"
-                placeholder="e.g. 25,00,000"
+                keyboardType="decimal-pad"
+                placeholder="e.g. 2500000"
                 placeholderTextColor="#94A3B8"
                 value={business.grossTurnover}
-                onChangeText={(val) =>
-                  onUpdateBusiness({ grossTurnover: val.replace(/[^0-9]/g, "") })}
-                maxLength={12}
+                onChangeText={(val) => {
+                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                  onUpdateBusiness({ grossTurnover: clean });
+                }}
+                maxLength={15}
               />
             </View>
           </View>
@@ -169,13 +171,15 @@ export const BusinessIncomeForm: React.FC<BusinessFormProps> = ({
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
-                keyboardType="numeric"
-                placeholder="e.g. 2,00,000 (0 if none)"
+                keyboardType="decimal-pad"
+                placeholder="e.g. 200000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={business.declaredProfit}
-                onChangeText={(val) =>
-                  onUpdateBusiness({ declaredProfit: val.replace(/[^0-9]/g, "") })}
-                maxLength={12}
+                onChangeText={(val) => {
+                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                  onUpdateBusiness({ declaredProfit: clean });
+                }}
+                maxLength={15}
               />
             </View>
           </View>
@@ -337,13 +341,15 @@ export const CapitalGainsIncomeForm: React.FC<CapitalGainsFormProps> = ({
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
-                keyboardType="numeric"
-                placeholder="e.g. 30,000 (0 if none)"
+                keyboardType="decimal-pad"
+                placeholder="e.g. 30000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={capitalGains.shortTermGains}
-                onChangeText={(val) =>
-                  onUpdateCapitalGains({ shortTermGains: val.replace(/[^0-9]/g, "") })}
-                maxLength={12}
+                onChangeText={(val) => {
+                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                  onUpdateCapitalGains({ shortTermGains: clean });
+                }}
+                maxLength={15}
               />
             </View>
           </View>
@@ -357,13 +363,15 @@ export const CapitalGainsIncomeForm: React.FC<CapitalGainsFormProps> = ({
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
-                keyboardType="numeric"
-                placeholder="e.g. 50,000 (0 if none)"
+                keyboardType="decimal-pad"
+                placeholder="e.g. 50000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={capitalGains.longTermGains}
-                onChangeText={(val) =>
-                  onUpdateCapitalGains({ longTermGains: val.replace(/[^0-9]/g, "") })}
-                maxLength={12}
+                onChangeText={(val) => {
+                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                  onUpdateCapitalGains({ longTermGains: clean });
+                }}
+                maxLength={15}
               />
             </View>
           </View>

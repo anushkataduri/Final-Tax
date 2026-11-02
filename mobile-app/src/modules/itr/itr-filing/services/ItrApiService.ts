@@ -1,5 +1,6 @@
 import { ItrFilingFormData } from "../types/itrFiling.types";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
+import { validateBankAccountNumber, validateIfsc } from "@/shared/validators/indianTaxValidators";
 import { tokenManager } from "@/core/authentication/tokenManager";
 import { getActiveBaseUrl, getDefaultBaseUrl } from "@/core/api/apiConfig";
 import { apiClient } from "@/core/api/apiClient";
@@ -53,13 +54,27 @@ const mapToFilingDto = (data: ItrFilingFormData) => {
   const authState = useAuthStore.getState();
   const customerId =
     authState.customer?.customerId ||
-    authState.customer?.mobile ||
-    authState.authenticatedUser?.customerId ||
-    authState.authenticatedUser?.mobileNumber ||
-    authState.mobileNumber ||
-    "CUST-12345";
+    (authState.authenticatedUser as any)?.customerId ||
+    (authState.authenticatedUser as any)?.custId ||
+    "";
+  if (!customerId) {
+    throw new Error(
+      "Customer account not found. Please complete your registration before filing.",
+    );
+  }
   const accountNumber = String(data.bankDetails?.accountNumber || "").trim();
   const ifscCode = String(data.bankDetails?.ifscCode || "").trim();
+
+  if (!validateBankAccountNumber(accountNumber)) {
+    throw new Error(
+      "Bank account number is invalid. Please go back to Step 1 and provide a valid 9–18 digit account number."
+    );
+  }
+  if (!validateIfsc(ifscCode)) {
+    throw new Error(
+      "IFSC code is invalid. Please go back to Step 1 and provide a valid 11-character IFSC code."
+    );
+  }
 
   return {
     customerId,
@@ -67,12 +82,8 @@ const mapToFilingDto = (data: ItrFilingFormData) => {
     residentialStatus: data.personalInfo.residentialStatus,
     filingType: data.personalInfo.filingType,
     bankName: data.bankDetails?.bankName || "Pending",
-    accountNumber: /^[0-9]{9,18}$/.test(accountNumber)
-      ? accountNumber
-      : "000000000",
-    ifscCode: /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifscCode)
-      ? ifscCode
-      : "ABCD0123456",
+    accountNumber,
+    ifscCode,
   };
 };
 

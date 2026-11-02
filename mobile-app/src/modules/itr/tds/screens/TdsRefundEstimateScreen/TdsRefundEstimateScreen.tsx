@@ -25,11 +25,13 @@ import { tdsApiService } from "../../services/tdsApiService";
 import { TaxCalculationBreakdownCard } from "../../components/estimate/TaxCalculationBreakdownCard";
 import { useTdsProgressStore } from "../../store/tdsProgressStore";
 import { styles } from "./TdsRefundEstimateScreen.styles";
+import { useKeyboard } from "@/shared/hooks/useKeyboard";
 
 export const TdsRefundEstimateScreen: React.FC = () => {
   const router = useRouter();
   const { applicationId: routeAppId, id: routeId } = useLocalSearchParams<{ applicationId?: string; id?: string }>();
   const insets = useSafeAreaInsets();
+  const { keyboardShown, keyboardHeight } = useKeyboard();
 
   const [formData, setFormData] = useState<TdsCustomerIncomeFormData>(INITIAL_TDS_FORM_DATA);
   const [documents, setDocuments] = useState<TdsChecklistItem[]>([]);
@@ -53,7 +55,7 @@ export const TdsRefundEstimateScreen: React.FC = () => {
       await tdsDraftService.clearDraft();
       await useApplicationStore.getState().clearTdsDraft();
     },
-    isSubmitted: () => isSubmitting,
+    isSubmitted: () => isSubmitting || useTdsProgressStore.getState().isSubmitted,
   });
 
   useEffect(() => {
@@ -285,8 +287,10 @@ export const TdsRefundEstimateScreen: React.FC = () => {
         console.warn("[TDS Review] Notification dispatch warning:", notifErr);
       }
 
-      // 5. Clear draft
+      // 5. Clear draft & mark submitted in progress store
       await tdsDraftService.clearDraft();
+      useApplicationStore.getState().clearTdsDraft();
+      useTdsProgressStore.getState().setIsSubmitted(true);
 
       // Disable draft prevention upon successful submission
       markSubmitted();
@@ -511,7 +515,7 @@ export const TdsRefundEstimateScreen: React.FC = () => {
       </ScrollView>
 
       {/* Sticky Bottom CTA */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 12 }]}>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 12, bottom: keyboardShown ? keyboardHeight : 0 }]}>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleSubmitApplication}

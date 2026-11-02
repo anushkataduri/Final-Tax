@@ -91,16 +91,15 @@ export const Step2HousePropertyIncome: React.FC<Step2HousePropertyIncomeProps> =
                 <Text style={styles.currencyPrefix}>₹</Text>
                 <TextInput
                   style={styles.textInput}
-                  keyboardType="numeric"
-                  placeholder="e.g. 2,40,000"
+                  keyboardType="decimal-pad"
+                  placeholder="e.g. 240000"
                   placeholderTextColor="#94A3B8"
                   value={data.annualRentReceived}
-                  onChangeText={(val) =>
-                    onUpdate({
-                      annualRentReceived: val.replace(/[^0-9]/g, ""),
-                    })
-                  }
-                  maxLength={12}
+                  onChangeText={(val) => {
+                    const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                    onUpdate({ annualRentReceived: clean });
+                  }}
+                  maxLength={15}
                 />
               </View>
             </View>
@@ -114,16 +113,15 @@ export const Step2HousePropertyIncome: React.FC<Step2HousePropertyIncomeProps> =
                 <Text style={styles.currencyPrefix}>₹</Text>
                 <TextInput
                   style={styles.textInput}
-                  keyboardType="numeric"
-                  placeholder="e.g. 10,000 (0 if none)"
+                  keyboardType="decimal-pad"
+                  placeholder="e.g. 10000 (0 if none)"
                   placeholderTextColor="#94A3B8"
                   value={data.municipalTaxesPaid}
-                  onChangeText={(val) =>
-                    onUpdate({
-                      municipalTaxesPaid: val.replace(/[^0-9]/g, ""),
-                    })
-                  }
-                  maxLength={12}
+                  onChangeText={(val) => {
+                    const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                    onUpdate({ municipalTaxesPaid: clean });
+                  }}
+                  maxLength={15}
                 />
               </View>
             </View>
@@ -139,16 +137,15 @@ export const Step2HousePropertyIncome: React.FC<Step2HousePropertyIncomeProps> =
             <Text style={styles.currencyPrefix}>₹</Text>
             <TextInput
               style={styles.textInput}
-              keyboardType="numeric"
-              placeholder="e.g. 50,000 (0 if no loan)"
+              keyboardType="decimal-pad"
+              placeholder="e.g. 50000 (0 if no loan)"
               placeholderTextColor="#94A3B8"
               value={data.homeLoanInterest}
-              onChangeText={(val) =>
-                onUpdate({
-                  homeLoanInterest: val.replace(/[^0-9]/g, ""),
-                })
-              }
-              maxLength={12}
+              onChangeText={(val) => {
+                const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                onUpdate({ homeLoanInterest: clean });
+              }}
+              maxLength={15}
             />
           </View>
         </View>

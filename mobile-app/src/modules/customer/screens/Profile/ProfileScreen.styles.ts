@@ -14,17 +14,16 @@ import {
 } from "@/shared/theme";
 
 export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   /* Hero */
   hero: {
     alignItems: "center",
-    paddingTop: 22,
     paddingBottom: 42,
     paddingHorizontal: Spacing.lg,
   },
-  avatarWrap: {
-    width: 88,
-    height: 88,
-  },
+  avatarWrap: { width: 88, height: 88 },
   avatarBg: {
     width: 88,
     height: 88,
@@ -36,12 +35,9 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
   },
-  avatarImage: {
-    width: "100%",
-    height: "100%",
-  },
+  avatarImage: { width: "100%", height: "100%" },
   avatarLoading: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
     alignItems: "center",
@@ -64,32 +60,11 @@ export const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.extraBold,
     marginTop: 14,
   },
-  heroId: {
-    color: "#C3D5EA",
-    fontSize: Typography.fontSize.sm + 0.5,
-    fontWeight: Typography.fontWeight.medium,
-    marginTop: Spacing.xs,
-  },
-  pillRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 14,
-  },
-  pill: {
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  pillOutline: {
-    backgroundColor: "transparent",
-    borderWidth: BorderWidth.thin,
-  },
-  pillText: {
-    color: BrandColors.WHITE,
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.bold,
-  },
+  heroId: { color: "#C3D5EA", fontSize: Typography.fontSize.sm + 0.5, fontWeight: Typography.fontWeight.medium, marginTop: Spacing.xs },
+  pillRow: { flexDirection: "row", gap: 10, marginTop: 14 },
+  pill: { backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 6 },
+  pillOutline: { backgroundColor: "transparent", borderWidth: BorderWidth.thin },
+  pillText: { color: BrandColors.WHITE, fontSize: Typography.fontSize.xs, fontWeight: Typography.fontWeight.bold },
 
   /* Stats */
   statsCard: {
@@ -497,4 +472,10 @@ export const getProfileScrollStyle = (bottomPadding: number) => ({
 export const getKycPillStyle = (kycVerified: boolean, colors: any) => ({
   borderColor: kycVerified ? "#7BE0A8" : (colors.orange as string),
   color:       kycVerified ? "#7BE0A8" : (colors.orange as string),
+});
+
+/** Dynamic theme styling for Profile Hero shifted to screen top */
+export const getProfileHeroThemedStyle = (primaryDark: string, topInset: number) => ({
+  backgroundColor: primaryDark,
+  paddingTop: topInset + Spacing.md,
 });

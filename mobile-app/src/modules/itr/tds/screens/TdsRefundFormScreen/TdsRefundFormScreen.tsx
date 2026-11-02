@@ -29,11 +29,14 @@ import { TdsDocumentCard } from "../../components/documents";
 import { useTdsProgressStore } from "../../store/tdsProgressStore";
 import { styles } from "./TdsRefundFormScreen.styles";
 import { useTdsRefundForm } from "./useTdsRefundForm";
+import { useKeyboard } from "@/shared/hooks/useKeyboard";
 
 export const TdsRefundFormScreen: React.FC = () => {
   const router = useRouter();
   const maxStepReached = useTdsProgressStore((s) => s.maxStepReached);
   const insets = useSafeAreaInsets();
+
+  const { keyboardShown, keyboardHeight } = useKeyboard();
 
   const {
     formData,
@@ -192,7 +195,7 @@ export const TdsRefundFormScreen: React.FC = () => {
       </KeyboardAwareScrollView>
 
       {/* Sticky Bottom CTA - 2 Distinct Buttons */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 14 }]}>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 14, bottom: keyboardShown ? keyboardHeight : 0 }]}>
         {isEditing ? (
           /* Separate Button 1: Update & Continue (PUT Method) */
           <TouchableOpacity
