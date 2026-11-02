@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, TextInput, ActivityIndicator } from "reac
 import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
-import { GstServiceBanner, GstSelectModal } from "@/modules/gst/components/common";
+import { GstServiceBanner, GstSelectModal, GstinInfoIcon } from "@/modules/gst/components/common";
 import { DatePickerDialog } from "@/shared/components/DatePickerDialog";
 import { formatDateDDMMYYYY, parseDDMMYYYY } from "@/shared/formatters/dateFormatter";
 import { GstStepHeader } from "@/modules/gst/components/GstStepHeader";
@@ -104,9 +104,12 @@ export function GstCancellationScreen() {
 
               {/* GSTIN Input */}
               <View style={styles.fieldGroup}>
-                <Text style={styles.label}>
-                  GSTIN to Cancel <Text style={styles.star}>*</Text>
-                </Text>
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>
+                    GSTIN to Cancel <Text style={styles.star}>*</Text>
+                  </Text>
+                  <GstinInfoIcon />
+                </View>
                 <TextInput
                   style={[styles.input, Boolean(flow.errors.gstin) && styles.inputError]}
                   placeholder="Enter your GSTIN number"

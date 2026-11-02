@@ -2,10 +2,10 @@ import React, { useMemo } from "react";
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
-  StatusBar,
+  type ScrollViewInstance,
 } from "react-native";
+import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
 import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -27,13 +27,13 @@ import { GstAmendmentProofs } from "../GstAmendmentProofs";
 
 interface GstNonCoreAmendmentEditProps {
   selectedSection: AmendmentSectionConfig;
-  registeredDetails: RegisteredDetails;
+  registeredDetails?: RegisteredDetails;
   formData: AmendmentFormData;
   errors: Record<string, string>;
   supportingDoc: SupportingDoc | null;
   isProofsExpanded: boolean;
   insets: { top: number; bottom: number };
-  scrollViewRef: React.RefObject<ScrollView | null>;
+  scrollViewRef: React.Ref<ScrollViewInstance> | React.RefObject<any>;
   onBack: () => void;
   onUpdateField: (field: keyof AmendmentFormData, value: string) => void;
   onClearError: (key: string) => void;
@@ -50,7 +50,6 @@ interface GstNonCoreAmendmentEditProps {
 
 export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = ({
   selectedSection,
-  registeredDetails,
   formData,
   errors,
   supportingDoc,
@@ -78,7 +77,7 @@ export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = (
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <FocusAwareStatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       {/* Header (Back button hidden when returned from review to preserve edit mode integrity) */}
       <View style={[styles.headerBar, getHeaderBarStyle(insets.top)]}>
@@ -107,66 +106,6 @@ export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = (
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.editContainer}>
-          {/* Current Registered Info */}
-          <View style={styles.currentRegisteredCard}>
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.cardIconBox}>
-                <Ionicons name="business" size={18} color={BrandColors.PRIMARY_ORANGE} />
-              </View>
-              <View style={styles.cardTitleWrap}>
-                <Text style={styles.currentRegisteredHeader}>Currently Registered on Portal</Text>
-                <Text style={styles.currentRegisteredSubtitle}>Read-only baseline from GST profile</Text>
-              </View>
-            </View>
-
-            {sectionId === "bank-accounts" && (
-              <>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Bank Name</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.bankName}</Text>
-                </View>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Account Number</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.bankAccountNumber}</Text>
-                </View>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>IFSC Code</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.ifscCode}</Text>
-                </View>
-              </>
-            )}
-
-            {sectionId === "authorised-signatories" && (
-              <>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Signatory Name</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.signatoryName}</Text>
-                </View>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Designation</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.signatoryDesignation}</Text>
-                </View>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Contact</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.signatoryMobile}</Text>
-                </View>
-              </>
-            )}
-
-            {sectionId === "contact-details" && (
-              <>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Registered Mobile</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.contactMobile}</Text>
-                </View>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Registered Email</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.contactEmail}</Text>
-                </View>
-              </>
-            )}
-          </View>
-
           {/* Form Fields Section */}
           <View style={styles.amendedDetailsCard}>
             <View style={styles.cardHeaderRow}>

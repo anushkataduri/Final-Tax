@@ -20,21 +20,23 @@ import { SCREEN_BOTTOM_PADDING } from "@/shared/components/ScreenLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Spacing } from "@/shared/theme";
 import { styles, getScrollGreetingThemedStyle } from "@/styles/app/(main)/home.styles";
-import type { DashboardServiceTile } from "@/types/home.types";
- 
+import type { DashboardServiceTile, StatTile } from "@/types/home.types";
+
 // ── Extracted sub-components ──────────────────────────────────────────────────
 import { HomeHeader } from "@/components/screens/home/HomeHeader";
 import { ApplyBannerCarousel, type ApplyBanner } from "@/components/screens/home/ApplyBannerCarousel";
 import { ServicesGrid } from "@/components/screens/home/ServicesGrid";
+import { StatsGrid } from "@/components/screens/home/StatsGrid";
 import { DraftBanner } from "@/components/screens/home/DraftBanner";
+import { RecentApplicationCard } from "@/components/screens/home/RecentApplicationCard";
 import { HomeProfileSetupCard } from "@/components/screens/home/HomeProfileSetupCard";
- 
+
 // ── Types ─────────────────────────────────────────────────────────────────────
- 
+
 export type { DashboardServiceTile };
- 
+
 // ── Constants ─────────────────────────────────────────────────────────────────
- 
+
 const SERVICE_3D_IMAGES = {
   incorporation: require("../../../assets/images/services_3d/incorporation.png"),
   gst: require("../../../assets/images/services_3d/gst.png"),
@@ -44,20 +46,20 @@ const SERVICE_3D_IMAGES = {
   insurance: require("../../../assets/images/services_3d/insurance.png"),
   business: require("../../../assets/images/services_3d/business.png"),
 };
- 
+
 // Standardized dual-color theme (Warm Orange and Cool Blue alternating)
 const THEME_ORANGE = {
   bgColor: "#FFF8F1",
   borderColor: "#FED7AA",
   arrowColor: "#EA580C",
 };
- 
+
 const THEME_BLUE = {
   bgColor: "#F0F7FF",
   borderColor: "#BFDBFE",
   arrowColor: "#2563EB",
 };
- 
+
 export const DASHBOARD_SERVICES: DashboardServiceTile[] = [
   // Row 1: Orange | Blue
   {
@@ -121,10 +123,10 @@ export const DASHBOARD_SERVICES: DashboardServiceTile[] = [
     isFullWidth: true,
   },
 ];
- 
+
 const BANNER_NAVY = "#083B75";
 const BANNER_NAVY_DEEP = "#052750";
- 
+
 export const APPLY_BANNERS: ApplyBanner[] = (
   [
     { key: "b-gst", id: "GST", route: "/service/gst", title: "GST", desc: "Registration, filing & compliance", cta: "Apply Now", icon: "receipt" },
@@ -135,89 +137,95 @@ export const APPLY_BANNERS: ApplyBanner[] = (
     { key: "b-acct", id: "BUSINESS", route: "/service/accounting-bookkeeping", title: "ACCOUNTING", desc: "Bookkeeping & monthly reports", cta: "Know More", icon: "stats-chart" },
   ] as const
 ).map((banner, i) => ({ ...banner, bg: i % 2 === 0 ? BANNER_NAVY : BANNER_NAVY_DEEP }));
- 
-// ── Screen ────────────────────────────────────────────────────────────────────
- 
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const statusTone = (status: string) => {
+  if (status === "Completed") return { fg: "#047857", bg: "#E6F5F0" };
+  if (status === "Rejected") return { fg: "#B91C1C", bg: "#FDEBEB" };
+  if (status === "Verification") return { fg: "#6D28D9", bg: "#F1ECFE" };
+  return { fg: "#1D4ED8", bg: "#EAF1FE" };
+};
+
 export default function HomeScreen() {
-  const colors = useTheme();
-  const scheme = useColorScheme();
-  const isDark = scheme === "dark";
   const router = useRouter();
+  const colors = useTheme();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
-  const { accessService } = useServiceAccessGuard();
- 
+
+  const user = useAuthStore((s) => s.authenticatedUser);
   const customer = useAuthStore((s) => s.customer);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
+
+  const applications = useApplicationStore((s) => s.applications);
+  const loadApplications = useApplicationStore((s) => s.loadApplications);
+
   const gstDraft = useApplicationStore((s) => s.gstDraft);
   const gstFilingDraft = useApplicationStore((s) => s.gstFilingDraft);
   const itrDraft = useApplicationStore((s) => s.itrDraft);
-  const unreadCount = useNotificationStore((s) => s.unreadCount);
- 
+
+  const isProfileComplete = Boolean(
+    customer?.profileCompleted || (user?.email && user?.mobileNumber)
+  );
+
+  const { accessService } = useServiceAccessGuard();
+
   useFocusEffect(
     useCallback(() => {
-      try {
-        useApplicationStore.getState().loadApplications();
-      } catch {
-        // Safe fallback
-      }
- 
+      loadApplications();
+    }, [loadApplications])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
       const onBackPress = () => {
-        Alert.alert(
-          "Exit TaxEdge",
-          "Are you sure you want to exit the application?",
-          [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Exit",
-              style: "destructive",
-              onPress: () => BackHandler.exitApp(),
-            },
-          ]
-        );
+        Alert.alert("Exit App", "Are you sure you want to exit?", [
+          { text: "Cancel", style: "cancel" },
+          { text: "Exit", onPress: () => BackHandler.exitApp() },
+        ]);
         return true;
       };
- 
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        onBackPress
-      );
- 
-      return () => subscription.remove();
+
+      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => sub.remove();
     }, [])
   );
- 
-  // ── Derived values ──────────────────────────────────────────────────────────
- 
-  const isProfileComplete = Boolean(customer?.profileCompleted);
- 
-  const hasRealName = Boolean(
-    customer?.name &&
-    customer.name.trim() !== "" &&
-    customer.name.toLowerCase() !== "valued client" &&
-    customer.name.toLowerCase() !== "valued" &&
-    customer.name.toLowerCase() !== "priya" &&
-    isProfileComplete
-  );
- 
-  const greetingTitle = hasRealName
-    ? `Hello, ${customer!.name.trim().split(" ")[0]} 👋`
-    : "Welcome to TaxEdge 👋";
- 
-  // ── Handlers ────────────────────────────────────────────────────────────────
- 
+
+  const displayName = customer?.name || user?.name || "User";
+  const greetingTitle = `Hello, ${displayName} 👋`;
+
+  // ── Stats Calculation ───────────────────────────────────────────────────────
+  const activeCount = applications.filter((a) => a.status === "In Progress" || a.status === "Verification").length;
+  const pendingDocsCount = applications.filter((a) => a.status === "Pending Docs").length;
+  const paymentDue = applications
+    .filter((a) => a.status === "Payment Pending")
+    .reduce((sum, a) => sum + (a.paymentAmount || 0), 0);
+  const completedCount = applications.filter((a) => a.status === "Completed").length;
+
+  const STATS: StatTile[] = [
+    { id: "active", label: "Active\nApplications", value: `${activeCount}`, tint: "#059669", tintBg: "#E6F5F0", icon: "folder", route: "/(main)/applications" },
+    { id: "docs", label: "Pending\nDocuments", value: `${pendingDocsCount}`, tint: "#EA580C", tintBg: "#FEF0E6", icon: "document-attach", route: "/(main)/applications" },
+    { id: "due", label: "Payment Due", value: `₹${paymentDue.toLocaleString("en-IN")}`, tint: "#DC2626", tintBg: "#FDEBEB", icon: "card", route: "/(main)/payments" },
+    { id: "done", label: "Completed\nServices", value: `${completedCount}`, tint: "#2563EB", tintBg: "#EAF1FE", icon: "checkbox", route: "/(main)/applications" },
+  ];
+
+  const recentApps = applications.slice(0, 3);
+
   const handleBannerSelect = (banner: ApplyBanner) => {
     accessService(banner.route);
   };
- 
+
   const openTile = (tile: DashboardServiceTile) => {
     if (tile.route) accessService(tile.route);
   };
- 
+
   // ── Render ───────────────────────────────────────────────────────────────────
- 
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FocusAwareStatusBar barStyle="light-content" />
- 
+
       {/* Blue hero header (Compact top bar when profile is completed) */}
       <HomeHeader
         greetingTitle={greetingTitle}
@@ -227,7 +235,7 @@ export default function HomeScreen() {
         compact={isProfileComplete}
         onNotificationsPress={() => router.push("/notifications")}
       />
- 
+
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: SCREEN_BOTTOM_PADDING }]}
         showsVerticalScrollIndicator={false}
@@ -246,21 +254,21 @@ export default function HomeScreen() {
             </Text>
           </View>
         )}
- 
+
         {!isProfileComplete && (
           <HomeProfileSetupCard
             onComplete={() => router.push("/(auth)/createprofile")}
             completionPercentage={60}
           />
         )}
- 
+
         {/* Apply-for banner carousel */}
         <ApplyBannerCarousel
           banners={APPLY_BANNERS}
           colors={colors}
           onSelect={handleBannerSelect}
         />
- 
+
         {/* Services section */}
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Services</Text>
@@ -271,7 +279,23 @@ export default function HomeScreen() {
           colors={colors}
           onPress={openTile}
         />
- 
+
+        {/* Financial overview section */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Your Financial Overview</Text>
+          <TouchableOpacity
+            onPress={() => router.push("/(main)/applications")}
+            hitSlop={8}
+            style={styles.linkRow}
+            accessibilityRole="button"
+            accessibilityLabel="View All Applications"
+          >
+            <Text style={[styles.viewAllText, { color: colors.primary }]}>View All</Text>
+            <Ionicons name="arrow-forward" size={14} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+        <StatsGrid stats={STATS} isDark={isDark} colors={colors} />
+
         {/* In-progress draft banners */}
         {gstDraft && (
           <DraftBanner
@@ -324,7 +348,34 @@ export default function HomeScreen() {
             onPress={() => accessService("/service/itr-filing")}
           />
         )}
- 
+
+        {/* Recent applications */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Applications</Text>
+          <TouchableOpacity onPress={() => router.push("/(main)/applications")} hitSlop={8} style={styles.linkRow}>
+            <Text style={[styles.viewAllText, { color: colors.primary }]}>View All</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        {recentApps.length === 0 ? (
+          <View style={[styles.card, styles.cardPadded, { backgroundColor: colors.backgroundElement, borderColor: colors.border }]}>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              No applications yet. Start a service to see it here.
+            </Text>
+          </View>
+        ) : (
+          recentApps.map((app) => (
+            <RecentApplicationCard
+              key={app.id}
+              app={app}
+              isDark={isDark}
+              colors={colors}
+              statusTone={statusTone}
+            />
+          ))
+        )}
+
         {/* Need help */}
         <TouchableOpacity
           activeOpacity={0.9}
@@ -346,5 +397,3 @@ export default function HomeScreen() {
     </View>
   );
 }
- 
- 

@@ -159,6 +159,85 @@ export const homeSectionStyles = {
     paddingVertical: Spacing.md,
   },
 
+  /* Stats grid */
+  statsGrid: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: 12,
+  },
+  statsCard: {
+    width: (CARD_WIDTH - 12) / 2,
+    borderRadius: BorderRadius.base,
+    borderWidth: 1,
+    padding: 14,
+  },
+  statsTop: {
+    flexDirection: "row" as const,
+    alignItems: "flex-start" as const,
+    justifyContent: "space-between" as const,
+    gap: 8,
+  },
+  statsLabel: {
+    flex: 1,
+    fontSize: Typography.fontSize.sm + 0.5,
+    fontWeight: Typography.fontWeight.semiBold,
+    lineHeight: 16,
+  },
+  statsIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  },
+  statsNumber: {
+    fontSize: Typography.fontSize.xxl,
+    fontWeight: Typography.fontWeight.extraBold,
+    marginTop: Spacing.md,
+  },
+
+  /* Recent application cards */
+  appCard: {
+    borderRadius: BorderRadius.base,
+    borderWidth: 1,
+    padding: Spacing.base,
+  },
+  appCardTop: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    gap: 10,
+  },
+  appId: {
+    fontSize: Typography.fontSize.sm + 0.5,
+    fontWeight: Typography.fontWeight.bold,
+    letterSpacing: 0.3,
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center" as const,
+  },
+  statusPillText: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  appName: {
+    fontSize: Typography.fontSize.lg + 1,
+    fontWeight: Typography.fontWeight.extraBold,
+    marginTop: 10,
+  },
+  appCardBottom: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    marginTop: 14,
+  },
+  appDate: {
+    fontSize: Typography.fontSize.sm + 0.5,
+    fontWeight: Typography.fontWeight.medium,
+  },
   linkRow: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
