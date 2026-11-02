@@ -15,6 +15,7 @@ export default function MainLayout() {
 
   return (
     <Tabs
+      backBehavior="initialRoute"
       tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
         headerShown: false,

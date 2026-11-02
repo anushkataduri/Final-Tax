@@ -250,6 +250,7 @@ export const styles = StyleSheet.create({
   docPdfIconBox: { width: 42, height: 42, borderRadius: 10, backgroundColor: "#FEE2E2", alignItems: "center", justifyContent: "center", marginRight: 12 },
   docItemContent: { flex: 1, justifyContent: "center" },
   docItemTitle: { fontSize: 14, fontWeight: "700", color: "#0F172A", marginBottom: 2 },
+  docItemFileName: { fontSize: 12, fontWeight: "500", color: "#475569", marginBottom: 2 },
   docItemSubtitle: { fontSize: 11.5, color: "#64748B", marginBottom: 2 },
   docItemDateRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   docItemDateText: { fontSize: 11, color: "#94A3B8" },

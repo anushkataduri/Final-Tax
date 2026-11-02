@@ -18,6 +18,7 @@ import {
   TextInput,
   TouchableWithoutFeedback,
   View,
+  type ScrollViewInstance,
   type GestureResponderEvent,
   type KeyboardEvent,
   type NativeScrollEvent,
@@ -106,7 +107,7 @@ export const getKeyboardTop = (event: KeyboardEvent): number => {
   return Dimensions.get("window").height - height;
 };
 
-export const KeyboardAwareScrollView = forwardRef<ScrollView, KeyboardAwareScrollViewProps>(
+export const KeyboardAwareScrollView = forwardRef<ScrollViewInstance, KeyboardAwareScrollViewProps>(
   function KeyboardAwareScrollView(
     {
       children,
@@ -124,7 +125,7 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, KeyboardAwareScrol
     },
     forwardedRef
   ) {
-    const scrollRef = useRef<ScrollView | null>(null);
+    const scrollRef = useRef<ScrollViewInstance | null>(null);
     const scrollOffsetY = useRef(0);
     const keyboardTop = useRef<number | null>(null);
     const pendingTimer = useRef<Timer | null>(null);
@@ -132,12 +133,12 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, KeyboardAwareScrol
     const [keyboardInset, setKeyboardInset] = useState(0);
 
     const setScrollRef = useCallback(
-      (node: ScrollView | null) => {
+      (node: ScrollViewInstance | null) => {
         scrollRef.current = node;
         if (typeof forwardedRef === "function") {
           forwardedRef(node);
         } else if (forwardedRef) {
-          (forwardedRef as React.MutableRefObject<ScrollView | null>).current = node;
+          (forwardedRef as React.MutableRefObject<ScrollViewInstance | null>).current = node;
         }
       },
       [forwardedRef]
@@ -154,7 +155,7 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, KeyboardAwareScrol
       const kbTop = keyboardTop.current;
       const scrollView = scrollRef.current as any;
       const scrollHost = getScrollHost();
-      const input: MeasurableHost | null = TextInput.State.currentlyFocusedInput();
+      const input = TextInput.State.currentlyFocusedInput() as MeasurableHost | null | undefined;
       const contentHost = scrollView?.getInnerViewRef?.();
       if (kbTop == null || !scrollHost || !input || !contentHost) return;
 
@@ -317,7 +318,7 @@ export const KeyboardAwareScrollView = forwardRef<ScrollView, KeyboardAwareScrol
 // ─── Form layout wrapper (kept for existing API compatibility) ───────────────
 
 interface KeyboardAwareContextType {
-  scrollRef: React.RefObject<ScrollView | null>;
+  scrollRef: React.RefObject<ScrollViewInstance | null>;
   scrollToFocusedInput: (inputNodeHandle?: number | null) => void;
   keyboardHeight: number;
   isKeyboardVisible: boolean;
@@ -352,7 +353,7 @@ export const KeyboardAwareFormLayout: React.FC<KeyboardAwareFormLayoutProps> = (
   ...scrollViewProps
 }) => {
   const insets = useSafeAreaInsets();
-  const scrollRef = useRef<ScrollView | null>(null);
+  const scrollRef = useRef<ScrollViewInstance | null>(null);
   const controllerRef = useRef<KeyboardAwareScrollController | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 

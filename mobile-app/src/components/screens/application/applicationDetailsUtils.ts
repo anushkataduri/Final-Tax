@@ -7,16 +7,24 @@ const MONTH_NAMES = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ] as const;
 
-export function formatDisplayDate(dateStr?: string): string {
+export function formatDisplayDate(dateStr?: string, timeStr?: string): string {
   if (!dateStr) return "Today";
-  if (MONTH_NAMES.some((m) => dateStr.includes(m))) return dateStr;
   try {
     const d = new Date(dateStr);
     if (!isNaN(d.getTime())) {
-      return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+      const formatted = `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+      const timeFormatted =
+        timeStr?.trim() ||
+        (dateStr.includes("T") || dateStr.includes(":")
+          ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+          : "");
+      return timeFormatted ? `${formatted}, ${timeFormatted}` : formatted;
     }
   } catch (error) {
     logger.debug("Failed to format date string", { dateStr, error: getErrorMessage(error) });
+  }
+  if (timeStr?.trim() && !dateStr.includes(timeStr.trim())) {
+    return `${dateStr}, ${timeStr.trim()}`;
   }
   return dateStr;
 }

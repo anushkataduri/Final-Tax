@@ -46,6 +46,7 @@ export const CompleteProfileModal: React.FC<CompleteProfileModalProps> = ({
       transparent={true}
       animationType="fade"
       onRequestClose={handleCancel}
+      statusBarTranslucent={true}
     >
       <View style={styles.backdrop}>
         <View style={styles.modalCard}>

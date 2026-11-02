@@ -4,8 +4,8 @@ import type { CatalogueSection } from "@/types/domain";
  * Service catalogue shown in the "Explore Services" sheet.
  *
  * `serviceId` is set only where a matching entry exists in data/services.ts, so
- * the row can open /service/<id>. Everything else falls back to the Services tab
- * filtered by `category`, which always resolves.
+ * the row can open /service/<id>. Everything else falls back to the category's
+ * module hub.
  */
 export const SERVICE_CATALOGUE: CatalogueSection[] = [
   {

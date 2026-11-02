@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  type TextInputInstance,
   type KeyboardTypeOptions,
   type ReturnKeyTypeOptions,
   type LayoutChangeEvent,
@@ -30,7 +31,9 @@ export interface FieldProps {
   onBlur?: () => void;
   placeholder?: string;
   rightIcon?: IconName;
+  rightIconColor?: string;
   onRightIcon?: () => void;
+  rightElement?: React.ReactNode;
   error?: string;
   keyboardType?: KeyboardTypeOptions;
   maxLength?: number;
@@ -39,7 +42,8 @@ export interface FieldProps {
   secure?: boolean;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   onLayout?: (e: LayoutChangeEvent) => void;
-  fieldRef?: React.RefObject<TextInput | null>;
+  fieldRef?: React.RefObject<TextInputInstance | null>;
+  editable?: boolean;
 }
 
 /** Field label with the red "*" that marks a mandatory field. */
@@ -54,8 +58,8 @@ export function FieldLabel({ label, required }: { label: string; required?: bool
 
 export function FormField({
   label, required, labelRight, leftIcon, value, onChange, onFocus, onBlur,
-  placeholder, rightIcon, onRightIcon, error, keyboardType, maxLength,
-  returnKeyType, onSubmit, secure, autoCapitalize, onLayout, fieldRef,
+  placeholder, rightIcon, rightIconColor, onRightIcon, rightElement, error, keyboardType, maxLength,
+  returnKeyType, onSubmit, secure, autoCapitalize, onLayout, fieldRef, editable,
 }: FieldProps) {
   const [isFocused, setIsFocused] = useState(false);
   const boxStyle = [
@@ -79,12 +83,17 @@ export function FormField({
           placeholder={placeholder} placeholderTextColor={BrandColors.TEXT_MUTED}
           keyboardType={keyboardType} maxLength={maxLength} returnKeyType={returnKeyType}
           onSubmitEditing={onSubmit} secureTextEntry={secure} autoCapitalize={autoCapitalize}
+          editable={editable}
         />
-        {rightIcon && (onRightIcon ? (
-          <TouchableOpacity onPress={onRightIcon} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.rightIconTouch}>
-            <Ionicons name={rightIcon} size={20} color={BrandColors.TEXT_SECONDARY} />
-          </TouchableOpacity>
-        ) : <Ionicons name={rightIcon} size={18} color={BrandColors.TEXT_SECONDARY} style={styles.rightIcon} />)}
+        {rightElement ? (
+          rightElement
+        ) : rightIcon ? (
+          onRightIcon ? (
+            <TouchableOpacity onPress={onRightIcon} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.rightIconTouch}>
+              <Ionicons name={rightIcon} size={20} color={rightIconColor || BrandColors.TEXT_SECONDARY} />
+            </TouchableOpacity>
+          ) : <Ionicons name={rightIcon} size={18} color={rightIconColor || BrandColors.TEXT_SECONDARY} style={styles.rightIcon} />
+        ) : null}
       </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>

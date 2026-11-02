@@ -34,6 +34,7 @@ interface Step1PersonalInfoProps {
   bankAccountsList: ItrSelectableBank[];
   onSelectRefundBank: (bankId: string) => void;
   onAddBankAccount: (bank: ItrSelectableBank) => void;
+  onUpdateBankAccount?: (bank: ItrSelectableBank) => void;
   priorItrNotice: ItrPriorFilingAndNotice;
   onUpdatePriorItrNotice: (data: Partial<ItrPriorFilingAndNotice>) => void;
   onImportPriorItrData: (selectedKeys: {
@@ -89,6 +90,7 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
   bankAccountsList,
   onSelectRefundBank,
   onAddBankAccount,
+  onUpdateBankAccount,
   priorItrNotice,
   onUpdatePriorItrNotice,
   onImportPriorItrData,
@@ -96,6 +98,7 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
   onUpdateAndContinue,
 }) => {
   const [showBankModal, setShowBankModal] = useState(false);
+  const [editingBank, setEditingBank] = useState<ItrSelectableBank | null>(null);
   const [isPreviousItrExpanded, setIsPreviousItrExpanded] = useState(false);
   const [showCustomAy, setShowCustomAy] = useState(false);
   const [isCustomYearInputMode, setIsCustomYearInputMode] = useState(false);
@@ -108,6 +111,14 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
   const supportedAYs = getSupportedAssessmentYears();
 
   const handleValidateAndContinue = () => {
+    if (!personalInfo.assessmentYear) {
+      Alert.alert(
+        "Assessment Year Required",
+        "Please select the assessment year for which you are filing this income tax return."
+      );
+      return;
+    }
+
     if (!personalInfo.residentialStatus) {
       Alert.alert(
         "Residential Status Required",
@@ -200,7 +211,7 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
                     
                     {ay.sub.includes("Custom") && (
                       <TouchableOpacity
-                        style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#DC2626', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#FFF' }}
+                        style={styles.customAyDeleteBtn}
                         onPress={(e) => {
                           e.stopPropagation();
                           onUpdatePersonalInfo({ assessmentYear: supportedAYs[0].id });
@@ -348,6 +359,12 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
                   ]}
                   onPress={() => onSelectRefundBank(bank.id)}
                 >
+                  <Ionicons
+                    name={isSelected ? "radio-button-on" : "radio-button-off"}
+                    size={20}
+                    color={isSelected ? BrandColors.PRIMARY_ORANGE : "#94A3B8"}
+                    style={styles.bankRadioLeft}
+                  />
                   <View style={styles.bankInfoCol}>
                     <View style={styles.bankTitleRow}>
                       <Text style={styles.bankNameText}>{bank.bankName}</Text>
@@ -368,16 +385,20 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
                       {bank.maskedAccountNumber || `•••• •••• ${bank.accountNumber.slice(-4)}`}
                     </Text>
                     <Text style={styles.bankSubText}>
-                      IFSC: {bank.ifscCode} {bank.accountType ? `• ${bank.accountType}` : ""}
+                      IFSC: {bank.ifscCode}
                     </Text>
                   </View>
-                  <View style={styles.bankRadioCol}>
-                    <Ionicons
-                      name={isSelected ? "radio-button-on" : "radio-button-off"}
-                      size={22}
-                      color={isSelected ? BrandColors.PRIMARY_ORANGE : "#94A3B8"}
-                    />
-                  </View>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    style={styles.bankEditBtn}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setEditingBank(bank);
+                      setShowBankModal(true);
+                    }}
+                  >
+                    <Ionicons name="pencil-outline" size={15} color="#083B75" />
+                  </TouchableOpacity>
                 </TouchableOpacity>
               );
             })}
@@ -387,10 +408,15 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
         <TouchableOpacity
           activeOpacity={0.7}
           style={styles.changeBankBtn}
-          onPress={() => setShowBankModal(true)}
+          onPress={() => {
+            setEditingBank(null);
+            setShowBankModal(true);
+          }}
         >
           <Ionicons name="add-circle-outline" size={16} color="#083B75" />
-          <Text style={styles.changeBankBtnText}>Add Another Bank Account</Text>
+          <Text style={styles.changeBankBtnText}>
+            {bankAccountsList.length === 0 ? "Add Bank Account" : "Add Another Bank Account"}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -444,10 +470,15 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
       <BankSelectorModal
         visible={showBankModal}
         banks={bankAccountsList}
+        initialBank={editingBank}
         selectedBankId={bankAccountsList.find((b) => b.isPrimaryRefund)?.id}
         onSelectBank={(id) => onSelectRefundBank(id)}
         onAddBank={(newBank) => onAddBankAccount(newBank)}
-        onClose={() => setShowBankModal(false)}
+        onUpdateBank={(updated) => onUpdateBankAccount?.(updated)}
+        onClose={() => {
+          setShowBankModal(false);
+          setEditingBank(null);
+        }}
       />
     </View>
   );

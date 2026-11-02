@@ -27,7 +27,7 @@ import { GstAmendmentProofs } from "../GstAmendmentProofs";
 
 interface GstNonCoreAmendmentEditProps {
   selectedSection: AmendmentSectionConfig;
-  registeredDetails: RegisteredDetails;
+  registeredDetails?: RegisteredDetails;
   formData: AmendmentFormData;
   errors: Record<string, string>;
   supportingDoc: SupportingDoc | null;
@@ -50,7 +50,6 @@ interface GstNonCoreAmendmentEditProps {
 
 export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = ({
   selectedSection,
-  registeredDetails,
   formData,
   errors,
   supportingDoc,
@@ -107,66 +106,6 @@ export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = (
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.editContainer}>
-          {/* Current Registered Info */}
-          <View style={styles.currentRegisteredCard}>
-            <View style={styles.cardHeaderRow}>
-              <View style={styles.cardIconBox}>
-                <Ionicons name="business" size={18} color={BrandColors.PRIMARY_ORANGE} />
-              </View>
-              <View style={styles.cardTitleWrap}>
-                <Text style={styles.currentRegisteredHeader}>Currently Registered on Portal</Text>
-                <Text style={styles.currentRegisteredSubtitle}>Read-only baseline from GST profile</Text>
-              </View>
-            </View>
-
-            {sectionId === "bank-accounts" && (
-              <>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Bank Name</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.bankName}</Text>
-                </View>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Account Number</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.bankAccountNumber}</Text>
-                </View>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>IFSC Code</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.ifscCode}</Text>
-                </View>
-              </>
-            )}
-
-            {sectionId === "authorised-signatories" && (
-              <>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Signatory Name</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.signatoryName}</Text>
-                </View>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Designation</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.signatoryDesignation}</Text>
-                </View>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Contact</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.signatoryMobile}</Text>
-                </View>
-              </>
-            )}
-
-            {sectionId === "contact-details" && (
-              <>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Registered Mobile</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.contactMobile}</Text>
-                </View>
-                <View style={styles.currentFieldRow}>
-                  <Text style={styles.currentFieldLabel}>Registered Email</Text>
-                  <Text style={styles.currentFieldValue}>{registeredDetails.contactEmail}</Text>
-                </View>
-              </>
-            )}
-          </View>
-
           {/* Form Fields Section */}
           <View style={styles.amendedDetailsCard}>
             <View style={styles.cardHeaderRow}>

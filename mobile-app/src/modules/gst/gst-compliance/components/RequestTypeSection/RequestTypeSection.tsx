@@ -18,6 +18,7 @@ import {
 import { FileUploadCard } from "@/modules/gst/gst-compliance/components/FileUploadCard/FileUploadCard";
 import { NativeDatePickerInput } from "@/modules/gst/gst-compliance/components/NativeDatePickerInput/NativeDatePickerInput";
 import { FloatingLabelInput } from "@/modules/gst/gst-compliance/components/FloatingLabelInput/FloatingLabelInput";
+import { GstinInfoIcon } from "@/modules/gst/components/common";
 import { styles } from "@/modules/gst/gst-compliance/components/RequestTypeSection/RequestTypeSection.styles";
 
 export interface RequestTypeSectionProps {
@@ -194,8 +195,9 @@ export const RequestTypeSection: React.FC<RequestTypeSectionProps> = ({
           <FloatingLabelInput
             label="Notice Number"
             floatingLabel="Notice Number"
-            placeholder="Enter notice number"
+            placeholder="Enter Notice Number"
             required
+            labelAbove
             value={formData.noticeNumber}
             onChangeText={(text) => {
               const formatted = text.replace(/[^a-zA-Z0-9\/-]/g, "").toUpperCase();
@@ -206,6 +208,7 @@ export const RequestTypeSection: React.FC<RequestTypeSectionProps> = ({
             maxLength={30}
             error={errors.noticeNumber}
             cardBackground={cardBg}
+            labelRightElement={<GstinInfoIcon fieldType="noticeNumber" size={16} />}
             onClear={() => {
               onUpdateField("noticeNumber", "");
               onClearError("noticeNumber");

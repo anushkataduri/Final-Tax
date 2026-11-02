@@ -115,7 +115,7 @@ export const Step0CategorySelect: React.FC<Step0CategorySelectProps> = ({
     if (selectedCategory && visibleCategories.some((c) => c.id === selectedCategory)) {
       return selectedCategory;
     }
-    return visibleCategories[0]?.id || "salaried";
+    return null;
   }, [selectedCategory, visibleCategories]);
 
   return (
@@ -198,10 +198,17 @@ export const Step0CategorySelect: React.FC<Step0CategorySelectProps> = ({
       <View style={styles.bottomBar}>
         <TouchableOpacity
           activeOpacity={0.85}
-          style={styles.startBtn}
-          onPress={onStartApplication}
+          disabled={!selectedCategory}
+          style={[styles.startBtn, !selectedCategory && styles.startBtnDisabled]}
+          onPress={() => {
+            if (selectedCategory) {
+              onStartApplication();
+            }
+          }}
         >
-          <Text style={styles.startBtnText}>Start Application</Text>
+          <Text style={[styles.startBtnText, !selectedCategory && styles.startBtnTextDisabled]}>
+            Start Application
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

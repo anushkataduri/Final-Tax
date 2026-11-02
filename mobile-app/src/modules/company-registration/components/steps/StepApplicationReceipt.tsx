@@ -30,7 +30,7 @@ export const StepApplicationReceipt: React.FC = () => {
       <View style={styles.receiptPaper}>
         <View style={styles.logoRow}>
           <View>
-            <Text style={styles.brandName}>TaxEdge Fin Solutions</Text>
+            <Text style={styles.brandName}>TaxEdge Finsolz</Text>
             <Text style={styles.brandSub}>Corporate Incorporation Desk</Text>
           </View>
           <Text style={styles.receiptTitle}>RECEIPT</Text>

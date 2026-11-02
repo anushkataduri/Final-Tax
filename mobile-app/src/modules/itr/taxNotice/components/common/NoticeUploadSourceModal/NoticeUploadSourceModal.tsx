@@ -111,13 +111,21 @@ export const NoticeUploadSourceModal: React.FC<NoticeUploadSourceModalProps> = (
   // Option 3: Take Photo with Camera
   const handleTakePhoto = async () => {
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== "granted") {
+      const currentPerm = await ImagePicker.getCameraPermissionsAsync();
+      let granted = currentPerm.granted;
+
+      if (!granted && currentPerm.canAskAgain) {
+        const req = await ImagePicker.requestCameraPermissionsAsync();
+        granted = req.granted;
+      }
+
+      if (!granted) {
         Alert.alert("Permission Required", "Camera permission is needed to photograph documents.");
         return;
       }
 
       const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
         allowsEditing: false,
         quality: 0.85,
       });

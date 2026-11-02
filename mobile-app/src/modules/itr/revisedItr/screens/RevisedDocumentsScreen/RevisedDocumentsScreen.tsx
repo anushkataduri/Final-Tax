@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
+import { pickDocumentFromDrive } from "@/shared/utils/driveDocumentUploader";
 import { DocumentPreviewModal } from "../../../itr-filing/components/DocumentPreviewModal/DocumentPreviewModal";
 import { SharedItrDocumentCard } from "@/modules/itr/components/documents/SharedItrDocumentCard/SharedItrDocumentCard";
 import { DocumentUploadBottomSheet } from "@/modules/itr/tds/components/upload/DocumentUploadBottomSheet/DocumentUploadBottomSheet";
@@ -119,14 +120,12 @@ export const RevisedDocumentsScreen: React.FC = () => {
 
   const handlePickFiles = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["application/pdf", "image/jpeg", "image/png"],
-        copyToCacheDirectory: true,
+      const picked = await pickDocumentFromDrive({
+        allowedExtensions: ["pdf", "jpg", "jpeg", "png", "xls", "xlsx", "doc", "docx", "csv", "json"],
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        handleFileSelected(asset.uri, asset.name, asset.size);
+      if (picked) {
+        handleFileSelected(picked.uri, picked.name, picked.sizeBytes);
       }
     } catch {
       Alert.alert("Upload Error", "Could not open file picker.");
@@ -135,8 +134,15 @@ export const RevisedDocumentsScreen: React.FC = () => {
 
   const handlePickGallery = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
+      const currentPerm = await ImagePicker.getMediaLibraryPermissionsAsync();
+      let granted = currentPerm.granted;
+
+      if (!granted && currentPerm.canAskAgain) {
+        const req = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        granted = req.granted;
+      }
+
+      if (!granted) {
         Alert.alert("Permission Required", "Photo library permission is needed to upload documents.");
         return;
       }
@@ -144,7 +150,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         allowsEditing: false,
-        quality: 0.8,
+        quality: 0.85,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -159,15 +165,23 @@ export const RevisedDocumentsScreen: React.FC = () => {
 
   const handlePickCamera = async () => {
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== "granted") {
+      const currentPerm = await ImagePicker.getCameraPermissionsAsync();
+      let granted = currentPerm.granted;
+
+      if (!granted && currentPerm.canAskAgain) {
+        const req = await ImagePicker.requestCameraPermissionsAsync();
+        granted = req.granted;
+      }
+
+      if (!granted) {
         Alert.alert("Permission Required", "Camera permission is needed to photograph documents.");
         return;
       }
 
       const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
         allowsEditing: false,
-        quality: 0.8,
+        quality: 0.85,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -232,6 +246,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
           revisedDetails: params.revisedDetails,
           uploadedDocsCount: uploadedCount.toString(),
           totalDocsCount: totalCount.toString(),
+          revisedItrId,
         },
       });
     } catch (e) {
@@ -271,6 +286,7 @@ export const RevisedDocumentsScreen: React.FC = () => {
           revisedDetails: params.revisedDetails,
           uploadedDocsCount: uploadedCount.toString(),
           totalDocsCount: totalCount.toString(),
+          revisedItrId,
         },
       });
     } catch (e) {

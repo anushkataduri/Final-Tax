@@ -14,17 +14,17 @@ export type UpdateIncomeField = <K extends keyof IncomeTaxDetails>(
 ) => void;
 
 export interface TdsFormInputRefs {
-  accHolderRef: RefObject<TextInput | null>;
-  accNumRef: RefObject<TextInput | null>;
-  confirmAccNumRef: RefObject<TextInput | null>;
-  ifscRef: RefObject<TextInput | null>;
-  salaryRef: RefObject<TextInput | null>;
-  otherIncomeRef: RefObject<TextInput | null>;
-  interestRef: RefObject<TextInput | null>;
-  tdsRef: RefObject<TextInput | null>;
-  tcsRef: RefObject<TextInput | null>;
-  advanceTaxRef: RefObject<TextInput | null>;
-  selfTaxRef: RefObject<TextInput | null>;
+  accHolderRef: RefObject<any>;
+  accNumRef: RefObject<any>;
+  confirmAccNumRef: RefObject<any>;
+  ifscRef: RefObject<any>;
+  salaryRef: RefObject<any>;
+  otherIncomeRef: RefObject<any>;
+  interestRef: RefObject<any>;
+  tdsRef: RefObject<any>;
+  tcsRef: RefObject<any>;
+  advanceTaxRef: RefObject<any>;
+  selfTaxRef: RefObject<any>;
 }
 
 export const SectionHeader: React.FC<{ number: number; title: string }> = ({ number, title }) => (

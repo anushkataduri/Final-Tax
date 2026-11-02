@@ -118,7 +118,7 @@ export const TdsRefundFormScreen: React.FC = () => {
 
         <View style={styles.headerTitleGroup}>
           <Text style={styles.headerTitle}>TDS Refund</Text>
-          <Text style={styles.headerSubtitle}>Step 1 of 4: Application Details</Text>
+          <Text style={styles.headerSubtitle}>Step 1 of 2: Application Details</Text>
         </View>
 
         <View style={styles.headerRightSpacer} />

@@ -39,7 +39,7 @@ export const FindOriginalReturnScreen: React.FC = () => {
     (a) => a.serviceId === "itr-filing" || a.category === "ITR"
   );
 
-  const [ackNumber, setAckNumber] = useState<string>(params.acknowledgementNumber || (existingItr?.formData as any)?.previousAckNumber || "");
+  const [ackNumber, setAckNumber] = useState<string>(params.acknowledgementNumber || "");
   const [assessmentYear, setAssessmentYear] = useState<string>("AY 2025-26");
   const [showAyDropdown, setShowAyDropdown] = useState<boolean>(false);
   const [foundReturn, setFoundReturn] = useState<OriginalReturnDetails | null>(null);
@@ -51,14 +51,13 @@ export const FindOriginalReturnScreen: React.FC = () => {
     handleDiscardAndExit,
     handleCancel,
   } = useUniversalDraftGuard({
-    saveDestination: "/service/itr",
-    discardDestination: "/service/itr",
     isDirty: () => ackNumber.trim().length > 0 || foundReturn !== null,
     onSaveDraft: () => {
       useApplicationStore.getState().saveRevisedItrDraft({ step: 0 });
     },
     onDiscardDraft: () => {
       useApplicationStore.getState().clearRevisedItrDraft();
+      useRevisedProgressStore.getState().reset();
     },
     isSubmitted: () => false,
   });
@@ -68,16 +67,20 @@ export const FindOriginalReturnScreen: React.FC = () => {
   useEffect(() => {
     const draft = useApplicationStore.getState().revisedItrDraft;
     if (draft) {
-      const step = draft.step ?? draft.currentStep ?? 0;
+      const step = Number((draft as any)?.step ?? (draft as any)?.currentStep ?? 0);
+      const draftParams = ((draft as any)?.formData || {}) as any;
       if (step >= 4) {
-        router.push({ pathname: "/service/revised-itr-review" as any, params: draft.formData || {} });
+        router.push({ pathname: "/service/revised-itr-review" as any, params: draftParams });
       } else if (step === 3) {
-        router.push({ pathname: "/service/revised-itr-documents" as any, params: draft.formData || {} });
+        router.push({ pathname: "/service/revised-itr-documents" as any, params: draftParams });
       } else if (step === 2) {
-        router.push({ pathname: "/service/revised-itr-update" as any, params: draft.formData || {} });
+        router.push({ pathname: "/service/revised-itr-update" as any, params: draftParams });
       } else if (step === 1) {
-        router.push({ pathname: "/service/revised-itr-reason" as any, params: draft.formData || {} });
+        router.push({ pathname: "/service/revised-itr-reason" as any, params: draftParams });
       }
+    } else {
+      // Clear any in-memory store data from earlier completed sessions
+      useRevisedProgressStore.getState().reset();
     }
   }, []);
 

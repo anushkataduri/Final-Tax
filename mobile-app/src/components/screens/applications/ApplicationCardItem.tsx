@@ -20,11 +20,30 @@ const MONTH_NAMES = [
   "Dec",
 ] as const;
 
-function formatDisplayDate(dateStr?: string): string {
+function formatDisplayDateTime(dateStr?: string, timeStr?: string): string {
   if (!dateStr || typeof dateStr !== "string") return "";
   const trimmed = dateStr.trim();
   if (!trimmed) return "";
-  if (MONTH_NAMES.some((m) => trimmed.includes(m))) return trimmed;
+
+  // If already formatted with time (e.g., "30 Oct 2026, 01:45 PM")
+  if (/(?:AM|PM|\d{1,2}:\d{2})/i.test(trimmed) && MONTH_NAMES.some((m) => trimmed.includes(m))) {
+    return trimmed;
+  }
+
+  const d = new Date(trimmed);
+  if (!isNaN(d.getTime()) && (trimmed.includes("T") || trimmed.includes(":"))) {
+    const day = d.getDate();
+    const month = MONTH_NAMES[d.getMonth()];
+    const year = d.getFullYear();
+    const timeFormatted = d.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+    return `${day} ${month} ${year}, ${timeFormatted}`;
+  }
+
+  let formattedDate = trimmed;
   const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (match) {
     const year = match[1];
@@ -32,18 +51,17 @@ function formatDisplayDate(dateStr?: string): string {
     const day = parseInt(match[3], 10);
     const month = MONTH_NAMES[monthIdx];
     if (month) {
-      return `${day} ${month} ${year}`;
+      formattedDate = `${day} ${month} ${year}`;
     }
+  } else if (!isNaN(d.getTime())) {
+    formattedDate = `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
   }
-  try {
-    const d = new Date(trimmed);
-    if (!isNaN(d.getTime())) {
-      return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
-    }
-  } catch {
-    // fallback
+
+  const cleanTime = timeStr?.trim();
+  if (cleanTime && !formattedDate.includes(cleanTime)) {
+    return `${formattedDate}, ${cleanTime}`;
   }
-  return trimmed;
+  return formattedDate;
 }
 
 interface StatusBadgeConfig {
@@ -146,9 +164,26 @@ export function ApplicationCardItem({
   const rawDate =
     item.formData?.submissionDate ||
     item.formData?.appliedDate ||
+    item.formData?.updatedAt ||
     item.createdAt ||
     "";
-  const formattedDate = formatDisplayDate(rawDate);
+  let rawTime =
+    item.formData?.submissionTime ||
+    item.formData?.time ||
+    "";
+
+  if (!rawTime && item.createdAt) {
+    const cd = new Date(item.createdAt);
+    if (!isNaN(cd.getTime())) {
+      rawTime = cd.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    }
+  }
+
+  const formattedDateTime = formatDisplayDateTime(rawDate, rawTime);
 
   return (
     <TouchableOpacity
@@ -169,38 +204,38 @@ export function ApplicationCardItem({
       />
 
       <View style={styles.cardContent}>
-        <Text style={[styles.serviceNameText, { color: textColor }]}>
-          {displayName}
-        </Text>
-
-        {formattedDate ? (
-          <Text style={[styles.appliedDateText, isDark && styles.appliedDateTextDark]}>
-            {formattedDate}
-          </Text>
-        ) : null}
-
-        <View style={styles.cardBadgeRow}>
-          {isDraft ? (
-            <View style={styles.resumeBadge}>
-              <Text style={styles.resumeBadgeText}>Draft</Text>
-            </View>
-          ) : (
-            <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
-              <Text style={[styles.statusBadgeText, { color: badge.text }]}>
-                {badge.label}
-              </Text>
-            </View>
-          )}
+        <View style={styles.cardHeaderRow}>
+          <View style={styles.cardTitleWrap}>
+            <Text style={[styles.serviceNameText, { color: textColor }]}>
+              {displayName}
+            </Text>
+          </View>
+          <View style={styles.cardBadgeWrap}>
+            {isDraft ? (
+              <View style={styles.resumeBadge}>
+                <Text style={styles.resumeBadgeText}>Draft</Text>
+              </View>
+            ) : (
+              <View style={[styles.statusBadge, { backgroundColor: badge.bg }]}>
+                <Text style={[styles.statusBadgeText, { color: badge.text }]}>
+                  {badge.label}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
 
-      <View style={styles.cardChevronWrap}>
-        <Ionicons
-          name="chevron-forward"
-          size={18}
-          color="#94A3B8"
-          style={styles.cardChevron}
-        />
+        <View style={styles.cardFooterRow}>
+          <Text style={[styles.appliedDateText, isDark && styles.appliedDateTextDark]}>
+            {formattedDateTime || "In Progress"}
+          </Text>
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color="#94A3B8"
+            style={styles.cardChevron}
+          />
+        </View>
       </View>
     </TouchableOpacity>
   );

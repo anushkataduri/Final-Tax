@@ -63,6 +63,9 @@ public class Business {
 	@Column(name = "date_of_commencement", nullable = false)
 	private LocalDate dateOfCommencement;
 
+	@Column(name = "business_pan", length = 10)
+	private String businessPan;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "reason_for_registration", nullable = false)
 	private ReasonForRegistration reasonForRegistration;
@@ -117,9 +120,6 @@ public class Business {
 
 	@Column(name = "signatory_name", nullable = false, length = 100)
 	private String signatoryName;
-
-	@Column(name = "business_pan", nullable = true, length = 10)
-	private String businessPan;
 
 	@Column(name = "signatory_pan", nullable = false, length = 10)
 	private String signatoryPan;

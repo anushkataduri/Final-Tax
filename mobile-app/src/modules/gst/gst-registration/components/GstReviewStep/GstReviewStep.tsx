@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Platform } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors, Colors } from "@/shared/theme";
 import { GstBusinessFormData } from "@/modules/gst/gst-registration/components/GstBusinessStep/GstBusinessStep";
@@ -240,13 +240,33 @@ export const GstReviewStep: React.FC<GstReviewStepProps> = ({
                     </Text>
                   )}
                 </View>
-                <View style={styles.eyeIconBox}>
-                  <Ionicons
-                    name="eye-outline"
-                    size={18}
-                    color={BrandColors.PRIMARY_BLUE}
-                  />
-                </View>
+                {Platform.OS === "ios" ? (
+                  <TouchableOpacity
+                    style={styles.eyeIconBox}
+                    activeOpacity={0.7}
+                    onPress={(e) => {
+                      e?.stopPropagation?.();
+                      setPreviewDoc(doc);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Preview ${doc.name}`}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons
+                      name="eye-outline"
+                      size={18}
+                      color={BrandColors.PRIMARY_BLUE}
+                    />
+                  </TouchableOpacity>
+                ) : (
+                  <View style={styles.eyeIconBox}>
+                    <Ionicons
+                      name="eye-outline"
+                      size={18}
+                      color={BrandColors.PRIMARY_BLUE}
+                    />
+                  </View>
+                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -258,13 +278,17 @@ export const GstReviewStep: React.FC<GstReviewStepProps> = ({
         style={styles.declarationCard}
         activeOpacity={0.8}
         onPress={onToggleDeclaration}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: declared }}
+        accessibilityLabel="Declaration: I hereby declare that the information provided is true and accurate"
+        testID="gst-declaration-checkbox"
       >
         <View style={[styles.checkbox, declared && styles.checkboxActive]}>
           {declared && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
         </View>
         <Text style={styles.declarationText}>
           I hereby declare that the information provided is true and accurate to
-          the best of my knowledge. I authorise TaxEdge Fin Solutions to file
+          the best of my knowledge. I authorise TaxEdge Finsolz to file
           this application on my behalf.
         </Text>
       </TouchableOpacity>
@@ -276,6 +300,11 @@ export const GstReviewStep: React.FC<GstReviewStepProps> = ({
         fileUri={previewDoc?.fileUri}
         fileName={previewDoc?.fileName}
         fileSize={previewDoc?.fileSize}
+        fileTypeLabel={
+          (previewDoc as unknown as Record<string, unknown>)?.fileTypeLabel as string | undefined ||
+          previewDoc?.fileName?.split(".").pop()?.toUpperCase()
+        }
+        mimeType={previewDoc?.mimeType}
         onClose={() => setPreviewDoc(null)}
       />
     </View>

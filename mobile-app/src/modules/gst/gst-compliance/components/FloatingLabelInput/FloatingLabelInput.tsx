@@ -25,10 +25,12 @@ export interface FloatingLabelInputProps extends TextInputProps {
   containerStyle?: any;
   cardBackground?: string;
   rightElement?: React.ReactNode;
+  labelRightElement?: React.ReactNode;
   onClear?: () => void;
   onFocusScroll?: () => void;
   showCharCount?: boolean;
   maxLength?: number;
+  labelAbove?: boolean;
 }
 
 export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
@@ -41,12 +43,14 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
   containerStyle,
   cardBackground,
   rightElement,
+  labelRightElement,
   onClear,
   onFocusScroll,
   multiline = false,
   numberOfLines = 1,
   showCharCount = false,
   maxLength,
+  labelAbove = false,
   onFocus,
   onBlur,
   style,
@@ -141,6 +145,16 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
 
   return (
     <View style={[styles.rootContainer, containerStyle]}>
+      {labelAbove && (label || floatingLabel) && (
+        <View style={styles.labelRow}>
+          <Text style={[styles.labelAboveText, isDark && styles.labelAboveTextDark]}>
+            {label || floatingLabel}
+            {required ? <Text style={styles.star}> *</Text> : null}
+          </Text>
+          {labelRightElement}
+        </View>
+      )}
+
       <View
         style={[
           styles.inputContainer,
@@ -154,18 +168,25 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
           ),
         ]}
       >
-        {/* Floating Label with background cutout notch */}
-        <Animated.View
-          pointerEvents="none"
-          style={[styles.floatingLabelWrapper, animatedWrapperStyle]}
-        >
-          <Animated.Text
-            style={[styles.floatingLabelText, animatedTextStyle]}
+        {/* Floating Label with background cutout notch (only when labelAbove is false) */}
+        {!labelAbove && (
+          <Animated.View
+            pointerEvents="box-none"
+            style={[
+              styles.floatingLabelWrapper,
+              animatedWrapperStyle,
+              Boolean(labelRightElement) && { flexDirection: "row", alignItems: "center", gap: 6 },
+            ]}
           >
-            {currentLabelText}
-            {required ? " *" : ""}
-          </Animated.Text>
-        </Animated.View>
+            <Animated.Text
+              style={[styles.floatingLabelText, animatedTextStyle]}
+            >
+              {currentLabelText}
+              {required ? <Text style={styles.star}> *</Text> : null}
+            </Animated.Text>
+            {labelRightElement}
+          </Animated.View>
+        )}
 
         {/* Text Input */}
         <TextInput
@@ -176,7 +197,7 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
           multiline={multiline}
           numberOfLines={numberOfLines}
           textAlignVertical={multiline ? "top" : "center"}
-          placeholder={isFocused && !hasValue ? placeholder : undefined}
+          placeholder={labelAbove ? placeholder : (isFocused && !hasValue ? placeholder : undefined)}
           placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
           maxLength={showCharCount ? undefined : maxLength}
           style={[

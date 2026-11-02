@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  BackHandler,
 } from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -12,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useApplicationStore } from "@/store/applicationStore";
 import { applicationService } from "@/modules/applications/services/applicationService";
+import { logger } from "@/core/logging/logger";
 import type { Application, TimelineStep } from "@/types/domain";
 import { styles } from "@/styles/app/application/[id].styles";
 
@@ -183,10 +185,43 @@ export default function ApplicationDetailScreen() {
         ? `${app.serviceName} (${filingPeriod})`
         : app.serviceName) || "Application";
 
-  const appliedDate =
+  let timeStr = formData.submissionTime || formData.time || "";
+  if (!timeStr && app?.createdAt) {
+    const cd = new Date(app.createdAt);
+    if (!isNaN(cd.getTime())) {
+      timeStr = cd.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    }
+  }
+
+  const baseAppliedDate =
     (formData.submissionDate ? formatAmendmentSubmissionDate(formData.submissionDate) : null) ||
     formData.appliedDate ||
-    formatDisplayDate(app.createdAt);
+    formatDisplayDate(app.createdAt, timeStr);
+
+  const appliedDate =
+    timeStr && !baseAppliedDate.includes(timeStr)
+      ? `${baseAppliedDate}, ${timeStr}`
+      : baseAppliedDate;
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(main)/applications" as any);
+    }
+  };
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      handleBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
 
   const assignedCA =
     app.assignedExecutive && app.assignedExecutive.trim() !== ""
@@ -212,7 +247,7 @@ export default function ApplicationDetailScreen() {
         serviceName={displayName}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onBack={() => router.back()}
+        onBack={handleBack}
         onSettings={() => router.push("/profile" as any)}
       />
 

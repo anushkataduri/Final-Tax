@@ -40,12 +40,11 @@ export const TdsRefundEstimateScreen: React.FC = () => {
   const {
     showDraftModal,
     openDraftModal,
+    markSubmitted,
     handleSaveAndExit,
     handleDiscardAndExit,
     handleCancel,
   } = useUniversalDraftGuard({
-    saveDestination: "/service/itr",
-    discardDestination: "/service/itr",
     isDirty: () => true,
     onSaveDraft: async () => {
       await useApplicationStore.getState().saveTdsDraft({ step: "ESTIMATE" });
@@ -220,7 +219,7 @@ export const TdsRefundEstimateScreen: React.FC = () => {
     });
   };
 
-  const handleProceedToPayment = async () => {
+  const handleSubmitApplication = async () => {
     if (!calculation) return;
     setIsSubmitting(true);
 
@@ -239,18 +238,66 @@ export const TdsRefundEstimateScreen: React.FC = () => {
       }
 
       await tdsDraftService.saveApplicationId(targetAppId);
-      useApplicationStore.getState().saveTdsDraft({ step: "PAYMENT" });
 
-      router.push({
-        pathname: "/service/tds-payment" as any,
+      // 1. Get Push Token
+      let pushToken: string | undefined;
+      try {
+        const { registerForPushNotificationsAsync } = await import(
+          "@/utils/pushNotificationService"
+        );
+        pushToken = (await registerForPushNotificationsAsync()) || undefined;
+      } catch (pushErr) {
+        console.warn("[TDS Review] Push token warning:", pushErr);
+      }
+
+      // 2. Submit to backend /tds-refund/submit
+      try {
+        await tdsApiService.submitTdsRefund(targetAppId, pushToken);
+        console.log("✅ [TDS Review] Successfully submitted TDS refund to backend:", targetAppId);
+      } catch (subErr: any) {
+        console.warn("[TDS Review] Backend submit warning:", subErr);
+      }
+
+      // 3. Update global application store
+      try {
+        useApplicationStore.getState().addApplication({
+          id: targetAppId,
+          serviceId: "tds-refund",
+          serviceName: "TDS Refund",
+          category: "ITR",
+          status: "Submitted",
+          createdAt: new Date().toISOString(),
+          paymentAmount: calculation.estimatedRefund,
+        } as any);
+      } catch (storeErr) {
+        console.warn("[TDS Review] Application store update error:", storeErr);
+      }
+
+      // 4. In-App Notification
+      try {
+        const { useNotificationStore } = await import("@/store/notificationStore");
+        useNotificationStore.getState().addNotification(
+          "TDS Refund Submitted",
+          `Your TDS refund application (${targetAppId}) has been successfully submitted for CA review.`,
+          "itr"
+        );
+      } catch (notifErr) {
+        console.warn("[TDS Review] Notification dispatch warning:", notifErr);
+      }
+
+      // 5. Clear draft
+      await tdsDraftService.clearDraft();
+
+      // Disable draft prevention upon successful submission
+      markSubmitted();
+
+      // 6. Navigate directly to Application Status screen
+      router.replace({
+        pathname: "/service/tds-status" as any,
         params: {
           applicationId: targetAppId,
-          refundAmount: calculation.estimatedRefund.toString(),
+          refundAmount: formatCurrency(calculation.estimatedRefund),
           isAdditionalPayable: calculation.isAdditionalTaxPayable ? "1" : "0",
-          payableAmount: calculation.estimatedTaxPayable.toString(),
-          serviceFee: calculation.serviceFee.toString(),
-          gstAmount: calculation.gstAmount.toString(),
-          totalPayable: calculation.totalPayableFee.toString(),
         },
       });
     } catch (err: any) {
@@ -280,29 +327,10 @@ export const TdsRefundEstimateScreen: React.FC = () => {
 
         <View style={styles.headerTitleGroup}>
           <Text style={styles.headerTitle}>Review Application</Text>
-          <Text style={styles.headerSubtitle}>Step 2 of 4: Review & Estimate</Text>
+          <Text style={styles.headerSubtitle}>Step 2 of 2: Review & Submit</Text>
         </View>
 
-                <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={openDraftModal}
-          style={{
-            height: 34,
-            paddingHorizontal: 12,
-            borderRadius: 17,
-            backgroundColor: "#F8FAFC",
-            borderWidth: 1,
-            borderColor: "#E2E8F0",
-            flexDirection: "row",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: 4
-          }}
-          accessibilityLabel="Save Draft"
-        >
-          <Ionicons name="bookmark-outline" size={14} color="#64748B" />
-          <Text style={{ fontSize: 13, fontWeight: "600", color: "#64748B" }}>Draft</Text>
-        </TouchableOpacity>
+        <View style={{ width: 38, height: 38 }} />
       </View>
 
       {/* Progress Track */}
@@ -486,7 +514,7 @@ export const TdsRefundEstimateScreen: React.FC = () => {
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 12 }]}>
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={handleProceedToPayment}
+          onPress={handleSubmitApplication}
           disabled={isSubmitting}
           style={styles.proceedButton}
         >
@@ -494,8 +522,8 @@ export const TdsRefundEstimateScreen: React.FC = () => {
             <ActivityIndicator size="small" color={BrandColors.WHITE} />
           ) : (
             <>
-              <Text style={styles.proceedButtonText}>Proceed to Payment</Text>
-              <Ionicons name="arrow-forward" size={18} color={BrandColors.WHITE} />
+              <Text style={styles.proceedButtonText}>Submit for CA Review</Text>
+              <Ionicons name="checkmark-circle" size={18} color={BrandColors.WHITE} />
             </>
           )}
         </TouchableOpacity>

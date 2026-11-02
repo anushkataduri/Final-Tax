@@ -40,14 +40,9 @@ describe("My Applications: Profile Completion and Empty-State Handling Suite", (
     baseDir,
     "src/components/screens/applications/ApplicationsEmptyState.tsx"
   );
-  const emptyStylesPath = path.join(
-    baseDir,
-    "src/components/screens/applications/ApplicationsEmptyState.styles.ts"
-  );
 
   const screenContent = fs.readFileSync(screenPath, "utf-8");
   const emptyCompContent = fs.readFileSync(emptyCompPath, "utf-8");
-  const emptyStylesContent = fs.readFileSync(emptyStylesPath, "utf-8");
 
   test("Scenario 1: Profile incomplete → Complete Your Profile state with navigation", () => {
     // 1. Verifying completeness check flags incomplete profile
@@ -140,8 +135,8 @@ describe("My Applications: Profile Completion and Empty-State Handling Suite", (
       "Must display documents/files icon inside circular background"
     );
     assert.ok(
-      screenContent.includes('router.push("/services")'),
-      "Explore Services button must navigate to /services"
+      screenContent.includes('router.push("/(main)/home")'),
+      "Explore Services button must navigate to Home dashboard"
     );
   });
 

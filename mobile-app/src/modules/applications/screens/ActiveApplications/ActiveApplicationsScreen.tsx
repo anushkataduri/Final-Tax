@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TextInput,
   ScrollView,
+  BackHandler,
 } from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -89,7 +90,15 @@ export function ActiveApplicationsScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchApplications();
-    }, [fetchApplications])
+
+      const onBackPress = () => {
+        router.replace("/(main)/home");
+        return true;
+      };
+
+      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => sub.remove();
+    }, [fetchApplications, router])
   );
 
   const handleRefresh = useCallback(async () => {
@@ -326,7 +335,7 @@ export function ActiveApplicationsScreen() {
               hasApplications={uniqueApplications.length > 0}
               emptyState={emptyState}
               onCompleteProfile={() => router.push("/(auth)/createprofile")}
-              onExploreServices={() => router.push("/services")}
+              onExploreServices={() => router.push("/(main)/home")}
               onResetFilter={handleEmptyReset}
               isDark={isDark}
               colors={colors}

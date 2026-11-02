@@ -52,6 +52,7 @@ export const CompanyRegistrationScreen: React.FC = () => {
 
   const {
     showDraftModal,
+    openDraftModal,
     handleSaveAndExit,
     handleDiscardAndExit,
     handleCancel,
@@ -82,6 +83,8 @@ export const CompanyRegistrationScreen: React.FC = () => {
   const handleHeaderBack = () => {
     if (currentStep > 0) {
       setStep(currentStep - 1);
+    } else if (draft.company.companyType) {
+      openDraftModal();
     } else {
       router.back();
     }

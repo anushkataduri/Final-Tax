@@ -1,4 +1,5 @@
 import { apiClient } from "../../../../core/api/apiClient";
+import { tokenManager } from "@/core/authentication/tokenManager";
 import { TdsCustomerIncomeFormData } from "../types/customerIncome.types";
 import { TdsDocumentItem } from "../types/tdsDocuments.types";
 import { parsePositiveNumber } from "../utils/tdsValidation";
@@ -253,6 +254,66 @@ export const tdsBankAndIncomeApiService = {
     return await apiClient.get<TdsRefundDto>(
       `/tds-refund/get/${id}`,
     );
+  },
+
+  submitTdsRefund: async (id: string, pushToken?: string): Promise<string> => {
+    try {
+      const cleanId = String(id || "").trim();
+      if (!cleanId) {
+        throw new Error("Missing TDS refund ID for submission.");
+      }
+      const token = await tokenManager.getAccessToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const params: Record<string, string> = { id: cleanId };
+      if (pushToken && pushToken.trim()) {
+        params.pushToken = pushToken.trim();
+      }
+
+      console.log(`🌐 [TDS API] Calling POST /tds-refund/submit?id=${cleanId}`, { pushToken });
+
+      try {
+        return await apiClient.post<string>("/tds-refund/submit", undefined, { headers, params });
+      } catch (clientErr: any) {
+        const errMsg = String(clientErr?.response?.data || clientErr?.message || "");
+        if (
+          errMsg.toLowerCase().includes("already submitted") ||
+          errMsg.toLowerCase().includes("cannot be submitted")
+        ) {
+          console.warn("[TDS API] Idempotent submit detected:", errMsg);
+          return `TDS refund submitted successfully. Refund ID: ${cleanId}`;
+        }
+
+        // Direct fetch fallback
+        const { getActiveBaseUrl } = await import("../../../../core/api/apiConfig");
+        const activeHost = await getActiveBaseUrl();
+        let url = `${activeHost}/tds-refund/submit?id=${encodeURIComponent(cleanId)}`;
+        if (pushToken && pushToken.trim()) {
+          url += `&pushToken=${encodeURIComponent(pushToken.trim())}`;
+        }
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        const resText = await res.text();
+        if (!res.ok) {
+          if (
+            resText.toLowerCase().includes("already submitted") ||
+            resText.toLowerCase().includes("cannot be submitted")
+          ) {
+            return `TDS refund submitted successfully. Refund ID: ${cleanId}`;
+          }
+          throw new Error(resText || `HTTP ${res.status}`);
+        }
+        return resText;
+      }
+    } catch (error) {
+      console.error("Error submitting TDS refund:", error);
+      throw error;
+    }
   },
 
   getBankAccount: async (id: string): Promise<RefundBankAccountDto> => {

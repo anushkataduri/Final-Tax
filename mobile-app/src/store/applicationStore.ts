@@ -218,6 +218,14 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
     const appId: string =
       realId || `${category.substring(0, 4).toUpperCase()}-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
 
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const currentTimeStr = now.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
     const newApp: Application = {
       id: appId,
       serviceId,
@@ -228,11 +236,12 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
       assignedExecutive: "",
       paymentAmount,
       paymentStatus: initialPaymentStatus || (paymentAmount > 0 ? "Pending" : "Paid"),
-      createdAt: new Date().toISOString().split("T")[0],
+      createdAt: nowIso,
       formData: {
         ...formData,
         applicationId: appId,
-        submissionDate: (formData as any)?.submissionDate || new Date().toISOString().split("T")[0],
+        submissionDate: (formData as any)?.submissionDate || nowIso,
+        submissionTime: (formData as any)?.submissionTime || currentTimeStr,
       },
       documents: extractAllApplicationDocuments(
         { serviceId, formData: formData || {}, documents: [] },

@@ -15,7 +15,7 @@ import {
   UploadedFileInfo,
 } from "../DocumentUploadModal/DocumentUploadModal";
 import { DocumentPreviewModal } from "../DocumentPreviewModal/DocumentPreviewModal";
-import { styles, getProgressBarFill } from "./Step4DocumentChecklist.styles";
+import { styles } from "./Step4DocumentChecklist.styles";
 
 interface Step4DocumentChecklistProps {
   isLoading?: boolean;
@@ -117,32 +117,6 @@ export const Step4DocumentChecklist: React.FC<Step4DocumentChecklistProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Upload Progress Tracker */}
-      <View style={styles.progressCard}>
-        <View style={styles.progressHeaderRow}>
-          <Text style={styles.progressCounterText}>
-            Documents Uploaded: {uploadedCount} of {totalCount}
-          </Text>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusBadgeText}>{progressPercent}% Ready</Text>
-          </View>
-        </View>
-
-        <View style={styles.progressBarTrack}>
-          <View style={getProgressBarFill(progressPercent)} />
-        </View>
-
-        <View style={styles.instructionRow}>
-          <Ionicons name="shield-checkmark-outline" size={22} color="#083B75" />
-          <View style={styles.instructionTextCol}>
-            <Text style={styles.instructionTitle}>Document Checklist</Text>
-            <Text style={styles.instructionDetail}>
-              Upload applicable documents for CA review. PAN and Aadhaar identity are pre-verified from your profile.
-            </Text>
-          </View>
-        </View>
-      </View>
-
       {/* 1. Required Documents */}
       {requiredDocs.length > 0 && (
         <View style={styles.groupSection}>

@@ -117,16 +117,16 @@ test("completeness basics: a real name plus a stored-customer signal is complete
 // ===============================================================================================
 
 test("hrefPathname reads strings and objects and ignores query, hash and a trailing slash", () => {
-  assert.equal(hrefPathname("/services"), "/services");
-  assert.equal(hrefPathname("/services/"), "/services");
-  assert.equal(hrefPathname("/services?selectedCategory=BUSINESS"), "/services");
+  assert.equal(hrefPathname("/service/loans"), "/service/loans");
+  assert.equal(hrefPathname("/service/loans/"), "/service/loans");
+  assert.equal(hrefPathname("/service/loans?selectedCategory=BUSINESS"), "/service/loans");
   assert.equal(hrefPathname("/service/gst#top"), "/service/gst");
-  assert.equal(hrefPathname({ pathname: "/services", params: { selectedCategory: "BUSINESS" } }), "/services");
+  assert.equal(hrefPathname({ pathname: "/service/loans", params: { selectedCategory: "BUSINESS" } }), "/service/loans");
   assert.equal(hrefPathname("/"), "/");
 });
 
-test("the exempt destinations are exactly the catalogue and the three hubs", () => {
-  assert.deepEqual([...PROFILE_EXEMPT_PATHS].sort(), ["/service/gst", "/service/itr", "/service/loans", "/services"]);
+test("the exempt destinations are exactly the three hubs", () => {
+  assert.deepEqual([...PROFILE_EXEMPT_PATHS].sort(), ["/service/gst", "/service/itr", "/service/loans"]);
 });
 
 // ===============================================================================================
@@ -137,11 +137,7 @@ const decisions: { name: string; href: string | { pathname: string; params: Reco
   { name: "GST hub", href: "/service/gst", incomplete: "allow", complete: "allow" },
   { name: "ITR hub", href: "/service/itr", incomplete: "allow", complete: "allow" },
   { name: "Loans hub", href: "/service/loans", incomplete: "allow", complete: "allow" },
-  { name: "Services catalogue", href: "/services", incomplete: "allow", complete: "allow" },
-  { name: "Projects tile (catalogue, BUSINESS)", href: { pathname: "/services", params: { selectedCategory: "BUSINESS" } }, incomplete: "allow", complete: "allow" },
-  { name: "Insurance tile (catalogue, INSURANCE)", href: { pathname: "/services", params: { selectedCategory: "INSURANCE" } }, incomplete: "allow", complete: "allow" },
-  { name: "Business tile (catalogue, BUSINESS)", href: { pathname: "/services", params: { selectedCategory: "BUSINESS" } }, incomplete: "allow", complete: "allow" },
-  { name: "More Services row without a service", href: { pathname: "/services", params: { selectedCategory: "GST" } }, incomplete: "allow", complete: "allow" },
+  { name: "Projects tile (loans hub, project-finance)", href: { pathname: "/service/loans", params: { category: "project-finance" } }, incomplete: "allow", complete: "allow" },
   { name: "Incorporation", href: "/service/company-registration", incomplete: "complete-profile", complete: "allow" },
   { name: "GST registration (inside GST)", href: "/service/gst-registration", incomplete: "complete-profile", complete: "allow" },
   { name: "GST filing", href: "/service/gst-filing", incomplete: "complete-profile", complete: "allow" },
@@ -164,7 +160,6 @@ test("a signed-out user is sent to log in for services but may still reach the o
   assert.equal(decideServiceAccess("/service/company-registration", SIGNED_OUT), "login");
   assert.equal(decideServiceAccess("/service/gst-registration", SIGNED_OUT), "login");
   assert.equal(decideServiceAccess("/service/gst", SIGNED_OUT), "allow");
-  assert.equal(decideServiceAccess("/services", SIGNED_OUT), "allow");
 });
 
 test("a complete profile is never blocked", () => {
@@ -186,13 +181,20 @@ test("every service in the catalogue data is gated unless it is a hub", () => {
   }
 });
 
-test("every More Services row either opens a gated service or the open catalogue", () => {
+test("every More Services row either opens a gated service or the category hub", () => {
+  const hubMap: Record<string, string> = {
+    GST: "/service/gst",
+    ITR: "/service/itr",
+    LOANS: "/service/loans",
+    INSURANCE: "/service/health-insurance",
+    BUSINESS: "/service/company-registration",
+  };
   const rows = SERVICE_CATALOGUE.flatMap((section) => section.items.map((item) => ({ section: section.id, item })));
   assert.ok(rows.length > 10);
   for (const { section, item } of rows) {
-    const href = item.serviceId ? `/service/${item.serviceId}` : { pathname: "/services", params: { selectedCategory: section } };
+    const href = item.serviceId ? `/service/${item.serviceId}` : hubMap[section];
     const decision = decideServiceAccess(href as string, SIGNED_IN_INCOMPLETE);
-    assert.equal(decision, item.serviceId ? "complete-profile" : "allow", item.label);
+    assert.equal(decision, item.serviceId || ["INSURANCE", "BUSINESS"].includes(section) ? "complete-profile" : "allow", item.label);
   }
 });
 
@@ -222,7 +224,7 @@ test("a service route added later is protected by default", () => {
 });
 
 test("screens outside /service/ are not touched by the route guard", () => {
-  for (const p of ["/", "/(main)/home", "/services", "/settings", "/application/123", "/payment/9", "/notifications", "/(auth)/login", "/servicesx", "/service"]) {
+  for (const p of ["/", "/(main)/home", "/settings", "/application/123", "/payment/9", "/notifications", "/(auth)/login", "/service"]) {
     assert.equal(serviceRouteNeedsProfile(p), false, p);
   }
 });
@@ -250,17 +252,16 @@ test("the live Home dashboard tiles resolve consistently", () => {
       return [m[1], route];
     }),
   );
-  assert.equal(Object.keys(byId).length, 8);
+  assert.equal(Object.keys(byId).length, 7);
   const routeOf = (id: string): string | undefined => byId[id]; // deepEqual below narrows byId to its literal
   assert.deepEqual(byId, {
     incorporation: "/service/company-registration",
     gst: "/service/gst",
     itr: "/service/itr",
-    projects: "/services",
+    projects: "/service/loans",
     loans: "/service/loans",
-    insurance: "/services",
-    business: "/services",
-    more: undefined,
+    insurance: "/service/health-insurance",
+    business: "/service/accounting-bookkeeping",
   });
   const expected: Record<string, string> = {
     incorporation: "complete-profile",
@@ -268,21 +269,20 @@ test("the live Home dashboard tiles resolve consistently", () => {
     itr: "allow",
     projects: "allow",
     loans: "allow",
-    insurance: "allow",
-    business: "allow",
+    insurance: "complete-profile",
+    business: "complete-profile",
   };
   for (const [id, decision] of Object.entries(expected)) {
     assert.equal(decideServiceAccess(routeOf(id) as string, SIGNED_IN_INCOMPLETE), decision, id);
   }
 });
 
-test("the services list, the hubs and the guard hooks all use the shared decision", () => {
+test("the hubs and the guard hooks all use the shared decision", () => {
   const hook = read("src/shared/hooks/useServiceAccessGuard.ts");
   assert.ok(hook.includes("decideServiceAccess"));
   assert.ok(hook.includes("isProfileComplete({"));
   assert.equal(hook.match(/rawName/g), null, "the completeness rule is no longer copied into the hook");
   for (const file of [
-    "src/app/services.tsx",
     "src/modules/gst/screens/GstScreen/GstScreen.tsx",
     "src/modules/itr/screens/ItrScreen/ItrScreen.tsx",
   ]) {

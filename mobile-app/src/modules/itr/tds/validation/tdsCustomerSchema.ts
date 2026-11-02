@@ -174,7 +174,7 @@ export function validateCustomerIncomeForm(data: TdsCustomerIncomeFormData): {
   }
 
   if (!bank.bankName || !bank.bankName.trim()) {
-    errors["bank.bankName"] = "Bank Name required (lookup via IFSC)";
+    errors["bank.bankName"] = "Bank Name is required";
   }
 
 

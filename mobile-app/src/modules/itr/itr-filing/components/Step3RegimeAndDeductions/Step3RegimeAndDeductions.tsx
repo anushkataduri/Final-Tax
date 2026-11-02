@@ -45,16 +45,11 @@ export const Step3RegimeAndDeductions: React.FC<Step3RegimeAndDeductionsProps> =
   const [newDeductionAmount, setNewDeductionAmount] = useState("");
 
   const hasExistingDeductions =
-    Number(deductions.sec80c.epf || 0) > 0 ||
-    Number(deductions.sec80c.ppf || 0) > 0 ||
-    Number(deductions.sec80c.lic || 0) > 0 ||
-    Number(deductions.sec80c.elss || 0) > 0 ||
-    Number(deductions.sec80c.tuitionFees || 0) > 0 ||
-    Number(deductions.sec80c.housingPrincipal || 0) > 0 ||
-    Number(deductions.sec80d.selfSpouseChildren || 0) > 0 ||
-    Number(deductions.sec80d.parents || 0) > 0 ||
-    Number(deductions.sec24b || 0) > 0 ||
-    deductions.otherDeductionsList.length > 0;
+    Number(deductions.sec80c.epf || 0) > 0 || Number(deductions.sec80c.ppf || 0) > 0 ||
+    Number(deductions.sec80c.lic || 0) > 0 || Number(deductions.sec80c.elss || 0) > 0 ||
+    Number(deductions.sec80c.tuitionFees || 0) > 0 || Number(deductions.sec80c.housingPrincipal || 0) > 0 ||
+    Number(deductions.sec80d.selfSpouseChildren || 0) > 0 || Number(deductions.sec80d.parents || 0) > 0 ||
+    Number(deductions.sec24b || 0) > 0 || deductions.otherDeductionsList.length > 0;
 
   const [wantsDeductions, setWantsDeductions] = useState<boolean>(hasExistingDeductions || true);
 

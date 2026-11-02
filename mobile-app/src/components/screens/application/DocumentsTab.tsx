@@ -110,6 +110,11 @@ export function DocumentsTab({
                     <Text style={styles.docItemTitle} numberOfLines={1}>
                       {doc.name}
                     </Text>
+                    {Boolean(fileName && fileName !== doc.name) && (
+                      <Text style={styles.docItemFileName} numberOfLines={1}>
+                        {fileName}
+                      </Text>
+                    )}
                     <Text style={styles.docItemSubtitle}>
                       {categoryLabel ? `${categoryLabel} • ` : ""}
                       {fileType} • {fileSize}

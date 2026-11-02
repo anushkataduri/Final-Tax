@@ -3,6 +3,7 @@ import { Alert } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
+import { pickDocumentFromDrive } from "@/shared/utils/driveDocumentUploader";
 import { DocumentUploadBottomSheet } from "@/modules/itr/tds/components/upload/DocumentUploadBottomSheet/DocumentUploadBottomSheet";
 
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
@@ -72,19 +73,19 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   // Option 1: Pick from Files / Drive
   const handlePickDocument = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["application/pdf", "image/jpeg", "image/png"],
-        copyToCacheDirectory: true,
+      const picked = await pickDocumentFromDrive({
+        maxSizeBytes: MAX_FILE_SIZE_BYTES,
+        allowedExtensions: ["pdf", "jpg", "jpeg", "png", "xls", "xlsx", "doc", "docx", "csv", "json"],
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const asset = result.assets[0];
-        await checkSizeAndProceed(
-          asset.uri,
-          asset.name || "document.pdf",
-          asset.size,
-          asset.mimeType
-        );
+      if (picked) {
+        onFilePicked({
+          uri: picked.uri,
+          name: picked.name,
+          size: picked.size,
+          mimeType: picked.mimeType,
+        });
+        onClose();
       }
     } catch {
       Alert.alert("File Selection Error", "Could not select the document. Please try again.");
@@ -94,8 +95,15 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
   // Option 2: Pick from Photo Gallery
   const handlePickGallery = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
+      const currentPerm = await ImagePicker.getMediaLibraryPermissionsAsync();
+      let granted = currentPerm.granted;
+
+      if (!granted && currentPerm.canAskAgain) {
+        const req = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        granted = req.granted;
+      }
+
+      if (!granted) {
         Alert.alert("Permission Required", "Photo library permission is needed to upload documents.");
         return;
       }
@@ -103,7 +111,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         allowsEditing: false,
-        quality: 0.8,
+        quality: 0.85,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -121,18 +129,26 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
     }
   };
 
-  // Option 3: Take Photo with Camera
+  // Option 3: Take Photo with Camera (GST-aligned robust handling)
   const handlePickCamera = async () => {
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== "granted") {
+      const currentPerm = await ImagePicker.getCameraPermissionsAsync();
+      let granted = currentPerm.granted;
+
+      if (!granted && currentPerm.canAskAgain) {
+        const req = await ImagePicker.requestCameraPermissionsAsync();
+        granted = req.granted;
+      }
+
+      if (!granted) {
         Alert.alert("Permission Required", "Camera permission is needed to photograph documents.");
         return;
       }
 
       const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ["images"],
         allowsEditing: false,
-        quality: 0.8,
+        quality: 0.85,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {

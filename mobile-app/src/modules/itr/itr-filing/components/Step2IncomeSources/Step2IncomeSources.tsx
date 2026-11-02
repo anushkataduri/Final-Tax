@@ -1,6 +1,6 @@
 import { Step2SalaryIncome } from "./components/Step2SalaryIncome";
 import { Step2HousePropertyIncome } from "./components/Step2HousePropertyIncome";
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
@@ -15,13 +15,23 @@ import {
   GstReconciliationSummary,
   ItrCategoryType,
 } from "../../types/itrFiling.types";
-import { GstReconciliationCard } from "../../../components/GstReconciliationCard";
 import { styles } from "./Step2IncomeSources.styles";
 import {
   BusinessIncomeForm,
   CapitalGainsIncomeForm,
 } from "./components/Step2BusinessAndCapitalGains";
 import { OtherSourcesIncomeForm } from "./components/Step2OtherSources";
+import {
+  IncomeFieldInfoModal,
+  type InfoModalContent,
+} from "./components/IncomeFieldInfoModal";
+import {
+  SALARY_CARD_INFO,
+  HOUSE_PROPERTY_CARD_INFO,
+  BUSINESS_CARD_INFO,
+  CAPITAL_GAINS_CARD_INFO,
+  OTHER_SOURCES_CARD_INFO,
+} from "./components/incomeCardsInfoData";
 
 interface Step2IncomeSourcesProps {
   isLoading?: boolean;
@@ -54,7 +64,9 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({
   onContinue,
   onUpdateAndContinue,
 }) => {
-  const handleProceed = () => {
+  const [infoModalContent, setInfoModalContent] = useState<InfoModalContent | null>(null);
+
+  const validateInputs = (): boolean => {
     const hasAnyIncome =
       sources.salary.enabled ||
       sources.houseProperty.enabled ||
@@ -67,49 +79,106 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({
         "Income Source Required",
         "Please select at least one income source to proceed."
       );
-      return;
+      return false;
     }
 
     if (sources.salary.enabled) {
-      if (!sources.salary.employerName || !sources.salary.grossSalary) {
-        Alert.alert("Salary Details Required", "Please fill in Employer Name and Gross Salary.");
-        return;
+      if (!sources.salary.employerName?.trim()) {
+        Alert.alert("Salary Details Required", "Employer Legal Name is mandatory.");
+        return false;
+      }
+      if (!sources.salary.grossSalary?.trim()) {
+        Alert.alert("Salary Details Required", "Gross Salary (Annual) is mandatory.");
+        return false;
+      }
+      if (!sources.salary.allowances?.trim()) {
+        Alert.alert("Salary Details Required", "Exempt Allowances is mandatory (enter 0 if not applicable).");
+        return false;
+      }
+      if (!sources.salary.tdsDeducted?.trim()) {
+        Alert.alert("Salary Details Required", "TDS Deducted by Employer is mandatory (enter 0 if not applicable).");
+        return false;
       }
     }
     
     if (sources.houseProperty.enabled) {
-      if (sources.houseProperty.propertyType === "let_out" && !sources.houseProperty.annualRentReceived) {
-        Alert.alert("House Property Details Required", "Please fill in Annual Rent Received for let out property.");
-        return;
+      if (sources.houseProperty.propertyType === "let_out") {
+        if (!sources.houseProperty.annualRentReceived?.trim()) {
+          Alert.alert("House Property Details Required", "Annual Rent Received is mandatory for let-out property.");
+          return false;
+        }
+        if (!sources.houseProperty.municipalTaxesPaid?.trim()) {
+          Alert.alert("House Property Details Required", "Municipal Taxes Paid is mandatory (enter 0 if none).");
+          return false;
+        }
       }
-      if (sources.houseProperty.propertyType === "self_occupied" && !sources.houseProperty.homeLoanInterest) {
-        Alert.alert("House Property Details Required", "Please fill in Home Loan Interest for self-occupied property.");
-        return;
+      if (!sources.houseProperty.homeLoanInterest?.trim()) {
+        Alert.alert("House Property Details Required", "Home Loan Interest Paid is mandatory (enter 0 if no loan).");
+        return false;
       }
     }
 
     if (sources.business.enabled) {
-      if (!sources.business.grossTurnover) {
-        Alert.alert("Business Details Required", "Please fill in Gross Turnover for your business.");
-        return;
+      if (!sources.business.businessType) {
+        Alert.alert("Business Details Required", "Please select how you report this business.");
+        return false;
+      }
+      if (!sources.business.grossTurnover?.trim()) {
+        Alert.alert("Business Details Required", "Gross Turnover is mandatory for Business / Profession income.");
+        return false;
+      }
+      if (!sources.business.declaredProfit?.trim()) {
+        Alert.alert("Business Details Required", "Declared Profit is mandatory (enter 0 if none).");
+        return false;
       }
     }
 
     if (sources.capitalGains.enabled) {
-      if (!sources.capitalGains.hasEquityMf && !sources.capitalGains.hasFnoIntraday && !sources.capitalGains.hasPropertyAssets && !sources.capitalGains.hasCryptoVda) {
-        Alert.alert("Capital Gains Required", "Please select at least one type of capital gain.");
-        return;
+      const hasAnyAsset =
+        sources.capitalGains.hasEquityMf ||
+        sources.capitalGains.hasFnoIntraday ||
+        sources.capitalGains.hasPropertyAssets ||
+        sources.capitalGains.hasCryptoVda;
+      if (!hasAnyAsset) {
+        Alert.alert("Capital Gains Required", "Please select at least one asset type traded.");
+        return false;
+      }
+      if (!sources.capitalGains.shortTermGains?.trim()) {
+        Alert.alert("Capital Gains Details Required", "Short-Term Gains (STCG) is mandatory (enter 0 if none).");
+        return false;
+      }
+      if (!sources.capitalGains.longTermGains?.trim()) {
+        Alert.alert("Capital Gains Details Required", "Long-Term Gains (LTCG) is mandatory (enter 0 if none).");
+        return false;
       }
     }
 
     if (sources.otherSources.enabled) {
-      if (!sources.otherSources.savingsInterest && !sources.otherSources.fdInterest && !sources.otherSources.dividendIncome && !sources.otherSources.familyPension && !sources.otherSources.otherIncome) {
-        Alert.alert("Other Sources Details Required", "Please fill in at least one other income amount.");
-        return;
+      if (!sources.otherSources.savingsInterest?.trim()) {
+        Alert.alert("Other Sources Required", "Savings Bank Interest is mandatory (enter 0 if none).");
+        return false;
+      }
+      if (!sources.otherSources.fdInterest?.trim()) {
+        Alert.alert("Other Sources Required", "FD / Term Interest is mandatory (enter 0 if none).");
+        return false;
+      }
+      if (!sources.otherSources.dividendIncome?.trim()) {
+        Alert.alert("Other Sources Required", "Dividend Income is mandatory (enter 0 if none).");
+        return false;
+      }
+      if (!sources.otherSources.otherIncome?.trim()) {
+        Alert.alert("Other Sources Required", "Other Miscellaneous income is mandatory (enter 0 if none).");
+        return false;
       }
     }
 
-    onContinue();
+    return true;
+  };
+
+  const handleProceed = () => {
+    if (validateInputs()) {
+      onContinue();
+    }
   };
 
   return (
@@ -324,28 +393,45 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({
       </View>
 
       {/* 1. Salary Income */}
-      <Step2SalaryIncome data={sources.salary} onUpdate={onUpdateSalary} />
+      <Step2SalaryIncome
+        data={sources.salary}
+        onUpdate={onUpdateSalary}
+        onPressInfo={() => setInfoModalContent(SALARY_CARD_INFO)}
+      />
 
       {/* 2. House Property Income */}
-      <Step2HousePropertyIncome data={sources.houseProperty} onUpdate={onUpdateHouseProperty} />
+      <Step2HousePropertyIncome
+        data={sources.houseProperty}
+        onUpdate={onUpdateHouseProperty}
+        onPressInfo={() => setInfoModalContent(HOUSE_PROPERTY_CARD_INFO)}
+      />
 
-      {/* 3. Business / Profession & GST Bridge */}
+      {/* 3. Business / Profession */}
       <BusinessIncomeForm
         business={sources.business}
-        gstReconciliation={gstReconciliation}
         onUpdateBusiness={onUpdateBusiness}
+        onPressInfo={() => setInfoModalContent(BUSINESS_CARD_INFO)}
       />
 
       {/* 4. Capital Gains & Trading Activity */}
       <CapitalGainsIncomeForm
         capitalGains={sources.capitalGains}
         onUpdateCapitalGains={onUpdateCapitalGains}
+        onPressInfo={() => setInfoModalContent(CAPITAL_GAINS_CARD_INFO)}
       />
 
       {/* 5. Other Sources Income */}
       <OtherSourcesIncomeForm
         otherSources={sources.otherSources}
         onUpdateOtherSources={onUpdateOtherSources}
+        onPressInfo={() => setInfoModalContent(OTHER_SOURCES_CARD_INFO)}
+      />
+
+      {/* Field Info Explanation Modal */}
+      <IncomeFieldInfoModal
+        visible={Boolean(infoModalContent)}
+        content={infoModalContent}
+        onClose={() => setInfoModalContent(null)}
       />
 
       {/* 2 Distinct Buttons for Update (PUT) and Create (POST) */}
@@ -354,7 +440,15 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({
         <TouchableOpacity
           activeOpacity={0.85}
           style={styles.continueButton}
-          onPress={onUpdateAndContinue || handleProceed}
+          onPress={() => {
+            if (validateInputs()) {
+              if (onUpdateAndContinue) {
+                onUpdateAndContinue();
+              } else {
+                onContinue();
+              }
+            }
+          }}
           disabled={isLoading}
         >
           {isLoading ? (

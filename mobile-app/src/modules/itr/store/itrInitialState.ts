@@ -29,11 +29,11 @@ export const getInitialFormData = (): ItrFilingFormData => {
     pincode: customer?.pincode || (user as any)?.pincode || "",
     mobile: customer?.mobile || user?.mobileNumber || "",
     email: customer?.email || user?.email || "",
-    residentialStatus: "Resident",
-    residentialStatusConfirmed: true,
-    assessmentYear: getCurrentAssessmentYear(),
-    filingType: "139_1_original",
-    filingTypeSuggested: "139_1_original",
+    residentialStatus: "",
+    residentialStatusConfirmed: false,
+    assessmentYear: "",
+    filingType: "",
+    filingTypeSuggested: "",
     isAutoVerified: Boolean(customer?.pan || (user as any)?.pan),
   };
 
@@ -85,16 +85,11 @@ export const getInitialFormData = (): ItrFilingFormData => {
   };
 
   const registeredAccountType = customer?.customerType || "Individual";
-  const isCorporate =
-    registeredAccountType === "Private Limited" ||
-    registeredAccountType === "Public Limited" ||
-    registeredAccountType === "LLP" ||
-    registeredAccountType === "Partnership";
-  let initialCategory: ItrCategoryType = (isCorporate ? "business" : "salaried") as ItrCategoryType;
+  const initialCategory: ItrCategoryType | null = null;
 
   const incomeSources = {
     salary: {
-      enabled: initialCategory === "salaried",
+      enabled: false,
       employerName: "",
       grossSalary: "",
       allowances: "",
@@ -103,7 +98,7 @@ export const getInitialFormData = (): ItrFilingFormData => {
       isVerified: false,
     },
     houseProperty: {
-      enabled: initialCategory === "rental",
+      enabled: false,
       propertyType: "self_occupied" as const,
       annualRentReceived: "",
       municipalTaxesPaid: "",
@@ -111,7 +106,7 @@ export const getInitialFormData = (): ItrFilingFormData => {
       source: "USER_DECLARED" as const,
     },
     business: {
-      enabled: initialCategory === "business" || initialCategory === "professional" || initialCategory === "freelancer",
+      enabled: false,
       businessType: "presumptive_44ad" as const,
       businessName: gstBusiness.businessName || "",
       gstin: gstBusiness.gstin || "",
@@ -125,9 +120,9 @@ export const getInitialFormData = (): ItrFilingFormData => {
       gstReconciliationRequired: false,
     },
     capitalGains: {
-      enabled: initialCategory === "capital_gains" || initialCategory === "trader_investor",
+      enabled: false,
       hasEquityMf: false,
-      hasFnoIntraday: initialCategory === "trader_investor",
+      hasFnoIntraday: false,
       hasPropertyAssets: false,
       hasCryptoVda: false,
       shortTermGains: "",

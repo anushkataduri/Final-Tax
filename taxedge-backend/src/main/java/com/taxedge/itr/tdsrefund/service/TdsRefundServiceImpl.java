@@ -91,6 +91,10 @@ public class TdsRefundServiceImpl implements TdsRefundService {
                 .orElseThrow(() -> new ResourceNotFoundException("TDS refund record not found with ID: " + id));
 
         RegisterationStatus currentStatus = entity.getStatus();
+        if (currentStatus == RegisterationStatus.SUBMITTED) {
+            log.info("TDS refund {} is already submitted, treating as idempotent success", id);
+            return "TDS refund submitted successfully. Refund ID: " + id;
+        }
         if (currentStatus != null && currentStatus != RegisterationStatus.DRAFT && currentStatus != RegisterationStatus.REJECTED) {
             throw new IllegalStateException(
                     "TDS refund " + id + " cannot be submitted. Current status: " + currentStatus);

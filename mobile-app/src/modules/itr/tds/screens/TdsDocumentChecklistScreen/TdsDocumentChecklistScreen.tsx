@@ -92,8 +92,6 @@ export const TdsDocumentChecklistScreen: React.FC = () => {
     handleDiscardAndExit: discardDraft,
     handleCancel: cancelExit,
   } = useUniversalDraftGuard({
-    saveDestination: "/service/itr",
-    discardDestination: "/service/itr",
     isDirty: () =>
       documents.some((d: any) => Boolean(d.fileUri || d.status === "uploaded")),
     onSaveDraft: async () => {

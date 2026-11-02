@@ -1,25 +1,23 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import {
   IncomeBusinessData,
   IncomeCapitalGainsData,
-  GstReconciliationSummary,
 } from "../../../types/itrFiling.types";
-import { GstReconciliationCard } from "../../../../components/GstReconciliationCard";
 import { styles } from "../Step2IncomeSources.styles";
 
 interface BusinessFormProps {
   business: IncomeBusinessData;
-  gstReconciliation?: GstReconciliationSummary;
   onUpdateBusiness: (data: Partial<IncomeBusinessData>) => void;
+  onPressInfo?: () => void;
 }
 
 export const BusinessIncomeForm: React.FC<BusinessFormProps> = ({
   business,
-  gstReconciliation,
   onUpdateBusiness,
+  onPressInfo,
 }) => {
   if (!business.enabled) return null;
 
@@ -37,11 +35,17 @@ export const BusinessIncomeForm: React.FC<BusinessFormProps> = ({
           <View style={styles.sourceTitleCol}>
             <View style={styles.sourceTitleRow}>
               <Text style={styles.sourceTitle}>Business / Profession</Text>
-              {gstReconciliation && (
-                <View style={styles.sourceTagImported}>
-                  <Ionicons name="document-text" size={10} color="#083B75" />
-                  <Text style={styles.sourceTagImportedText}>GST Connected</Text>
-                </View>
+              {onPressInfo && (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.infoIconBtn}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onPressInfo();
+                  }}
+                >
+                  <Ionicons name="information-circle-outline" size={18} color="#083B75" />
+                </TouchableOpacity>
               )}
             </View>
             <Text style={styles.sourceSubtitle}>Presumptive (44AD/ADA) or Regular Books</Text>
@@ -53,9 +57,10 @@ export const BusinessIncomeForm: React.FC<BusinessFormProps> = ({
       </TouchableOpacity>
 
       <View style={styles.expandedForm}>
-        {gstReconciliation && <GstReconciliationCard reconciliation={gstReconciliation} />}
-
-        <Text style={styles.inputLabel}>How do you report this business?</Text>
+        <View style={styles.labelWithInfoRow}>
+          <Text style={styles.inputLabel}>How do you report this business?</Text>
+          <Text style={styles.mandatoryAsterisk}>*</Text>
+        </View>
         <View style={styles.schemeRadioGroup}>
           <TouchableOpacity
             activeOpacity={0.8}
@@ -136,7 +141,10 @@ export const BusinessIncomeForm: React.FC<BusinessFormProps> = ({
 
         <View style={styles.inputRow}>
           <View style={styles.inputGroupHalf}>
-            <Text style={styles.inputLabel}>Gross Turnover / Receipts</Text>
+            <View style={styles.labelWithInfoRow}>
+              <Text style={styles.inputLabel}>Gross Turnover</Text>
+              <Text style={styles.mandatoryAsterisk}>*</Text>
+            </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
@@ -153,13 +161,16 @@ export const BusinessIncomeForm: React.FC<BusinessFormProps> = ({
           </View>
 
           <View style={styles.inputGroupHalf}>
-            <Text style={styles.inputLabel}>Declared Net Profit</Text>
+            <View style={styles.labelWithInfoRow}>
+              <Text style={styles.inputLabel}>Declared Profit</Text>
+              <Text style={styles.mandatoryAsterisk}>*</Text>
+            </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
                 keyboardType="numeric"
-                placeholder="e.g. 2,00,000"
+                placeholder="e.g. 2,00,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={business.declaredProfit}
                 onChangeText={(val) =>
@@ -177,11 +188,13 @@ export const BusinessIncomeForm: React.FC<BusinessFormProps> = ({
 interface CapitalGainsFormProps {
   capitalGains: IncomeCapitalGainsData;
   onUpdateCapitalGains: (data: Partial<IncomeCapitalGainsData>) => void;
+  onPressInfo?: () => void;
 }
 
 export const CapitalGainsIncomeForm: React.FC<CapitalGainsFormProps> = ({
   capitalGains,
   onUpdateCapitalGains,
+  onPressInfo,
 }) => {
   if (!capitalGains.enabled) return null;
 
@@ -199,6 +212,18 @@ export const CapitalGainsIncomeForm: React.FC<CapitalGainsFormProps> = ({
           <View style={styles.sourceTitleCol}>
             <View style={styles.sourceTitleRow}>
               <Text style={styles.sourceTitle}>Capital Gains & Trading</Text>
+              {onPressInfo && (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.infoIconBtn}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onPressInfo();
+                  }}
+                >
+                  <Ionicons name="information-circle-outline" size={18} color="#083B75" />
+                </TouchableOpacity>
+              )}
               {capitalGains.statementUploaded && (
                 <View style={styles.sourceTagVerified}>
                   <Ionicons name="checkmark-circle" size={10} color="#166534" />
@@ -230,7 +255,10 @@ export const CapitalGainsIncomeForm: React.FC<CapitalGainsFormProps> = ({
           </View>
         )}
 
-        <Text style={styles.inputLabel}>Asset Types Traded</Text>
+        <View style={styles.labelWithInfoRow}>
+          <Text style={styles.inputLabel}>Asset Types Traded</Text>
+          <Text style={styles.mandatoryAsterisk}>*</Text>
+        </View>
         <View style={styles.tagWrapRow}>
           <TouchableOpacity
             activeOpacity={0.8}
@@ -301,13 +329,16 @@ export const CapitalGainsIncomeForm: React.FC<CapitalGainsFormProps> = ({
 
         <View style={styles.inputRow}>
           <View style={styles.inputGroupHalf}>
-            <Text style={styles.inputLabel}>Short-Term Gains (STCG)</Text>
+            <View style={styles.labelWithInfoRow}>
+              <Text style={styles.inputLabel}>Short-Term Gains (STCG)</Text>
+              <Text style={styles.mandatoryAsterisk}>*</Text>
+            </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
                 keyboardType="numeric"
-                placeholder="e.g. 30,000"
+                placeholder="e.g. 30,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={capitalGains.shortTermGains}
                 onChangeText={(val) =>
@@ -318,13 +349,16 @@ export const CapitalGainsIncomeForm: React.FC<CapitalGainsFormProps> = ({
           </View>
 
           <View style={styles.inputGroupHalf}>
-            <Text style={styles.inputLabel}>Long-Term Gains (LTCG)</Text>
+            <View style={styles.labelWithInfoRow}>
+              <Text style={styles.inputLabel}>Long-Term Gains (LTCG)</Text>
+              <Text style={styles.mandatoryAsterisk}>*</Text>
+            </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
                 keyboardType="numeric"
-                placeholder="e.g. 50,000"
+                placeholder="e.g. 50,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={capitalGains.longTermGains}
                 onChangeText={(val) =>

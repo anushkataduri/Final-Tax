@@ -8,11 +8,13 @@ import { styles } from "../Step2IncomeSources.styles";
 interface OtherSourcesFormProps {
   otherSources: IncomeOtherSourcesData;
   onUpdateOtherSources: (data: Partial<IncomeOtherSourcesData>) => void;
+  onPressInfo?: () => void;
 }
 
 export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
   otherSources,
   onUpdateOtherSources,
+  onPressInfo,
 }) => {
   if (!otherSources.enabled) return null;
 
@@ -30,6 +32,18 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
           <View style={styles.sourceTitleCol}>
             <View style={styles.sourceTitleRow}>
               <Text style={styles.sourceTitle}>Income from Other Sources</Text>
+              {onPressInfo && (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={styles.infoIconBtn}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    onPressInfo();
+                  }}
+                >
+                  <Ionicons name="information-circle-outline" size={18} color="#083B75" />
+                </TouchableOpacity>
+              )}
               {otherSources.source === "AIS_TIS" && (
                 <View style={styles.sourceTagWarning}>
                   <Ionicons name="alert-circle" size={10} color="#B45309" />
@@ -86,13 +100,16 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
 
         <View style={styles.inputRow}>
           <View style={styles.inputGroupHalf}>
-            <Text style={styles.inputLabel}>Savings Interest</Text>
+            <View style={styles.labelWithInfoRow}>
+              <Text style={styles.inputLabel}>Savings Interest</Text>
+              <Text style={styles.mandatoryAsterisk}>*</Text>
+            </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
                 keyboardType="numeric"
-                placeholder="e.g. 10,000"
+                placeholder="e.g. 10,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.savingsInterest}
                 onChangeText={(val) =>
@@ -103,13 +120,16 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
           </View>
 
           <View style={styles.inputGroupHalf}>
-            <Text style={styles.inputLabel}>FD / Term Interest</Text>
+            <View style={styles.labelWithInfoRow}>
+              <Text style={styles.inputLabel}>FD / Term Interest</Text>
+              <Text style={styles.mandatoryAsterisk}>*</Text>
+            </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
                 keyboardType="numeric"
-                placeholder="e.g. 25,000"
+                placeholder="e.g. 25,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.fdInterest}
                 onChangeText={(val) =>
@@ -122,13 +142,16 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
 
         <View style={styles.inputRow}>
           <View style={styles.inputGroupHalf}>
-            <Text style={styles.inputLabel}>Dividend Income</Text>
+            <View style={styles.labelWithInfoRow}>
+              <Text style={styles.inputLabel}>Dividend Income</Text>
+              <Text style={styles.mandatoryAsterisk}>*</Text>
+            </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
                 keyboardType="numeric"
-                placeholder="e.g. 5,000"
+                placeholder="e.g. 5,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.dividendIncome}
                 onChangeText={(val) =>
@@ -139,13 +162,16 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
           </View>
 
           <View style={styles.inputGroupHalf}>
-            <Text style={styles.inputLabel}>Other Miscellaneous</Text>
+            <View style={styles.labelWithInfoRow}>
+              <Text style={styles.inputLabel}>Other Miscellaneous</Text>
+              <Text style={styles.mandatoryAsterisk}>*</Text>
+            </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
               <TextInput
                 style={styles.textInput}
                 keyboardType="numeric"
-                placeholder="e.g. 0"
+                placeholder="e.g. 0 if none"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.otherIncome}
                 onChangeText={(val) =>

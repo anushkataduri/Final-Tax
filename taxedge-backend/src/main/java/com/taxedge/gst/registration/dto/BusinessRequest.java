@@ -12,6 +12,7 @@ import com.taxedge.gst.registration.enums.ReasonForRegistration;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -43,6 +44,10 @@ public class BusinessRequest {
 
 	@NotNull
 	private LocalDate dateOfCommencement;
+
+	@NotBlank
+	@Pattern(regexp = "^[A-Z]{5}[0-9]{4}[A-Z]$", message = "Enter a valid PAN number")
+	private String businessPan;
 
 	@NotNull
 	private ReasonForRegistration reasonForRegistration;
@@ -94,9 +99,6 @@ public class BusinessRequest {
 
 	@NotBlank
 	private String signatoryName;
-
-	@NotBlank
-	private String businessPan;
 
 	@NotBlank
 	private String signatoryPan;

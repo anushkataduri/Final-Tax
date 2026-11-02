@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter, useNavigation } from "expo-router";
+import { useRouter, usePreventRemove } from "expo-router";
 import { toHref } from "@/shared/utils/navigation";
 
 export interface UseUniversalDraftGuardOptions {
@@ -26,23 +26,20 @@ export const useUniversalDraftGuard = ({
   saveDestination,
 }: UseUniversalDraftGuardOptions) => {
   const router = useRouter();
-  const navigation = useNavigation();
 
   const [showDraftModal, setShowDraftModal] = useState(false);
-  const pendingNavigationActionRef = useRef<any>(null);
-  const hasSubmittedRef = useRef(false);
+  const [hasExited, setHasExited] = useState(false);
+  const pendingRepeatRef = useRef<(() => void) | null>(null);
+  const disablePreventionRef = useRef<(() => void) | null>(null);
+  const isModalShownRef = useRef(false);
 
-  // Keep refs in sync with callbacks
-  const isDirtyRef = useRef(isDirty);
-  const isSubmittedRef = useRef(isSubmitted);
+  // Keep refs in sync with callbacks (no deps = runs after every render)
   const onSaveDraftRef = useRef(onSaveDraft);
   const onDiscardDraftRef = useRef(onDiscardDraft);
   const discardDestinationRef = useRef(discardDestination);
   const saveDestinationRef = useRef(saveDestination);
 
   useEffect(() => {
-    isDirtyRef.current = isDirty;
-    isSubmittedRef.current = isSubmitted;
     onSaveDraftRef.current = onSaveDraft;
     onDiscardDraftRef.current = onDiscardDraft;
     discardDestinationRef.current = discardDestination;
@@ -50,64 +47,80 @@ export const useUniversalDraftGuard = ({
   });
 
   const markSubmitted = useCallback(() => {
-    hasSubmittedRef.current = true;
+    setHasExited(true);
+    disablePreventionRef.current?.();
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
-      // If already submitted or final step reached, allow free navigation
-      if (hasSubmittedRef.current || isSubmittedRef.current()) {
-        return;
-      }
+  // Computed fresh each render from props — no lag, no extra state update cycle.
+  // usePreventRemove in react-navigation v7 intercepts both hardware Back and
+  // programmatic router.back(), replacing the legacy beforeRemove approach.
+  const shouldPreventRemove = !hasExited && !isSubmitted() && isDirty();
 
-      // Check if user has entered data
-      if (!isDirtyRef.current()) {
-        return;
-      }
-
-      // Intercept navigation & open draft modal
-      e.preventDefault();
-      pendingNavigationActionRef.current = e.data.action;
+  const disablePrevention = usePreventRemove(
+    shouldPreventRemove,
+    useCallback(({ repeat }) => {
+      if (isModalShownRef.current) return;
+      pendingRepeatRef.current = repeat;
+      isModalShownRef.current = true;
       setShowDraftModal(true);
-    });
+    }, []),
+  );
 
-    return unsubscribe;
-  }, [navigation]);
+  // Keep disablePreventionRef current so event handlers can call it without being in their deps
+  useEffect(() => {
+    disablePreventionRef.current = disablePrevention;
+  }, [disablePrevention]);
 
   const handleSaveAndExit = useCallback(() => {
     onSaveDraftRef.current();
     setShowDraftModal(false);
-    hasSubmittedRef.current = true;
+    isModalShownRef.current = false;
+    setHasExited(true);
 
     if (saveDestinationRef.current) {
+      disablePreventionRef.current?.();
+      pendingRepeatRef.current = null;
       router.replace(toHref(saveDestinationRef.current));
-    } else if (pendingNavigationActionRef.current) {
-      navigation.dispatch(pendingNavigationActionRef.current);
+    } else if (pendingRepeatRef.current) {
+      // Navigation-triggered path: repeat() calls disablePrevention() internally
+      const fn = pendingRepeatRef.current;
+      pendingRepeatRef.current = null;
+      fn();
     } else {
+      // openDraftModal() direct path: disable manually before navigating
+      disablePreventionRef.current?.();
       router.back();
     }
-  }, [navigation, router]);
+  }, [router]);
 
   const handleDiscardAndExit = useCallback(() => {
     onDiscardDraftRef.current();
     setShowDraftModal(false);
-    hasSubmittedRef.current = true;
+    isModalShownRef.current = false;
+    setHasExited(true);
 
     if (discardDestinationRef.current) {
+      disablePreventionRef.current?.();
+      pendingRepeatRef.current = null;
       router.replace(toHref(discardDestinationRef.current));
-    } else if (pendingNavigationActionRef.current) {
-      navigation.dispatch(pendingNavigationActionRef.current);
+    } else if (pendingRepeatRef.current) {
+      const fn = pendingRepeatRef.current;
+      pendingRepeatRef.current = null;
+      fn();
     } else {
+      disablePreventionRef.current?.();
       router.back();
     }
-  }, [navigation, router]);
+  }, [router]);
 
   const handleCancel = useCallback(() => {
     setShowDraftModal(false);
-    pendingNavigationActionRef.current = null;
+    isModalShownRef.current = false;
+    pendingRepeatRef.current = null;
   }, []);
 
   const openDraftModal = useCallback(() => {
+    isModalShownRef.current = true;
     setShowDraftModal(true);
   }, []);
 

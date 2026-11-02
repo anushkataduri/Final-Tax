@@ -190,10 +190,16 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  startBtnDisabled: {
+    backgroundColor: "#CBD5E1",
+  },
   startBtnText: {
     fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
     letterSpacing: 0.2,
+  },
+  startBtnTextDisabled: {
+    color: "#64748B",
   },
 });

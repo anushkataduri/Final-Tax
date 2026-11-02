@@ -7,8 +7,9 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  BackHandler,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/hooks/use-theme";
 import { useApplicationStore } from "@/store/applicationStore";
@@ -131,8 +132,24 @@ export function ProfileScreen() {
     { value: compactRupees(totalPaid), label: "Total Paid", color: colors.orange },
   ];
 
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        router.replace("/(main)/home");
+        return true;
+      };
+
+      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => sub.remove();
+    }, [router])
+  );
+
   return (
-    <ScreenLayout title="My Profile">
+    <ScreenLayout
+      title="My Profile"
+      showBack
+      onBack={() => router.replace("/(main)/home")}
+    >
       <ScrollView
         contentContainerStyle={getProfileScrollStyle(SCREEN_BOTTOM_PADDING)}
         showsVerticalScrollIndicator={false}

@@ -41,10 +41,8 @@ export const TdsRefundEntryScreen: React.FC = () => {
   const handleStart = () => {
     if (draftStep === "DOCUMENTS") {
       router.push("/service/tds-checklist" as any);
-    } else if (draftStep === "ESTIMATE") {
+    } else if (draftStep === "ESTIMATE" || draftStep === "PAYMENT") {
       router.push("/service/tds-estimate" as any);
-    } else if (draftStep === "PAYMENT") {
-      router.push("/service/tds-payment" as any);
     } else {
       router.push({
         pathname: "/service/tds-form" as any,

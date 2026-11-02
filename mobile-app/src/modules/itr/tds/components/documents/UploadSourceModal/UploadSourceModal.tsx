@@ -27,7 +27,7 @@ export const UploadSourceModal: React.FC<UploadSourceModalProps> = ({
       maxSizeText={maxSizeText}
       onPickFiles={onChooseFiles}
       onPickGallery={onSelectGallery}
-        allowGallery={false}
+      allowGallery={Boolean(onSelectGallery)}
       onTakePhoto={onTakePhoto}
       onClose={onClose}
     />

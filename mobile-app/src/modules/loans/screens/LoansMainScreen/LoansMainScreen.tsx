@@ -321,7 +321,6 @@ export const LoansMainScreen: React.FC = () => {
   return (
     <>
       {renderStep()}
-      <CompleteProfileModal />
       <UniversalDraftModal
         visible={draftGuard.showDraftModal}
         title="Save Loan Application?"

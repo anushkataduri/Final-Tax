@@ -105,7 +105,7 @@ export function resolveApplicationStatusUI(
     const reason =
       (app?.formData?.rejectionReason as string) ||
       (app?.formData?.reason as string) ||
-      (app?.notes as string) ||
+      ((app as any)?.notes as string) ||
       "";
     return {
       normalizedStatus: "REJECTED",

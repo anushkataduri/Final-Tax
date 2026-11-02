@@ -41,6 +41,23 @@ export const styles = StyleSheet.create({
   rightSpacer: {
     width: 75,
   },
+  saveDraftHeaderBtn: {
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: 17,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 4,
+  },
+  saveDraftHeaderText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#64748B",
+  },
   progressBarTrack: {
     height: 3,
     backgroundColor: "#E2E8F0",

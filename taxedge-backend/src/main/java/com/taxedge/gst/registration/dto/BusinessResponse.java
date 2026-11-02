@@ -35,6 +35,8 @@ public class BusinessResponse {
 
     private LocalDate dateOfCommencement;
 
+    private String businessPan;
+
     private ReasonForRegistration reasonForRegistration;
 
     private CompositionScheme compositionScheme;
@@ -68,8 +70,6 @@ public class BusinessResponse {
     private String authorisedSignatory;
 
     private String signatoryName;
-
-    private String businessPan;
 
     private String signatoryPan;
 

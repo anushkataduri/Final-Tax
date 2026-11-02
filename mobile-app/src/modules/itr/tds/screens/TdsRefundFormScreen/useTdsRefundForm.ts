@@ -22,6 +22,7 @@ import { tdsApiService } from "../../services/tdsApiService";
 import { useUniversalDraftGuard } from "@/shared/hooks/useUniversalDraftGuard";
 import { useTdsProfileSync } from "./useTdsProfileSync";
 import { describeSaveError } from "./tdsFormHelpers";
+import { UpdateBankField, UpdateIncomeField } from "./TdsRefundFormSections.types";
 
 export const useTdsRefundForm = () => {
   const router = useRouter();
@@ -47,6 +48,8 @@ export const useTdsRefundForm = () => {
   const documentsRef = useRef<any[]>([]);
 
   const draftGuard = useUniversalDraftGuard({
+    saveDestination: "/service/itr",
+    discardDestination: "/service/itr",
     isDirty: () => {
       if (!initialSnapshotRef.current) return false;
       const currentSnapshot = JSON.stringify({ bank: formData.bank, income: formData.income });
@@ -59,8 +62,6 @@ export const useTdsRefundForm = () => {
     onDiscardDraft: async () => {
       await tdsDraftService.clearDraft();
     },
-    saveDestination: "/service/itr",
-    discardDestination: "/service/itr",
   });
 
   useEffect(() => {
@@ -267,43 +268,11 @@ export const useTdsRefundForm = () => {
     }
   };
 
-  const handleIfscChange = async (val: string) => {
+  const handleIfscChange = (val: string) => {
     const cleaned = cleanIfsc(val);
     updateBank("ifscCode", cleaned);
-
-    if (cleaned.length === 11) {
-      setIsIfscLoading(true);
-      setIfscError(null);
-      try {
-        const details = await ifscService.lookup(cleaned);
-        setFormData((prev) => ({
-          ...prev,
-          bank: {
-            ...prev.bank,
-            ifscCode: cleaned,
-            bankName: details.bank,
-            branchName: details.branch,
-            isIfscVerified: true,
-          },
-        }));
-        setIfscError(null);
-      } catch {
-        setIfscError("Invalid IFSC code. Please check branch details.");
-        updateBank("isIfscVerified", false);
-      } finally {
-        setIsIfscLoading(false);
-      }
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        bank: {
-          ...prev.bank,
-          bankName: "",
-          branchName: "",
-          isIfscVerified: false,
-        },
-      }));
-    }
+    setIsIfscLoading(false);
+    setIfscError(null);
   };
 
   const updateBusiness = (field: string, value: string) => {

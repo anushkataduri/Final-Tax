@@ -66,6 +66,7 @@ export function useGstFiling() {
   // Universal Draft Guard Hook
   const {
     showDraftModal,
+    openDraftModal,
     handleSaveAndExit,
     handleDiscardAndExit,
     handleCancel,
@@ -199,25 +200,25 @@ export function useGstFiling() {
   }, [currentStep, isEditMode, periodData.filingNature]);
 
   const handleBack = useCallback(() => {
-    if (isEditMode) {
-      setIsEditMode(false);
-      setCurrentStep(2);
+    if (isEditMode) { setIsEditMode(false); setCurrentStep(2); return; }
+    if (currentStep === 3) { router.back(); return; }
+    if (currentStep === 2) {
+      setCurrentStep(periodData.filingNature === "Nil Return" ? 0 : 1);
       return;
     }
-    if (currentStep === 3) {
-      router.back();
-    } else if (currentStep === 2) {
-      if (periodData.filingNature === "Nil Return") {
-        setCurrentStep(0);
-      } else {
-        setCurrentStep(1);
-      }
-    } else if (currentStep === 1) {
-      setCurrentStep(0);
+    if (currentStep === 1) { setCurrentStep(0); return; }
+    // currentStep === 0: exiting the filing flow — show modal if any data entered
+    const hasData = Boolean(
+      periodData.periodType || periodData.financialYear || periodData.filingPeriod ||
+      periodData.filingMonth || periodData.gstin || periodData.filingType ||
+      documents.some((d) => Boolean(d.fileUri)),
+    );
+    if (hasData) {
+      openDraftModal();
     } else {
       router.back();
     }
-  }, [currentStep, router, isEditMode, periodData.filingNature]);
+  }, [currentStep, router, isEditMode, periodData, documents, openDraftModal]);
 
   const handleContinue = useCallback(async () => {
     switch (currentStep) {
@@ -294,6 +295,7 @@ export function useGstFiling() {
     createdAppId,
     filingId,
     showDraftModal,
+    openDraftModal,
     handleSaveAndExit,
     handleDiscardAndExit,
     handleCancel,

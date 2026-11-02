@@ -57,7 +57,7 @@ export const styles = StyleSheet.create({
   progressFill: {
     height: "100%",
     backgroundColor: BrandColors.PRIMARY_ORANGE,
-    width: "50%", // Step 2 of 4
+    width: "100%", // Step 2 of 2 (Review & Submit)
   },
   scrollContent: {
     paddingHorizontal: Spacing.base,

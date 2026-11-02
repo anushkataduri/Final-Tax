@@ -82,6 +82,10 @@ public class RevisedItrServiceImpl implements RevisedItrService {
 				.orElseThrow(() -> new ResourceNotFoundException("Revised ITR not found with ID: " + revisedItrId));
 
 		RegisterationStatus currentStatus = revisedItr.getStatus();
+		if (currentStatus == RegisterationStatus.SUBMITTED) {
+			log.info("Revised ITR {} is already submitted, treating as idempotent success", revisedItrId);
+			return "Revised ITR submitted successfully. Revised ITR ID: " + revisedItrId;
+		}
 		if (currentStatus != null && currentStatus != RegisterationStatus.DRAFT && currentStatus != RegisterationStatus.REJECTED) {
 			throw new IllegalStateException(
 					"Revised ITR " + revisedItrId + " cannot be submitted. Current status: " + currentStatus);

@@ -120,6 +120,25 @@ export const TdsPaymentSubmissionScreen: React.FC = () => {
     }
 
     try {
+      // 1. Submit to backend /tds-refund/submit to transition status from DRAFT to SUBMITTED
+      let pushToken: string | undefined;
+      try {
+        const { registerForPushNotificationsAsync } = await import(
+          "@/utils/pushNotificationService"
+        );
+        pushToken = (await registerForPushNotificationsAsync()) || undefined;
+      } catch (pushErr) {
+        console.warn("[TDS Submit] Push token fetch skipped/warning:", pushErr);
+      }
+
+      try {
+        await tdsApiService.submitTdsRefund(targetAppId, pushToken);
+        console.log("✅ [TDS Submit] Backend /tds-refund/submit transitioned successfully:", targetAppId);
+      } catch (submitErr: any) {
+        console.warn("[TDS Submit] Backend submit call error (continuing if idempotent):", submitErr);
+      }
+
+      // 2. Pay and confirm
       const response = await tdsApiService.payAndConfirm(
         targetAppId,
         selectedMethod.toUpperCase(),
@@ -128,10 +147,37 @@ export const TdsPaymentSubmissionScreen: React.FC = () => {
 
       setProcessingState("success");
 
-      // Clear local draft upon confirmed payment
+      // 3. Update global application store to show Submitted
+      try {
+        const { useApplicationStore } = await import("@/store/applicationStore");
+        useApplicationStore.getState().addApplication({
+          id: targetAppId,
+          type: "TDS",
+          title: "TDS Refund",
+          status: "Submitted",
+          submittedDate: new Date().toISOString(),
+          amount: refundEstimate,
+        });
+      } catch (storeErr) {
+        console.warn("[TDS Submit] Application store update error:", storeErr);
+      }
+
+      // 4. In-app notification
+      try {
+        const { useNotificationStore } = await import("@/store/notificationStore");
+        useNotificationStore.getState().addNotification(
+          "TDS Refund Submitted",
+          `Your TDS refund application (${targetAppId}) has been successfully submitted for CA review.`,
+          "tds"
+        );
+      } catch (notifErr) {
+        console.warn("[TDS Submit] Notification dispatch error:", notifErr);
+      }
+
+      // 5. Clear local draft upon confirmed payment & submission
       await tdsDraftService.clearDraft();
 
-      // Navigate to Screen 5 (Application Status)
+      // 6. Navigate to Screen 5 (Application Status)
       router.replace({
         pathname: "/service/tds-status" as any,
         params: {
@@ -256,7 +302,7 @@ export const TdsPaymentSubmissionScreen: React.FC = () => {
             <>
               <Ionicons name="lock-closed" size={17} color={BrandColors.WHITE} />
               <Text style={styles.payButtonText}>
-                Pay {formatCurrency(feeData.totalPayable)} Securely
+                Pay {formatCurrency(feeData.totalPayable)} & Submit for CA Review
               </Text>
             </>
           )}

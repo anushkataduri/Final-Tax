@@ -45,6 +45,7 @@ interface ITRState {
   setPersonalInfo: (info: Partial<ItrPersonalInfo>) => void;
   selectRefundBank: (bankId: string) => void;
   addBankAccount: (bank: ItrSelectableBank) => void;
+  updateBankAccount: (bank: ItrSelectableBank) => void;
   setBankDetails: (details: Partial<ItrBankDetails>) => void;
   setPriorItrNotice: (data: Partial<ItrPriorFilingAndNotice>) => void;
   importPriorItrData: (selectedKeys: {
@@ -139,12 +140,33 @@ export const useITRStore = create<ITRState>((set, get) => ({
       };
     }),
   addBankAccount: (newBank) =>
+    set((state) => ({
+      formData: {
+        ...state.formData,
+        bankAccountsList: [...state.formData.bankAccountsList, newBank],
+      },
+    })),
+  updateBankAccount: (updatedBank) =>
     set((state) => {
-      const updatedList = [...state.formData.bankAccountsList, newBank];
+      const updatedList = state.formData.bankAccountsList.map((b) =>
+        b.id === updatedBank.id ? updatedBank : b
+      );
+      const isSelected = state.formData.bankDetails.accountNumber === updatedBank.accountNumber;
       return {
         formData: {
           ...state.formData,
           bankAccountsList: updatedList,
+          ...(isSelected
+            ? {
+                bankDetails: {
+                  ...state.formData.bankDetails,
+                  bankName: updatedBank.bankName,
+                  accountNumber: updatedBank.accountNumber,
+                  ifscCode: updatedBank.ifscCode,
+                  accountType: updatedBank.accountType,
+                },
+              }
+            : {}),
         },
       };
     }),
@@ -306,35 +328,18 @@ export const useITRStore = create<ITRState>((set, get) => ({
       formData: { ...state.formData, declarationAccepted },
     })),
   updateDocument: (docId, fileInfo) =>
-    set((state) => {
-      const updatedDocs = state.formData.documents.map((doc) => {
-        if (doc.id !== docId) return doc;
-        if (!fileInfo) {
-          return {
-            ...doc,
-            fileUri: undefined,
-            fileName: undefined,
-            fileSize: undefined,
-            mimeType: undefined,
-            uploadedAt: undefined,
-          };
-        }
-        return {
-          ...doc,
-          fileUri: fileInfo.uri,
-          fileName: fileInfo.name,
-          fileSize: fileInfo.size,
-          mimeType: fileInfo.type,
-          uploadedAt: new Date().toISOString(),
-        };
-      });
-      return {
-        formData: {
-          ...state.formData,
-          documents: updatedDocs,
-        },
-      };
-    }),
+    set((state) => ({
+      formData: {
+        ...state.formData,
+        documents: state.formData.documents.map((doc) =>
+          doc.id !== docId
+            ? doc
+            : fileInfo
+              ? { ...doc, fileUri: fileInfo.uri, fileName: fileInfo.name, fileSize: fileInfo.size, mimeType: fileInfo.type, uploadedAt: new Date().toISOString() }
+              : { ...doc, fileUri: undefined, fileName: undefined, fileSize: undefined, mimeType: undefined, uploadedAt: undefined }
+        ),
+      },
+    })),
   updateGstReconciliation: (gstData) =>
     set((state) => {
       const existing = state.formData.gstReconciliation;
@@ -359,14 +364,38 @@ export const useITRStore = create<ITRState>((set, get) => ({
       updatedAt: new Date().toISOString(),
     };
     set({ itrDraft: draft });
-    const authState = useAuthStore.getState();
-    const mobile =
-      authState.customer?.mobile ||
-      authState.authenticatedUser?.mobileNumber ||
-      authState.mobileNumber ||
-      "user";
-    const clean = String(mobile).replace(/\D/g, "") || "user";
+    const auth = useAuthStore.getState();
+    const rawMobile = auth.customer?.mobile || auth.authenticatedUser?.mobileNumber || auth.mobileNumber || "user";
+    const clean = String(rawMobile).replace(/\D/g, "") || "user";
     addDraftToIndex(clean, "itr-filing");
+    useApplicationStore.getState().saveItrDraft({
+      id: draft.id,
+      stepIndex: currentStep,
+      category: formData.category || "salaried",
+      categoryTitle: formData.determinedForm?.formTitle || "ITR Filing",
+      formType: formData.determinedForm?.form || "ITR-1",
+      assessmentYear: formData.personalInfo?.assessmentYear || "",
+      incomeAmount: String(formData.calculation?.grossTotalIncome || "0"),
+      regime: formData.regime || "new",
+      bankDetails: {
+        bankName: formData.bankDetails?.bankName || "",
+        accountNumber: formData.bankDetails?.accountNumber || "",
+        ifscCode: formData.bankDetails?.ifscCode || "",
+        accountType: formData.bankDetails?.accountType || "Savings",
+      },
+      deductions: {
+        sec80c: String(formData.calculation?.totalDeductions || "0"),
+        sec80d: formData.deductions?.sec80d?.selfSpouseChildren || "0",
+        homeLoan24b: formData.deductions?.sec24b || "0",
+        educationLoan80e: formData.deductions?.sec80e || "0",
+        otherDeductions: "0",
+      },
+      previousFilingOption: formData.priorItrNotice?.hasPreviousItr ? "yes" : "no",
+      previousAckNumber: formData.priorItrNotice?.previousAckNumber || "",
+      documents: (formData.documents || []) as any,
+      filingData: formData as any,
+      updatedAt: draft.updatedAt,
+    } as any);
     AsyncStorage.setItem(
       `@taxedge_draft_${clean}_itr-filing`,
       JSON.stringify({
@@ -428,14 +457,11 @@ export const useITRStore = create<ITRState>((set, get) => ({
   },
   clearItrDraft: () => {
     set({ itrDraft: null });
-    const authState = useAuthStore.getState();
-    const mobile =
-      authState.customer?.mobile ||
-      authState.authenticatedUser?.mobileNumber ||
-      authState.mobileNumber ||
-      "user";
-    const clean = String(mobile).replace(/\D/g, "") || "user";
+    const auth = useAuthStore.getState();
+    const rawMobile = auth.customer?.mobile || auth.authenticatedUser?.mobileNumber || auth.mobileNumber || "user";
+    const clean = String(rawMobile).replace(/\D/g, "") || "user";
     removeDraftFromIndex(clean, "itr-filing");
+    useApplicationStore.getState().clearItrDraft();
     AsyncStorage.removeItem(`@taxedge_draft_${clean}_itr-filing`).catch(() => {});
   },
   resetForm: () =>
@@ -447,40 +473,27 @@ export const useITRStore = create<ITRState>((set, get) => ({
     }),
   fetchAndPopulateUserProfile: async () => {
     try {
-      const profile = authStorage.getUser() as any;
-      if (profile) {
-        const pan = profile.pan || profile.panNumber || "";
-        const aadhaar = profile.aadhaar || profile.aadhaarNumber || "";
-        const name = profile.name || profile.fullName || "";
-        const dob = profile.dob || profile.dateOfBirth || "";
-        const mobile = profile.mobileNumber || profile.mobile || "";
-        const email = profile.email || "";
-        const address = profile.address || profile.addressLine1 || "";
-        const city = profile.city || "";
-        const userState = profile.state || "";
-        const pincode = profile.pincode || profile.pinCode || "";
-        set((prev) => ({
-          formData: {
-            ...prev.formData,
-            personalInfo: {
-              ...prev.formData.personalInfo,
-              pan: pan || prev.formData.personalInfo.pan,
-              aadhaar: aadhaar || prev.formData.personalInfo.aadhaar,
-              name: name || prev.formData.personalInfo.name,
-              dob: dob || prev.formData.personalInfo.dob,
-              mobile: mobile || prev.formData.personalInfo.mobile,
-              email: email || prev.formData.personalInfo.email,
-              address: address || prev.formData.personalInfo.address,
-              city: city || prev.formData.personalInfo.city,
-              state: userState || prev.formData.personalInfo.state,
-              pincode: pincode || prev.formData.personalInfo.pincode,
-              isAutoVerified: Boolean(pan || prev.formData.personalInfo.pan),
-            },
+      const p = authStorage.getUser() as any;
+      if (!p) return;
+      set((prev) => ({
+        formData: {
+          ...prev.formData,
+          personalInfo: {
+            ...prev.formData.personalInfo,
+            pan: p.pan || p.panNumber || prev.formData.personalInfo.pan,
+            aadhaar: p.aadhaar || p.aadhaarNumber || prev.formData.personalInfo.aadhaar,
+            name: p.name || p.fullName || prev.formData.personalInfo.name,
+            dob: p.dob || p.dateOfBirth || prev.formData.personalInfo.dob,
+            mobile: p.mobileNumber || p.mobile || prev.formData.personalInfo.mobile,
+            email: p.email || prev.formData.personalInfo.email,
+            address: p.address || p.addressLine1 || prev.formData.personalInfo.address,
+            city: p.city || prev.formData.personalInfo.city,
+            state: p.state || prev.formData.personalInfo.state,
+            pincode: p.pincode || p.pinCode || prev.formData.personalInfo.pincode,
+            isAutoVerified: Boolean(p.pan || p.panNumber || prev.formData.personalInfo.pan),
           },
-        }));
-      }
-    } catch {
-      // Graceful fallback to existing state
-    }
+        },
+      }));
+    } catch {}
   },
 }));

@@ -33,6 +33,10 @@ public class SecurityConfig {
                     "/customer/**",
                     "/otp/**",
                     "/auth/**",
+                    "/api/v1/auth/**",
+                    "/api/v1/admin/**",
+                    "/admin/**",
+                    "/notifications/**",
                     "/v3/api-docs",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
@@ -55,4 +59,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-

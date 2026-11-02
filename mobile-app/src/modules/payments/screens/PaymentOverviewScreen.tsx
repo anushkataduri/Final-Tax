@@ -7,8 +7,9 @@ import {
   RefreshControl,
   Image,
   Alert,
+  BackHandler,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
@@ -28,6 +29,18 @@ export function PaymentOverviewScreen() {
   const applications = useApplicationStore((s) => s.applications);
   const loadApplications = useApplicationStore((s) => s.loadApplications);
   const unreadCount = useNotificationStore((s) => s.unreadCount);
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        router.replace("/(main)/home");
+        return true;
+      };
+
+      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => sub.remove();
+    }, [router])
+  );
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -226,7 +239,7 @@ export function PaymentOverviewScreen() {
                 <TouchableOpacity
                   style={styles.exploreServicesBtn}
                   activeOpacity={0.8}
-                  onPress={() => router.push("/services")}
+                  onPress={() => router.push("/(main)/home")}
                 >
                   <Text style={styles.exploreServicesBtnText}>
                     Explore Services

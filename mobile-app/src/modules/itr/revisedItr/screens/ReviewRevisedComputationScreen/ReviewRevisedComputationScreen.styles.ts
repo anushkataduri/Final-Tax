@@ -171,6 +171,8 @@ export const styles = StyleSheet.create({
     backgroundColor: BrandColors.PRIMARY_ORANGE,
     justifyContent: "center",
     alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
     ...Platform.select({
       ios: {
         shadowColor: BrandColors.PRIMARY_ORANGE,

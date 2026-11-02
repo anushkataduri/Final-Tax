@@ -342,7 +342,7 @@ export function SettingsScreen() {
             activeOpacity={0.7}
           >
             <Text style={[styles.appInfoText, { color: colors.textSecondary }]}>
-              TaxEdge Fin Solutions • v1.0.0
+              TaxEdge Finsolz • v1.0.0
             </Text>
             <Text style={[styles.backendStatusText, { color: colors.primary }]}>
               Backend: {currentServerUrl}
@@ -351,7 +351,7 @@ export function SettingsScreen() {
         ) : (
           <View style={styles.appInfoContainer}>
             <Text style={[styles.appInfoText, { color: colors.textSecondary }]}>
-              TaxEdge Fin Solutions • v1.0.0
+              TaxEdge Finsolz • v1.0.0
             </Text>
           </View>
         )}

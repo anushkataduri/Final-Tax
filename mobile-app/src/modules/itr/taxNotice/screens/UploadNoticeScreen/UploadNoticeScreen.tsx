@@ -83,8 +83,6 @@ export const UploadNoticeScreen: React.FC = () => {
     handleDiscardAndExit,
     handleCancel,
   } = useUniversalDraftGuard({
-    saveDestination: "/service/itr",
-    discardDestination: "/service/itr",
     isDirty: () =>
       Boolean(
         (formData.pan && formData.pan !== profilePan) ||

@@ -2,11 +2,16 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import {
   ScrollView,
   TextInput,
+  type ScrollViewInstance,
+  type TextInputInstance,
   Alert,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { Keyboard } from "react-native";
 import { useAuthStore } from "@/store/authStore";
 import { biometricService } from "@/modules/authentication/services/biometricService";
+import { validatePan } from "@/shared/validators/indianTaxValidators";
+import { useAadhaarOtp } from "./useAadhaarOtp";
 import {
   sanitizePanInput,
   formatDobInput,
@@ -31,22 +36,22 @@ export function useCreateProfile(
 ) {
   const router = useRouter();
   const params = useLocalSearchParams<{ customerType?: string }>();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const { register, mobileNumber: storeMobileNumber } = useAuthStore();
 
   // ─── Field Refs ──────────────────────────────────────────────────────────────
-  const nameRef = useRef<TextInput>(null);
-  const emailRef = useRef<TextInput>(null);
-  const dobRef = useRef<TextInput>(null);
-  const fatherSpouseRef = useRef<TextInput>(null);
-  const panRef = useRef<TextInput>(null);
-  const aadhaarRef = useRef<TextInput>(null);
-  const address1Ref = useRef<TextInput>(null);
-  const address2Ref = useRef<TextInput>(null);
-  const cityRef = useRef<TextInput>(null);
-  const pinRef = useRef<TextInput>(null);
-  const passcodeRef = useRef<TextInput>(null);
-  const confirmPasscodeRef = useRef<TextInput>(null);
+  const nameRef = useRef<TextInputInstance>(null);
+  const emailRef = useRef<TextInputInstance>(null);
+  const dobRef = useRef<TextInputInstance>(null);
+  const fatherSpouseRef = useRef<TextInputInstance>(null);
+  const panRef = useRef<TextInputInstance>(null);
+  const aadhaarRef = useRef<TextInputInstance>(null);
+  const address1Ref = useRef<TextInputInstance>(null);
+  const address2Ref = useRef<TextInputInstance>(null);
+  const cityRef = useRef<TextInputInstance>(null);
+  const pinRef = useRef<TextInputInstance>(null);
+  const passcodeRef = useRef<TextInputInstance>(null);
+  const confirmPasscodeRef = useRef<TextInputInstance>(null);
 
   // ─── UI State ────────────────────────────────────────────────────────────────
   const [showAddressLine2, setShowAddressLine2] = useState(false);
@@ -122,6 +127,50 @@ export function useCreateProfile(
       setForm((p) => ({ ...p, mobileNumber: storeMobileNumber }));
   }, [storeMobileNumber]);
 
+  // ─── PAN Validity ────────────────────────────────────────────────────────────
+  const isPanValid = useMemo(() => validatePan(form.pan), [form.pan]);
+
+  // ─── Aadhaar OTP Hook ────────────────────────────────────────────────────────
+  const {
+    isAadhaarValid,
+    isOtpButtonEnabled,
+    isAadhaarOtpSent,
+    isAadhaarVerified,
+    aadhaarOtp,
+    aadhaarOtpTimer,
+    aadhaarOtpError,
+    handleSendAadhaarOtp,
+    handleResendAadhaarOtp,
+    handleVerifyAadhaarOtp,
+    handleAadhaarOtpChange,
+    resetAadhaarVerification,
+    formatOtpTime,
+  } = useAadhaarOtp({
+    aadhaarNumber: form.aadhaar,
+    onVerificationSuccess: () => {
+      setProfileErrors((prev) => {
+        const next = { ...prev };
+        delete next.aadhaar;
+        return next;
+      });
+    },
+    onClearAadhaarError: () => {
+      setProfileErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.aadhaar;
+        return copy;
+      });
+    },
+    onSetAadhaarError: (error: string) => {
+      setProfileErrors((prev) => ({ ...prev, aadhaar: error }));
+    },
+  });
+
+  const handleResetAadhaarVerification = () => {
+    resetAadhaarVerification();
+    setTimeout(() => aadhaarRef.current?.focus(), 150);
+  };
+
   // ─── PAN Keyboard Type ───────────────────────────────────────────────────────
   const panKeyboardType: "default" | "number-pad" =
     form.pan.length >= 5 && form.pan.length < 9 ? "number-pad" : "default";
@@ -133,6 +182,11 @@ export function useCreateProfile(
 
   // ─── Form Update with Real-Time Validation ──────────────────────────────────
   const updateForm = (key: keyof SignupForm, rawVal: string) => {
+    // If Aadhaar changes, reset verification status
+    if (key === "aadhaar" && rawVal !== form.aadhaar) {
+      resetAadhaarVerification();
+    }
+
     // No leading or doubled spaces while typing (email: no spaces at all).
     const val = cleanFieldWhileTyping(key, rawVal);
     setForm((p) => ({ ...p, [key]: val }));
@@ -201,12 +255,14 @@ export function useCreateProfile(
 
   // ─── Form Validity (memoized) ────────────────────────────────────────────────
   const isFormValid = useMemo(() => {
-    return checkFormValidity(
-      form,
-      agreedToTerms,
-      form.mobileNumber || storeMobileNumber
+    return (
+      checkFormValidity(
+        form,
+        agreedToTerms,
+        form.mobileNumber || storeMobileNumber
+      ) && isAadhaarVerified
     );
-  }, [form, agreedToTerms, storeMobileNumber]);
+  }, [form, agreedToTerms, storeMobileNumber, isAadhaarVerified]);
 
   // ─── Step Navigation ─────────────────────────────────────────────────────────
   const handleProceedToRegistration = () => {
@@ -269,7 +325,7 @@ export function useCreateProfile(
   };
 
   // ─── Submit with Validation ──────────────────────────────────────────────────
-  const fieldOrder: { key: keyof SignupForm; ref?: React.RefObject<TextInput | null> }[] = [
+  const fieldOrder: { key: keyof SignupForm; ref?: React.RefObject<TextInputInstance | null> }[] = [
     { key: "name", ref: nameRef },
     { key: "email", ref: emailRef },
     { key: "gender" },
@@ -305,6 +361,17 @@ export function useCreateProfile(
     // The server stores the joined address in one 500-character column.
     const addressTooLong = validateFormAddressLength(form);
     if (addressTooLong && !errs.addressLine1) errs.addressLine1 = addressTooLong;
+
+    // Aadhaar OTP Verification enforcement
+    if (!isAadhaarVerified) {
+      if (!form.aadhaar.trim()) {
+        errs.aadhaar = "Required";
+      } else if (!isAadhaarOtpSent) {
+        errs.aadhaar = "Please send OTP and verify your Aadhaar number";
+      } else {
+        errs.aadhaar = "Please complete Aadhaar OTP verification to continue";
+      }
+    }
 
     const hasErrors = Object.keys(errs).length > 0;
     hasErrors
@@ -400,5 +467,19 @@ export function useCreateProfile(
     biometricType,
     handleEnableBiometric,
     handleNotNowBiometric,
+    isPanValid,
+    isAadhaarValid,
+    isOtpButtonEnabled,
+    isAadhaarOtpSent,
+    isAadhaarVerified,
+    aadhaarOtp,
+    aadhaarOtpTimer,
+    aadhaarOtpError,
+    handleSendAadhaarOtp,
+    handleResendAadhaarOtp,
+    handleVerifyAadhaarOtp,
+    handleAadhaarOtpChange,
+    handleResetAadhaarVerification,
+    formatOtpTime,
   };
 }

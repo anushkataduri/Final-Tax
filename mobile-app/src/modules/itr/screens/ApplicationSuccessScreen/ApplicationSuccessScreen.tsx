@@ -75,21 +75,28 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
   };
 
   const handleBack = () => {
+    if (router.canDismiss()) {
+      router.dismissAll();
+    }
     router.replace("/(main)/home" as any);
   };
 
   const handleGoHome = () => {
+    if (router.canDismiss()) {
+      router.dismissAll();
+    }
     router.replace("/(main)/home" as any);
   };
 
   const handleTrackStatus = () => {
     if (onTrackStatus) {
       onTrackStatus();
-    } else if (appId && appId !== "Application Received" && !appId.includes(" ")) {
-      router.replace(`/application/${appId}` as any);
-    } else {
-      router.replace("/(main)/applications" as any);
+      return;
     }
+    if (router.canDismiss()) {
+      router.dismissAll();
+    }
+    router.replace("/(main)/applications" as any);
   };
 
   React.useEffect(() => {

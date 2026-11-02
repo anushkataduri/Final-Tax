@@ -1,5 +1,12 @@
-import React, { useCallback, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import React, { useCallback } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  BackHandler,
+  Alert,
+} from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
@@ -9,14 +16,11 @@ import { useAuthStore } from "@/store/authStore";
 import { useApplicationStore } from "@/store/applicationStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useServiceAccessGuard } from "@/shared/hooks/useServiceAccessGuard";
-import { CompleteProfileModal } from "@/shared/components/CompleteProfileModal";
-import { SERVICE_CATALOGUE } from "@/data/catalogue";
 import { SCREEN_BOTTOM_PADDING } from "@/shared/components/ScreenLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Spacing } from "@/shared/theme";
 import { styles } from "@/styles/app/(main)/home.styles";
-import type { CatalogueItem, ServiceCategoryId } from "@/types/domain";
-import type { DashboardServiceTile, ServiceTile } from "@/types/home.types";
+import type { DashboardServiceTile } from "@/types/home.types";
 
 // ── Extracted sub-components ──────────────────────────────────────────────────
 import { HomeHeader } from "@/components/screens/home/HomeHeader";
@@ -25,57 +29,53 @@ import { ServicesGrid } from "@/components/screens/home/ServicesGrid";
 import { StatsGrid, type StatTile } from "@/components/screens/home/StatsGrid";
 import { DraftBanner } from "@/components/screens/home/DraftBanner";
 import { RecentApplicationCard } from "@/components/screens/home/RecentApplicationCard";
-import { ExploreServicesSheet } from "@/components/screens/home/ExploreServicesSheet";
 import { HomeProfileSetupCard } from "@/components/screens/home/HomeProfileSetupCard";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
 
 export type { DashboardServiceTile };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const SERVICE_ICONS = {
-  incorporation: require("../../../assets/images/services/incorporation.png"),
-  gst: require("../../../assets/images/services/gst.png"),
-  itr: require("../../../assets/images/services/itr.png"),
-  projects: require("../../../assets/images/services/projects.png"),
-  loans: require("../../../assets/images/services/loans.png"),
-  insurance: require("../../../assets/images/services/insurance.png"),
-  business: require("../../../assets/images/services/business.png"),
-  more_services: require("../../../assets/images/services/more_services.png"),
+const SERVICE_3D_IMAGES = {
+  incorporation: require("../../../assets/images/services_3d/incorporation.png"),
+  gst: require("../../../assets/images/services_3d/gst.png"),
+  itr: require("../../../assets/images/services_3d/itr.png"),
+  projects: require("../../../assets/images/services_3d/projects.png"),
+  loans: require("../../../assets/images/services_3d/loans.png"),
+  insurance: require("../../../assets/images/services_3d/insurance.png"),
+  business: require("../../../assets/images/services_3d/business.png"),
 };
 
 export const DASHBOARD_SERVICES: DashboardServiceTile[] = [
-  { id: "incorporation", label: "Incorporation", image: SERVICE_ICONS.incorporation, route: "/service/company-registration" },
-  { id: "gst",          label: "GST",           image: SERVICE_ICONS.gst,           route: "/service/gst" },
-  { id: "itr",          label: "ITR",           image: SERVICE_ICONS.itr,           route: "/service/itr" },
-  { id: "projects",     label: "Projects",      image: SERVICE_ICONS.projects,      route: { pathname: "/services", params: { selectedCategory: "BUSINESS" } } },
-  { id: "loans",        label: "Loans",         image: SERVICE_ICONS.loans,         route: "/service/loans" },
-  { id: "insurance",    label: "Insurance",     image: SERVICE_ICONS.insurance,     route: { pathname: "/services", params: { selectedCategory: "INSURANCE" } } },
-  { id: "business",     label: "Business",      image: SERVICE_ICONS.business,      route: { pathname: "/services", params: { selectedCategory: "BUSINESS" } } },
-  { id: "more",         label: "More Services", image: SERVICE_ICONS.more_services, isMore: true },
+  { id: "incorporation", label: "Incorporation", image: SERVICE_3D_IMAGES.incorporation, route: "/service/company-registration", description: "Company\nregistration", bgColor: "#FFF8F1", borderColor: "#FED7AA", arrowColor: "#EA580C" },
+  { id: "gst", label: "GST", image: SERVICE_3D_IMAGES.gst, route: "/service/gst", description: "Registration,\nfiling & compliance", bgColor: "#F0F7FF", borderColor: "#BFDBFE", arrowColor: "#2563EB" },
+  { id: "itr", label: "ITR", image: SERVICE_3D_IMAGES.itr, route: "/service/itr", description: "Income Tax\nFiling", bgColor: "#F5F3FF", borderColor: "#DDD6FE", arrowColor: "#7C3AED" },
+  { id: "projects", label: "Projects", image: SERVICE_3D_IMAGES.projects, route: { pathname: "/service/loans", params: { category: "project-finance" } }, description: "Project\nManagement", bgColor: "#F0FDF4", borderColor: "#BBF7D0", arrowColor: "#059669" },
+  { id: "loans", label: "Loans", image: SERVICE_3D_IMAGES.loans, route: "/service/loans", description: "Personal, Home\n& Business Loans", bgColor: "#FFFBEB", borderColor: "#FDE68A", arrowColor: "#D97706" },
+  { id: "insurance", label: "Insurance", image: SERVICE_3D_IMAGES.insurance, route: "/service/health-insurance", description: "Coverage\nfor your future", bgColor: "#F0F9FF", borderColor: "#BAE6FD", arrowColor: "#0284C7" },
+  { id: "business", label: "Business", image: SERVICE_3D_IMAGES.business, route: "/service/accounting-bookkeeping", description: "Business Solutions & Support", bgColor: "#F5F3FF", borderColor: "#DDD6FE", arrowColor: "#7C3AED", isFullWidth: true },
 ];
 
-const BANNER_NAVY      = "#083B75";
+const BANNER_NAVY = "#083B75";
 const BANNER_NAVY_DEEP = "#052750";
 
-const APPLY_BANNERS: ApplyBanner[] = (
+export const APPLY_BANNERS: ApplyBanner[] = (
   [
-    { key: "b-gst",     id: "GST",       title: "GST",          desc: "Registration, filing & compliance", cta: "Apply Now", icon: "receipt" },
-    { key: "b-itr",     id: "ITR",       title: "ITR & TDS",    desc: "File returns, claim your refund",   cta: "File Now",  icon: "calculator" },
-    { key: "b-loans",   id: "LOANS",     title: "LOANS",        desc: "Explore our loan solutions",        cta: "Explore",   icon: "wallet" },
-    { key: "b-ins",     id: "INSURANCE", title: "INSURANCE",    desc: "Health & life cover plans",         cta: "Get Quote", icon: "shield-checkmark" },
-    { key: "b-company", id: "BUSINESS",  title: "COMPANY SETUP",desc: "Incorporation & registrations",     cta: "Start Now", icon: "business" },
-    { key: "b-acct",    id: "BUSINESS",  title: "ACCOUNTING",   desc: "Bookkeeping & monthly reports",     cta: "Know More", icon: "stats-chart" },
+    { key: "b-gst", id: "GST", route: "/service/gst", title: "GST", desc: "Registration, filing & compliance", cta: "Apply Now", icon: "receipt" },
+    { key: "b-itr", id: "ITR", route: "/service/itr", title: "ITR & TDS", desc: "File returns, claim your refund", cta: "File Now", icon: "calculator" },
+    { key: "b-loans", id: "LOANS", route: "/service/loans", title: "LOANS", desc: "Explore our loan solutions", cta: "Explore", icon: "wallet" },
+    { key: "b-ins", id: "INSURANCE", route: "/service/health-insurance", title: "INSURANCE", desc: "Health & life cover plans", cta: "Get Quote", icon: "shield-checkmark" },
+    { key: "b-company", id: "BUSINESS", route: "/service/company-registration", title: "COMPANY SETUP", desc: "Incorporation & registrations", cta: "Start Now", icon: "business" },
+    { key: "b-acct", id: "BUSINESS", route: "/service/accounting-bookkeeping", title: "ACCOUNTING", desc: "Bookkeeping & monthly reports", cta: "Know More", icon: "stats-chart" },
   ] as const
 ).map((banner, i) => ({ ...banner, bg: i % 2 === 0 ? BANNER_NAVY : BANNER_NAVY_DEEP }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const statusTone = (status: string) => {
-  if (status === "Completed")   return { fg: "#047857", bg: "#E6F5F0" };
-  if (status === "Rejected")    return { fg: "#B91C1C", bg: "#FDEBEB" };
+  if (status === "Completed") return { fg: "#047857", bg: "#E6F5F0" };
+  if (status === "Rejected") return { fg: "#B91C1C", bg: "#FDEBEB" };
   if (status === "Verification") return { fg: "#6D28D9", bg: "#F1ECFE" };
   return { fg: "#1D4ED8", bg: "#EAF1FE" };
 };
@@ -83,26 +83,46 @@ const statusTone = (status: string) => {
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const colors  = useTheme();
-  const scheme  = useColorScheme();
-  const isDark  = scheme === "dark";
-  const router  = useRouter();
-  const insets  = useSafeAreaInsets();
+  const colors = useTheme();
+  const scheme = useColorScheme();
+  const isDark = scheme === "dark";
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { accessService } = useServiceAccessGuard();
 
-  const [moreOpen,  setMoreOpen]  = useState(false);
-  const [moreQuery, setMoreQuery] = useState("");
-
-  const customer        = useAuthStore((s) => s.customer);
-  const applications    = useApplicationStore((s) => s.applications);
-  const gstDraft        = useApplicationStore((s) => s.gstDraft);
-  const gstFilingDraft  = useApplicationStore((s) => s.gstFilingDraft);
-  const itrDraft        = useApplicationStore((s) => s.itrDraft);
-  const unreadCount     = useNotificationStore((s) => s.unreadCount);
+  const customer = useAuthStore((s) => s.customer);
+  const applications = useApplicationStore((s) => s.applications);
+  const gstDraft = useApplicationStore((s) => s.gstDraft);
+  const gstFilingDraft = useApplicationStore((s) => s.gstFilingDraft);
+  const itrDraft = useApplicationStore((s) => s.itrDraft);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
 
   useFocusEffect(
     useCallback(() => {
       useApplicationStore.getState().loadApplications();
+
+      const onBackPress = () => {
+        Alert.alert(
+          "Exit TaxEdge",
+          "Are you sure you want to exit the application?",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Exit",
+              style: "destructive",
+              onPress: () => BackHandler.exitApp(),
+            },
+          ]
+        );
+        return true;
+      };
+
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
+
+      return () => subscription.remove();
     }, [])
   );
 
@@ -121,60 +141,40 @@ export default function HomeScreen() {
     ? `Hello, ${customer!.name.trim().split(" ")[0]} 👋`
     : "Welcome to TaxEdge 👋";
 
-  const activeCount     = (applications || []).filter((a) => a?.status !== "Completed").length;
+  const activeCount = (applications || []).filter((a) => a?.status !== "Completed").length;
   const pendingDocsCount = (applications || []).reduce(
     (sum, a) => sum + ((a?.documents || []).filter((d) => d?.status === "Pending").length), 0
   );
-  const completedCount  = (applications || []).filter((a) => a?.status === "Completed").length;
-  const paymentDue      = (applications || [])
+  const completedCount = (applications || []).filter((a) => a?.status === "Completed").length;
+  const paymentDue = (applications || [])
     .filter((a) => a?.paymentStatus === "Pending")
     .reduce((sum, a) => sum + (a?.paymentAmount || 0), 0);
 
   const recentApps = applications.slice(0, 3);
 
   const STATS: StatTile[] = [
-    { id: "active", label: "Active\nApplications",  value: `${activeCount}`,                           tint: "#059669", tintBg: "#E6F5F0", icon: "folder",          route: "/(main)/applications" },
-    { id: "docs",   label: "Pending\nDocuments",    value: `${pendingDocsCount}`,                      tint: "#EA580C", tintBg: "#FEF0E6", icon: "document-attach",  route: "/(main)/applications" },
-    { id: "due",    label: "Payment Due",           value: `₹${paymentDue.toLocaleString("en-IN")}`, tint: "#DC2626", tintBg: "#FDEBEB", icon: "card",             route: "/(main)/payments" },
-    { id: "done",   label: "Completed\nServices",   value: `${completedCount}`,                        tint: "#2563EB", tintBg: "#EAF1FE", icon: "checkbox",         route: "/(main)/applications" },
+    { id: "active", label: "Active\nApplications", value: `${activeCount}`, tint: "#059669", tintBg: "#E6F5F0", icon: "folder", route: "/(main)/applications" },
+    { id: "docs", label: "Pending\nDocuments", value: `${pendingDocsCount}`, tint: "#EA580C", tintBg: "#FEF0E6", icon: "document-attach", route: "/(main)/applications" },
+    { id: "due", label: "Payment Due", value: `₹${paymentDue.toLocaleString("en-IN")}`, tint: "#DC2626", tintBg: "#FDEBEB", icon: "card", route: "/(main)/payments" },
+    { id: "done", label: "Completed\nServices", value: `${completedCount}`, tint: "#2563EB", tintBg: "#EAF1FE", icon: "checkbox", route: "/(main)/applications" },
   ];
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
-  const handleExploreCategory = (categoryId: ServiceCategoryId) => {
-    router.push({ pathname: "/services", params: { selectedCategory: categoryId } });
+  const handleBannerSelect = (banner: ApplyBanner) => {
+    accessService(banner.route);
   };
 
-  const openCatalogueItem = (item: CatalogueItem, categoryId: ServiceCategoryId) => {
-    setMoreOpen(false);
-    if (item.serviceId) {
-      accessService(`/service/${item.serviceId}`);
-    } else {
-      router.push({ pathname: "/services", params: { selectedCategory: categoryId } });
-    }
-  };
-
-  const openTile = (tile: DashboardServiceTile | ServiceTile) => {
-    if (tile.isMore) { setMoreQuery(""); setMoreOpen(true); return; }
-    setMoreOpen(false);
+  const openTile = (tile: DashboardServiceTile) => {
     // accessService applies the one profile rule (shared/guards/serviceAccess) for every tile.
     if (tile.route) accessService(tile.route);
   };
-
-  // Catalogue filtered by the sheet's search box.
-  const catalogueQuery    = moreQuery.trim().toLowerCase();
-  const filteredCatalogue = SERVICE_CATALOGUE.map((group) => ({
-    ...group,
-    items: catalogueQuery
-      ? group.items.filter((item) => item.label.toLowerCase().includes(catalogueQuery))
-      : group.items,
-  })).filter((group) => group.items.length > 0);
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <FocusAwareStatusBar barStyle="light-content" backgroundColor={colors.primaryDark} />
+      <FocusAwareStatusBar barStyle="light-content" />
 
       {/* Blue hero header */}
       <HomeHeader
@@ -200,7 +200,7 @@ export default function HomeScreen() {
         <ApplyBannerCarousel
           banners={APPLY_BANNERS}
           colors={colors}
-          onSelect={handleExploreCategory}
+          onSelect={handleBannerSelect}
         />
 
         {/* Services section */}
@@ -217,6 +217,16 @@ export default function HomeScreen() {
         {/* Financial overview section */}
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Your Financial Overview</Text>
+          <TouchableOpacity
+            onPress={() => router.push("/(main)/applications")}
+            hitSlop={8}
+            style={styles.linkRow}
+            accessibilityRole="button"
+            accessibilityLabel="View All Applications"
+          >
+            <Text style={[styles.viewAllText, { color: colors.primary }]}>View All</Text>
+            <Ionicons name="arrow-forward" size={14} color={colors.primary} />
+          </TouchableOpacity>
         </View>
         <StatsGrid stats={STATS} isDark={isDark} colors={colors} />
 
@@ -318,21 +328,6 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
       </ScrollView>
-
-      {/* Explore services bottom sheet */}
-      <ExploreServicesSheet
-        visible={moreOpen}
-        onClose={() => setMoreOpen(false)}
-        query={moreQuery}
-        onQueryChange={setMoreQuery}
-        filteredCatalogue={filteredCatalogue}
-        onSelectItem={openCatalogueItem}
-        colors={colors}
-        isDark={isDark}
-        insets={insets}
-      />
-
-      <CompleteProfileModal />
     </View>
   );
 }

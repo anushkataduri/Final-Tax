@@ -1,4 +1,4 @@
-import { Platform, StyleSheet } from "react-native";
+import { Platform } from "react-native";
 import type { ThemeTokens } from "@/shared/constants/theme";
 import {
   BrandColors,
@@ -8,7 +8,6 @@ import {
 } from "@/shared/theme";
 import {
   CARD_WIDTH,
-  SERVICE_CARD_WIDTH,
 } from "./home.header.styles";
 
 export const homeSectionStyles = {
@@ -30,136 +29,116 @@ export const homeSectionStyles = {
     fontWeight: Typography.fontWeight.bold,
   },
 
-  /* 8-Card Services Grid */
-  servicesGrid: {
-    flexDirection: "row" as const,
-    flexWrap: "wrap" as const,
-    justifyContent: "space-between" as const,
-    rowGap: 10,
-    marginBottom: Spacing.sm,
+  /* Modern 3D Services Layout */
+  servicesContainer: {
+    gap: 12,
+    marginBottom: Spacing.md,
   },
-  serviceCard: {
-    width: SERVICE_CARD_WIDTH,
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingTop: 8,
-    paddingBottom: 10,
-    paddingHorizontal: 2,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    minHeight: 106,
+  servicesRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    gap: 12,
+  },
+  serviceCard2Col: {
+    flex: 1,
+    minHeight: 138,
+    borderRadius: 18,
+    borderWidth: 1.2,
+    padding: 12,
+    justifyContent: "space-between" as const,
+    position: "relative" as const,
+    overflow: "hidden" as const,
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 5,
+        shadowColor: "#0F172A",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
       },
       android: {
         elevation: 2,
       },
     }),
   },
-  serviceIconImage: {
-    width: Math.min(54, Math.floor(SERVICE_CARD_WIDTH * 0.72)),
-    height: Math.min(54, Math.floor(SERVICE_CARD_WIDTH * 0.72)),
-    marginBottom: 6,
-  },
-  serviceCardLabel: {
-    fontSize: 11,
-    fontWeight: "600" as const,
-    textAlign: "center" as const,
-    lineHeight: 13,
-  },
-
-  /* All services sheet */
-  sheetBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(5,39,80,0.45)",
-    justifyContent: "flex-end" as const,
-  },
-  sheet: {
-    height: "92%" as const,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    paddingHorizontal: Spacing.base,
-    paddingTop: 18,
-  },
-  sheetHeader: {
+  serviceCardFullWidth: {
+    width: "100%" as const,
+    minHeight: 114,
+    borderRadius: 18,
+    borderWidth: 1.2,
+    padding: 14,
     flexDirection: "row" as const,
     alignItems: "center" as const,
     justifyContent: "space-between" as const,
-    marginBottom: Spacing.base - 2,
+    position: "relative" as const,
+    overflow: "hidden" as const,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#0F172A",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
-  sheetTitle: {
-    fontSize: Typography.fontSize.xxl - 1,
-    fontWeight: Typography.fontWeight.extraBold,
-  },
-  sheetDone: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.bold,
-  },
-  sheetSearch: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 10,
-    height: 44,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.base - 2,
-  },
-  sheetSearchInput: {
+  serviceCardContent2Col: {
+    zIndex: 2,
+    maxWidth: "58%" as const,
+    justifyContent: "space-between" as const,
     flex: 1,
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
-    padding: 0,
   },
-  sheetScrollContent: {
-    paddingTop: 6,
-    paddingBottom: Spacing.md,
+  serviceCardContentFull: {
+    zIndex: 2,
+    maxWidth: "60%" as const,
   },
-
-  /* Catalogue groups */
-  catHeader: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 10,
-    marginTop: 18,
+  serviceTitle: {
+    fontSize: 15.5,
+    fontWeight: "800" as const,
+    letterSpacing: -0.2,
+    marginBottom: 3,
+  },
+  serviceDesc: {
+    fontSize: 11,
+    fontWeight: "500" as const,
+    lineHeight: 14.5,
     marginBottom: 10,
   },
-  catIcon: {
+  serviceArrowBtn: {
     width: 28,
     height: 28,
-    borderRadius: BorderRadius.sm,
-    justifyContent: "center" as const,
-    alignItems: "center" as const,
-  },
-  catTitle: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.bold,
-  },
-  serviceRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "space-between" as const,
-    height: 52,
-    borderRadius: BorderRadius.md,
+    borderRadius: 14,
     borderWidth: 1,
-    paddingHorizontal: Spacing.base,
-    marginBottom: Spacing.sm,
-  },
-  serviceRowText: {
-    fontSize: Typography.fontSize.md - 0.5,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  sheetEmpty: {
     alignItems: "center" as const,
-    gap: 10,
-    paddingVertical: 56,
+    justifyContent: "center" as const,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1.5 },
+        shadowOpacity: 0.08,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 1.5,
+      },
+    }),
   },
-  sheetEmptyText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semiBold,
+  serviceIllustration2Col: {
+    position: "absolute" as const,
+    right: 0,
+    bottom: 2,
+    width: 78,
+    height: 78,
+    zIndex: 1,
+  },
+  serviceIllustrationFull: {
+    position: "absolute" as const,
+    right: 6,
+    bottom: 2,
+    width: 120,
+    height: 88,
+    zIndex: 1,
   },
   dotsRow: {
     flexDirection: "row" as const,
@@ -215,51 +194,6 @@ export const homeSectionStyles = {
     fontSize: Typography.fontSize.xxl,
     fontWeight: Typography.fontWeight.extraBold,
     marginTop: Spacing.md,
-  },
-
-  /* Upcoming deadlines */
-  deadlineRow: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 12,
-    paddingVertical: 13,
-  },
-  deadlineRowBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  deadlineTag: {
-    minWidth: 44,
-    paddingHorizontal: Spacing.sm,
-    height: 26,
-    borderRadius: BorderRadius.sm,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-  },
-  deadlineTagText: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.extraBold,
-  },
-  deadlineText: {
-    flex: 1,
-  },
-  deadlineTitle: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-  },
-  deadlineDate: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-    marginTop: 3,
-  },
-  duePill: {
-    paddingHorizontal: 10,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: "center" as const,
-  },
-  duePillText: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.extraBold,
   },
 
   /* Recent application cards */
@@ -442,13 +376,27 @@ export const homeSectionStyles = {
 
 export type { ThemeTokens };
 
-export const getServiceCardThemedStyle = (isDark: boolean, colors: ThemeTokens) => ({
-  backgroundColor: isDark ? String(colors.backgroundElement) : "#FFFFFF",
-  borderColor: isDark ? String(colors.border) : "#E2E8F0",
+export const getServiceCardThemedStyle = (
+  isDark: boolean,
+  colors: ThemeTokens,
+  bgColor: string,
+  borderColor: string,
+) => ({
+  backgroundColor: isDark ? String(colors.backgroundElement) : bgColor,
+  borderColor: isDark ? String(colors.border) : borderColor,
 });
 
 export const getServiceLabelThemedStyle = (isDark: boolean, colors: ThemeTokens) => ({
-  color: isDark ? String(colors.text) : "#0A2540",
+  color: isDark ? String(colors.text) : "#0F172A",
+});
+
+export const getServiceDescThemedStyle = (isDark: boolean, colors: ThemeTokens) => ({
+  color: isDark ? String(colors.textSecondary) : "#64748B",
+});
+
+export const getServiceArrowBtnThemedStyle = (isDark: boolean, colors: ThemeTokens) => ({
+  backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+  borderColor: isDark ? String(colors.border) : "rgba(0,0,0,0.06)",
 });
 
 export const getDraftCardThemedStyle = (

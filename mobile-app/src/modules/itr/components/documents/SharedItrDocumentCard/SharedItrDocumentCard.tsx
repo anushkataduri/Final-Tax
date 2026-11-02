@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Alert } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
+import { pickDocumentFromDrive } from "@/shared/utils/driveDocumentUploader";
 
 // Import existing icon component
 import { DocumentUploadIcon } from "../DocumentUploadIcons";
@@ -40,6 +41,32 @@ interface SharedItrDocumentCardProps {
   ) => void;
   onRemove: (id: string) => void;
 }
+
+const getDocIconConfig = (title: string, id: string) => {
+  const lower = `${title} ${id}`.toLowerCase();
+  if (lower.includes("16") || lower.includes("salary")) {
+    return { name: "document-text" as const, color: "#0284C7", bg: "#E0F2FE" };
+  }
+  if (lower.includes("26as") || lower.includes("credit")) {
+    return { name: "receipt" as const, color: "#D97706", bg: "#FEF3C7" };
+  }
+  if (lower.includes("ais") || lower.includes("tis")) {
+    return { name: "analytics" as const, color: "#4F46E5", bg: "#EEF2FF" };
+  }
+  if (lower.includes("bank") || lower.includes("statement")) {
+    return { name: "wallet" as const, color: "#059669", bg: "#ECFDF5" };
+  }
+  if (lower.includes("payslip")) {
+    return { name: "cash" as const, color: "#10B981", bg: "#D1FAE5" };
+  }
+  if (lower.includes("capital") || lower.includes("gain") || lower.includes("p&l") || lower.includes("broker")) {
+    return { name: "trending-up" as const, color: "#7C3AED", bg: "#F3E8FF" };
+  }
+  if (lower.includes("pan") || lower.includes("aadhaar") || lower.includes("identity")) {
+    return { name: "id-card" as const, color: "#083B75", bg: "#E0E7FF" };
+  }
+  return { name: "document-attach" as const, color: "#2563EB", bg: "#EFF6FF" };
+};
 
 export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
   item,
@@ -94,39 +121,128 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
   const handleChooseFiles = async () => {
     setShowSourceModal(false);
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["*/*"],
-        copyToCacheDirectory: true,
+      const picked = await pickDocumentFromDrive({
+        maxSizeBytes: MAX_FILE_SIZE_BYTES,
+        allowedExtensions: DEFAULT_EXTENSIONS,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        validateAndProcessFile(result.assets[0], `${item.id}_document.pdf`);
+      if (picked) {
+        if (picked.sizeBytes > MAX_FILE_SIZE_BYTES) {
+          Alert.alert("File Too Large", "File size exceeds the 10 MB limit.");
+          onUploadError("File exceeds 10 MB limit. Please select a smaller file.");
+          return;
+        }
+
+        onUploadSuccess(item.id, {
+          uri: picked.uri,
+          name: picked.name,
+          size: picked.size,
+          mimeType: picked.mimeType,
+          fileTypeLabel: picked.fileTypeLabel,
+        });
       }
     } catch {
       onUploadError("Could not open document picker. Please try again.");
     }
   };
 
+  const handlePickGallery = async () => {
+    setShowSourceModal(false);
+    try {
+      const currentPerm = await ImagePicker.getMediaLibraryPermissionsAsync();
+      let granted = currentPerm.granted;
+
+      if (!granted && currentPerm.canAskAgain) {
+        const req = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        granted = req.granted;
+      }
+
+      if (!granted) {
+        Alert.alert(
+          "Permission Required",
+          "Photo library permission is needed to select documents."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 0.85,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const fallbackName = `${safeId}_gallery_${Date.now()}.jpg`;
+      const fileName = asset.fileName || fallbackName;
+      const rawBytes =
+        typeof asset.fileSize === "number" && Number.isFinite(asset.fileSize)
+          ? asset.fileSize
+          : undefined;
+
+      validateAndProcessFile(
+        {
+          uri: asset.uri,
+          name: fileName,
+          size: rawBytes,
+          mimeType: asset.mimeType || "image/jpeg",
+        },
+        fileName
+      );
+    } catch {
+      onUploadError("Could not open photo gallery. Please try again.");
+    }
+  };
+
   const handleTakePhoto = async () => {
     setShowSourceModal(false);
     try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== "granted") {
-        onUploadError("Camera permission is required to capture documents.");
+      const currentPerm = await ImagePicker.getCameraPermissionsAsync();
+      let granted = currentPerm.granted;
+
+      if (!granted && currentPerm.canAskAgain) {
+        const req = await ImagePicker.requestCameraPermissionsAsync();
+        granted = req.granted;
+      }
+
+      if (!granted) {
+        Alert.alert(
+          "Permission Required",
+          "Camera permission is required to capture documents. Please enable camera access in your device settings."
+        );
         return;
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         quality: 0.85,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        validateAndProcessFile(
-          result.assets[0],
-          `${item.id}_camera_${Date.now()}.jpg`
-        );
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
       }
+
+      const asset = result.assets[0];
+      const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const fallbackName = `${safeId}_photo_${Date.now()}.jpg`;
+      const fileName = asset.fileName || fallbackName;
+      const rawBytes =
+        typeof asset.fileSize === "number" && Number.isFinite(asset.fileSize)
+          ? asset.fileSize
+          : undefined;
+
+      validateAndProcessFile(
+        {
+          uri: asset.uri,
+          name: fileName,
+          size: rawBytes,
+          mimeType: asset.mimeType || "image/jpeg",
+        },
+        fileName
+      );
     } catch {
       onUploadError("Could not open camera. Please try again.");
     }
@@ -144,7 +260,7 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
         documentTitle={item.title}
         maxSizeText="Maximum file size: 10 MB"
         onChooseFiles={handleChooseFiles}
-        onSelectGallery={() => {}}
+        onSelectGallery={handlePickGallery}
         onTakePhoto={handleTakePhoto}
         onClose={() => setShowSourceModal(false)}
       />
@@ -221,12 +337,27 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
       ]}
     >
       <View style={styles.topRow}>
-        <View style={[styles.iconContainer, isUploaded && styles.iconContainerUploaded]}>
-          {isUploaded ? (
-            <Ionicons name="document-text" size={22} color="#16A34A" />
-          ) : (
-            <DocumentUploadIcon type={item.iconType || "business_income"} />
-          )}
+        <View
+          style={[
+            styles.iconContainer,
+            isUploaded
+              ? styles.iconContainerUploaded
+              : { backgroundColor: getDocIconConfig(item.title, item.id).bg },
+          ]}
+        >
+          <Ionicons
+            name={
+              isUploaded
+                ? "document-text"
+                : getDocIconConfig(item.title, item.id).name
+            }
+            size={22}
+            color={
+              isUploaded
+                ? "#16A34A"
+                : getDocIconConfig(item.title, item.id).color
+            }
+          />
         </View>
 
         <View style={styles.titleContainer}>

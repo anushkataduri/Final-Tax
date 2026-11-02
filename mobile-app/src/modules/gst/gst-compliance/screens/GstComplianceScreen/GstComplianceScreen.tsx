@@ -20,6 +20,7 @@ import {
 } from "@/modules/gst/gst-compliance/components/BottomSheetSelector/BottomSheetSelector";
 import { RequestTypeSection } from "@/modules/gst/gst-compliance/components/RequestTypeSection/RequestTypeSection";
 import { FloatingLabelInput } from "@/modules/gst/gst-compliance/components/FloatingLabelInput/FloatingLabelInput";
+import { GstinInfoIcon } from "@/modules/gst/components/common";
 import { ComplianceConfirmModal } from "@/modules/gst/gst-compliance/components/ComplianceModals/ComplianceModals";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { GstComplianceReviewStep } from "@/modules/gst/gst-compliance/components/GstComplianceReviewStep/GstComplianceReviewStep";
@@ -252,8 +253,9 @@ export function GstComplianceScreen() {
                 <FloatingLabelInput
                   label="GSTIN"
                   floatingLabel="GSTIN"
-                  placeholder="Enter 15-character GSTIN"
+                  placeholder="Enter GSTIN"
                   required
+                  labelAbove
                   value={formData.gstin}
                   onChangeText={handleGstinChange}
                   autoCapitalize="characters"
@@ -261,6 +263,7 @@ export function GstComplianceScreen() {
                   autoCorrect={false}
                   error={errors.gstin}
                   cardBackground={isDark ? "#1E293B" : BrandColors.WHITE}
+                  labelRightElement={<GstinInfoIcon size={16} />}
                   rightElement={
                     formData.gstin.length === 15 && !errors.gstin ? (
                       <Ionicons

@@ -137,6 +137,19 @@ export const styles = StyleSheet.create({
     color: BrandColors.PRIMARY_ORANGE_DARK,
     fontWeight: Typography.fontWeight.semiBold,
   },
+  customAyDeleteBtn: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    backgroundColor: "#DC2626",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+  },
   residencyInfoBox: {
     backgroundColor: "#F8FAFC",
     borderRadius: BorderRadius.sm,
@@ -192,21 +205,25 @@ export const styles = StyleSheet.create({
   bankSelectableCard: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     backgroundColor: "#F8FAFC",
     borderWidth: 1.5,
     borderColor: "#E2E8F0",
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
+    gap: Spacing.sm,
   },
   bankSelectableCardSelected: {
     borderColor: "#059669",
     backgroundColor: "#F0FDF4",
   },
-  bankRadioCol: {
-    marginLeft: Spacing.sm,
-    alignItems: "center",
-    justifyContent: "center",
+  bankRadioLeft: {
+    marginRight: 2,
+  },
+  bankEditBtn: {
+    padding: 6,
+    borderRadius: BorderRadius.xs,
+    backgroundColor: "#F1F5F9",
+    marginLeft: Spacing.xs,
   },
   bankInfoCol: {
     flex: 1,

@@ -1,9 +1,16 @@
 import { ItrFilingFormData } from "../types/itrFiling.types";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { tokenManager } from "@/core/authentication/tokenManager";
-import { getDefaultBaseUrl } from "@/core/api/apiConfig";
+import { getActiveBaseUrl, getDefaultBaseUrl } from "@/core/api/apiConfig";
+import { apiClient } from "@/core/api/apiClient";
 
-const getBaseUrl = () => `${getDefaultBaseUrl()}/api/v1/itr`;
+const getBaseUrl = async () => {
+  try {
+    const active = await getActiveBaseUrl();
+    if (active) return `${active}/api/v1/itr`;
+  } catch {}
+  return `${getDefaultBaseUrl()}/api/v1/itr`;
+};
 
 const fetchApi = async (
   url: string,
@@ -12,7 +19,7 @@ const fetchApi = async (
   isMultipart = false,
 ) => {
   const headers: any = {};
-  if (!isMultipart) {
+  if (!isMultipart && body !== undefined) {
     headers["Content-Type"] = "application/json";
   }
 
@@ -24,7 +31,7 @@ const fetchApi = async (
   const response = await fetch(url, {
     method,
     headers,
-    body: isMultipart ? body : JSON.stringify(body),
+    body: isMultipart ? body : (body !== undefined ? JSON.stringify(body) : undefined),
   });
 
   if (!response.ok) {
@@ -115,8 +122,9 @@ export const ItrApiService = {
   // Step 1: Personal Info
   savePersonalInfo: async (data: ItrFilingFormData) => {
     try {
+      const baseUrl = await getBaseUrl();
       const result = await fetchApi(
-        `${getBaseUrl()}/filing/register`,
+        `${baseUrl}/filing/register`,
         "POST",
         mapToFilingDto(data),
       );
@@ -129,8 +137,9 @@ export const ItrApiService = {
 
   updatePersonalInfo: async (itrId: string, data: ItrFilingFormData) => {
     try {
+      const baseUrl = await getBaseUrl();
       const result = await fetchApi(
-        `${getBaseUrl()}/filing/update/${itrId}`,
+        `${baseUrl}/filing/update/${itrId}`,
         "PUT",
         mapToFilingDto(data),
       );
@@ -144,8 +153,9 @@ export const ItrApiService = {
   // Step 2: Income Sources (Salary)
   saveSalaryIncome: async (itrId: string, data: ItrFilingFormData) => {
     try {
+      const baseUrl = await getBaseUrl();
       const result = await fetchApi(
-        `${getBaseUrl()}/${itrId}/salary-income/register`,
+        `${baseUrl}/${itrId}/salary-income/register`,
         "POST",
         mapToSalaryIncomeDto(data),
       );
@@ -158,8 +168,9 @@ export const ItrApiService = {
 
   updateSalaryIncome: async (incomeId: string, data: ItrFilingFormData) => {
     try {
+      const baseUrl = await getBaseUrl();
       return await fetchApi(
-        `${getBaseUrl()}/salary-income/update/${incomeId}`,
+        `${baseUrl}/salary-income/update/${incomeId}`,
         "PUT",
         mapToSalaryIncomeDto(data),
       );
@@ -172,11 +183,12 @@ export const ItrApiService = {
   // Step 3: Documents
   saveDocuments: async (itrId: string, data: ItrFilingFormData) => {
     try {
+      const baseUrl = await getBaseUrl();
       const formData = new FormData();
       await populateFormDataWithDocuments(formData, data.documents);
 
       const result = await fetchApi(
-        `${getBaseUrl()}/${itrId}/documents/register`,
+        `${baseUrl}/${itrId}/documents/register`,
         "POST",
         formData,
         true,
@@ -190,17 +202,48 @@ export const ItrApiService = {
 
   updateDocuments: async (documentId: string, data: ItrFilingFormData) => {
     try {
+      const baseUrl = await getBaseUrl();
       const formData = new FormData();
       await populateFormDataWithDocuments(formData, data.documents);
 
       return await fetchApi(
-        `${getBaseUrl()}/documents/update/${documentId}`,
+        `${baseUrl}/documents/update/${documentId}`,
         "PUT",
         formData,
         true,
       );
     } catch (error) {
       console.error("Error updating Documents:", error);
+      throw error;
+    }
+  },
+
+  // Final Step: Submit Filing for CA Review
+  submitFiling: async (itrId: string, pushToken?: string) => {
+    try {
+      const cleanItrId = String(itrId || "").trim();
+      const token = await tokenManager.getAccessToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const params: Record<string, string> = { itrId: cleanItrId };
+      if (pushToken && pushToken.trim()) {
+        params.pushToken = pushToken.trim();
+      }
+
+      // Try via apiClient first
+      try {
+        return await apiClient.post<string>("/api/v1/itr/submit", undefined, { headers, params });
+      } catch (clientErr) {
+        // Fallback to fetchApi directly
+        const baseUrl = await getBaseUrl();
+        let url = `${baseUrl}/submit?itrId=${encodeURIComponent(cleanItrId)}`;
+        if (pushToken && pushToken.trim()) {
+          url += `&pushToken=${encodeURIComponent(pushToken.trim())}`;
+        }
+        return await fetchApi(url, "POST");
+      }
+    } catch (error) {
+      console.error("Error submitting ITR filing:", error);
       throw error;
     }
   },

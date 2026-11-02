@@ -75,19 +75,6 @@ export const Step1TaxpayerIdentityCard: React.FC<Step1TaxpayerIdentityCardProps>
           <Text style={styles.fieldValue}>{formattedAddress}</Text>
         </View>
       </View>
-
-      <TouchableOpacity
-        activeOpacity={0.7}
-        style={styles.editProfileBtn}
-        onPress={() =>
-          Alert.alert(
-            "Update Profile Details",
-            "To change your legal name, PAN, or address, update your TaxEdge profile or contact support."
-          )
-        }
-      >
-        <Text style={styles.editProfileText}>Edit / Update Profile</Text>
-      </TouchableOpacity>
     </View>
   );
 };

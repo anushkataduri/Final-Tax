@@ -14,5 +14,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SandboxTokenController {
 
+	
+	private final SandboxAuthService sandboxAuthService;
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<String> refreshToken() {
+        sandboxAuthService.generateNewToken();
+        return ResponseEntity.ok("Sandbox access token refreshed");
+    }
     
 }

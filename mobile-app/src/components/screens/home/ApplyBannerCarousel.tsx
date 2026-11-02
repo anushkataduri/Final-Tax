@@ -17,31 +17,33 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  type ScrollViewInstance,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
-import { useIsFocused } from "expo-router";
+import { useIsFocused, type Href } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/hooks/use-theme";
 import { styles, CARD_WIDTH } from "@/styles/app/(main)/home.styles";
-import type { ServiceCategoryId } from "@/types/domain";
+import type { IconName, ServiceCategoryId } from "@/types/domain";
 
 /** ── Types ──────────────────────────────────────────────────────────────── */
 
 export interface ApplyBanner {
   key: string;
   id: ServiceCategoryId;
+  route: Href;
   title: string;
   desc: string;
   cta: string;
-  icon: any; // Ionicons name
+  icon: IconName;
   bg: string;
 }
 
 interface ApplyBannerCarouselProps {
   banners: readonly ApplyBanner[];
   colors: ReturnType<typeof useTheme>;
-  onSelect: (categoryId: ServiceCategoryId) => void;
+  onSelect: (banner: ApplyBanner) => void;
 }
 
 /** ── Constants ──────────────────────────────────────────────────────────── */
@@ -56,7 +58,7 @@ export function ApplyBannerCarousel({
   colors,
   onSelect,
 }: ApplyBannerCarouselProps) {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const [pageWidth, setPageWidth] = useState(CARD_WIDTH);
   const [page, setPage] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -116,7 +118,7 @@ export function ApplyBannerCarousel({
           <View key={banner.key} style={[styles.bannerPage, { width: pageWidth }]}>
             <TouchableOpacity
               activeOpacity={0.9}
-              onPress={() => onSelect(banner.id)}
+              onPress={() => onSelect(banner)}
               style={[styles.loansBanner, { backgroundColor: banner.bg }]}
             >
               <View style={styles.bannerLeft}>

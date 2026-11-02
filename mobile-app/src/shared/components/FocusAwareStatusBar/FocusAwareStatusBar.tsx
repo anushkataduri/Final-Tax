@@ -29,7 +29,12 @@ export function RootStatusBar() {
   return <StatusBar barStyle={DEFAULT_STATUS_BAR_STYLE} hidden={false} />;
 }
 
-export function FocusAwareStatusBar(props: StatusBarProps) {
+export interface FocusAwareStatusBarProps extends StatusBarProps {
+  backgroundColor?: string;
+  translucent?: boolean;
+}
+
+export function FocusAwareStatusBar(props: FocusAwareStatusBarProps) {
   const isFocused = useIsFocused();
   return isFocused ? <StatusBar {...props} /> : null;
 }

@@ -3,14 +3,13 @@ import type { Href } from "expo-router";
 /**
  * The one definition of which service destinations need a completed profile.
  *
- * Browse / hub destinations are open to any signed-in user: the services catalogue (`/services`,
- * with or without a category) and the GST, ITR and Loans hub screens. A hub only lists services;
- * every service you can start from it is a leaf route and does need a complete profile, as does
+ * Hub destinations are open to any signed-in user: the GST, ITR and Loans hub screens. A hub only lists
+ * services; every service you can start from it is a leaf route and does need a complete profile, as does
  * every other `/service/*` route (company registration, insurance, project finance, ...).
  * This is the rule the Home screens already applied to the GST / ITR / Loans tiles; it is
  * written down here so every entry point shares it.
  */
-export const PROFILE_EXEMPT_PATHS: readonly string[] = ["/services", "/service/gst", "/service/itr", "/service/loans"];
+export const PROFILE_EXEMPT_PATHS: readonly string[] = ["/service/gst", "/service/itr", "/service/loans"];
 
 /** Pathname of an expo-router href (string or `{ pathname, params }`), without query, hash or trailing slash. */
 export function hrefPathname(href: Href | string): string {

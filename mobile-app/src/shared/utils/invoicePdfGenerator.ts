@@ -202,7 +202,7 @@ export const buildInvoiceHtml = (data: InvoiceData): string => {
     <div class="brand-logo">
       <div class="logo-badge">TE</div>
       <div>
-        <div class="brand-title">TaxEdge Fin Solutions</div>
+        <div class="brand-title">TaxEdge Finsolz</div>
         <div class="brand-sub">GSTIN: 29TAXEDGE1234K1Z5 | HSN/SAC: 998231</div>
       </div>
     </div>
@@ -270,7 +270,7 @@ export const buildInvoiceHtml = (data: InvoiceData): string => {
   </div>
 
   <div class="compliance-footer">
-    TaxEdge Fin Solutions Pvt Ltd • 256-bit SSL Encrypted • This is a computer-generated tax invoice and requires no physical signature.
+    TaxEdge Finsolz Pvt Ltd • 256-bit SSL Encrypted • This is a computer-generated tax invoice and requires no physical signature.
   </div>
 </body>
 </html>

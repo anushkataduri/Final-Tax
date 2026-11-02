@@ -17,6 +17,9 @@ public class AuthenticateResponse {
 
     private int code;
 
+    @JsonProperty("access_token")
+    private String accessToken;
+
     private Data data;
 
     private long timestamp;

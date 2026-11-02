@@ -95,7 +95,7 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
       )}
     </View>
 
-    {/* IFSC Code with Auto-Lookup */}
+    {/* IFSC Code */}
     <View style={styles.fieldGroup}>
       <Text style={styles.fieldLabel}>
         IFSC Code <Text style={styles.requiredAsterisk}>*</Text>
@@ -113,56 +113,46 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
             autoCapitalize="characters"
             value={bank.ifscCode}
             onChangeText={onIfscChange}
-          maxLength={11}
+            maxLength={11}
             returnKeyType="next"
             onSubmitEditing={() => salaryRef.current?.focus()}
           />
         </View>
-        {isIfscLoading && <ActivityIndicator size="small" color={BrandColors.PRIMARY_ORANGE} />}
       </View>
-
-      {/* IFSC Status */}
-      {isIfscLoading && (
-        <View style={styles.ifscLoadingBox}>
-          <Text style={styles.ifscLoadingText}>Verifying IFSC with RBI directory...</Text>
-        </View>
-      )}
-
-      {bank.isIfscVerified && bank.bankName && (
-        <View style={styles.ifscSuccessBox}>
-          <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
-          <Text style={styles.ifscSuccessText} numberOfLines={1}>
-            {bank.bankName} • {bank.branchName}
-          </Text>
-        </View>
-      )}
 
       {(errors["bank.ifscCode"] || ifscError) && (
         <Text style={styles.errorText}>{errors["bank.ifscCode"] || ifscError}</Text>
       )}
     </View>
 
-    {/* Bank Name & Branch (Read-Only after lookup) */}
+    {/* Bank Name & Branch (Manual Entry) */}
     <View style={styles.fieldRow}>
       <View style={[styles.fieldGroup, styles.fieldRowItem]}>
-        <Text style={styles.fieldLabel}>Bank Name</Text>
+        <Text style={styles.fieldLabel}>
+          Bank Name <Text style={styles.requiredAsterisk}>*</Text>
+        </Text>
         <TextInput
-          style={[styles.textInput, styles.textInputReadOnly]}
-          editable={false}
-          placeholder="Auto-fetched via IFSC"
+          style={[styles.textInput, errors["bank.bankName"] ? styles.textInputError : null]}
+          editable={true}
+          placeholder="Enter Bank Name"
           placeholderTextColor="#94A3B8"
           value={bank.bankName}
+          onChangeText={(val) => updateBank("bankName", val)}
         />
+        {errors["bank.bankName"] && (
+          <Text style={styles.errorText}>{errors["bank.bankName"]}</Text>
+        )}
       </View>
 
       <View style={[styles.fieldGroup, styles.fieldRowItem]}>
         <Text style={styles.fieldLabel}>Branch</Text>
         <TextInput
-          style={[styles.textInput, styles.textInputReadOnly]}
-          editable={false}
-          placeholder="Auto-fetched via IFSC"
+          style={styles.textInput}
+          editable={true}
+          placeholder="Enter Branch"
           placeholderTextColor="#94A3B8"
           value={bank.branchName}
+          onChangeText={(val) => updateBank("branchName", val)}
         />
       </View>
     </View>

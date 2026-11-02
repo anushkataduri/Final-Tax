@@ -1,3 +1,4 @@
+import type { ImageSourcePropType } from "react-native";
 import type { Href } from "expo-router";
 import type { IconName, ServiceCategoryId } from "@/types/domain";
 
@@ -8,7 +9,6 @@ export interface ServiceTile {
   tint: string;
   tintBg: string;
   route?: Href;
-  isMore?: boolean;
 }
 
 export interface Deadline {
@@ -35,6 +35,7 @@ export interface StatTile {
 export interface ApplyBanner {
   key: string;
   id: ServiceCategoryId;
+  route: Href;
   title: string;
   desc: string;
   cta: string;
@@ -45,7 +46,11 @@ export interface ApplyBanner {
 export interface DashboardServiceTile {
   id: string;
   label: string;
-  image: any;
-  route?: any;
-  isMore?: boolean;
+  description: string;
+  image: ImageSourcePropType;
+  route: Href;
+  bgColor: string;
+  borderColor: string;
+  arrowColor: string;
+  isFullWidth?: boolean;
 }

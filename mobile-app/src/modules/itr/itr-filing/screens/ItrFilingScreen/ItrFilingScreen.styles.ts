@@ -41,4 +41,8 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  headerSpacer: {
+    width: 36,
+    height: 36,
+  },
 });
