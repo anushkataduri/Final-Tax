@@ -75,7 +75,7 @@ export const GstBusinessStep: React.FC<Props> = ({
   const bankYRef = useRef(0);
   const signatoryYRef = useRef(0);
   const consentYRef = useRef(0);
-  const inputRefs = useRef<Record<string, TextInput | null>>({});
+  const inputRefs = useRef<Record<string, { focus?: () => void } | any>>({});
   const fieldOffsetsRef = useRef<Record<string, number>>({});
 
   const bankErrorCount = useMemo(() => BANK_FIELD_KEYS.filter((f) => Boolean(errors[f])).length, [errors]);

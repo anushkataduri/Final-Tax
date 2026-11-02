@@ -2,10 +2,10 @@ import React, { useMemo } from "react";
 import {
   View,
   Text,
-  ScrollView,
   TouchableOpacity,
-  StatusBar,
+  type ScrollViewInstance,
 } from "react-native";
+import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
 import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -33,7 +33,7 @@ interface GstNonCoreAmendmentEditProps {
   supportingDoc: SupportingDoc | null;
   isProofsExpanded: boolean;
   insets: { top: number; bottom: number };
-  scrollViewRef: React.RefObject<ScrollView | null>;
+  scrollViewRef: React.Ref<ScrollViewInstance> | React.RefObject<any>;
   onBack: () => void;
   onUpdateField: (field: keyof AmendmentFormData, value: string) => void;
   onClearError: (key: string) => void;
@@ -77,7 +77,7 @@ export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = (
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <FocusAwareStatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       {/* Header (Back button hidden when returned from review to preserve edit mode integrity) */}
       <View style={[styles.headerBar, getHeaderBarStyle(insets.top)]}>
