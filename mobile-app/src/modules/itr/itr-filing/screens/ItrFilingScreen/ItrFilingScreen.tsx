@@ -237,7 +237,6 @@ export const ItrFilingScreen: React.FC = () => {
         hideBackButton={maxStepReached >= 3 && currentStep < 3}
         onBack={handleBack}
         onSettings={() => Alert.alert("TaxEdge Support", "Need help with your ITR? Contact support@taxedge.in")}
-        onSaveDraft={openDraftModal}
       />
 
       {/* Main Content Area */}

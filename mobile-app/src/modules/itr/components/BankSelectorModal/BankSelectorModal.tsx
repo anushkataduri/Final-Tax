@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Modal,
   View,
@@ -7,9 +7,13 @@ import {
   TextInput,
   Alert,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ItrSelectableBank } from "../../itr-filing/types/itrFiling.types";
+import { ifscService, IfscDetails, IfscLookupError } from "@/shared/services/lookup/ifscService";
+import { validators } from "@/shared/validation/validators";
+import { BrandColors } from "@/shared/theme";
 import { styles } from "./BankSelectorModal.styles";
 
 interface BankSelectorModalProps {
@@ -22,6 +26,8 @@ interface BankSelectorModalProps {
   onUpdateBank?: (bank: ItrSelectableBank) => void;
   onClose: () => void;
 }
+
+const IFSC_LOOKUP_DEBOUNCE_MS = 600;
 
 export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
   visible,
@@ -36,6 +42,10 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
   const [accountNumber, setAccountNumber] = useState("");
   const [ifscCode, setIfscCode] = useState("");
   const [accountType, setAccountType] = useState<"Savings" | "Current">("Savings");
+  const [ifscLookupLoading, setIfscLookupLoading] = useState(false);
+  const [ifscLookupError, setIfscLookupError] = useState<string | null>(null);
+  const [ifscLookupResult, setIfscLookupResult] = useState<IfscDetails | null>(null);
+  const lookupDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (visible && initialBank) {
@@ -43,24 +53,77 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
       setAccountNumber(initialBank.accountNumber || "");
       setIfscCode(initialBank.ifscCode || "");
       setAccountType(initialBank.accountType || "Savings");
+      setIfscLookupLoading(false);
+      setIfscLookupError(null);
+      // Treat already-validated banks as having a lookup result to keep bank name locked
+      setIfscLookupResult(
+        initialBank.validationStatus === "Validated"
+          ? { bank: initialBank.bankName, branch: "", ifsc: initialBank.ifscCode }
+          : null
+      );
     } else if (visible && !initialBank) {
-      setBankName("");
-      setAccountNumber("");
-      setIfscCode("");
-      setAccountType("Savings");
+      resetFormState();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, initialBank]);
 
-  const resetForm = () => {
+  const resetFormState = () => {
     setBankName("");
     setAccountNumber("");
     setIfscCode("");
     setAccountType("Savings");
+    setIfscLookupLoading(false);
+    setIfscLookupError(null);
+    setIfscLookupResult(null);
+    if (lookupDebounceRef.current) {
+      clearTimeout(lookupDebounceRef.current);
+    }
   };
 
   const handleClose = () => {
-    resetForm();
+    resetFormState();
     onClose();
+  };
+
+  const performIfscLookup = async (ifsc: string) => {
+    setIfscLookupLoading(true);
+    setIfscLookupError(null);
+    try {
+      const result = await ifscService.lookup(ifsc);
+      setIfscLookupResult(result);
+      setBankName(result.bank);
+    } catch (err) {
+      setIfscLookupResult(null);
+      if (err instanceof IfscLookupError) {
+        setIfscLookupError(
+          err.errorType === "NOT_FOUND"
+            ? "IFSC code not found. Please verify and re-enter."
+            : "Unable to verify IFSC. Please check your connection and try again."
+        );
+      } else {
+        setIfscLookupError("Unable to verify IFSC. Please try again.");
+      }
+    } finally {
+      setIfscLookupLoading(false);
+    }
+  };
+
+  const handleIfscChange = (val: string) => {
+    const clean = val.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    setIfscCode(clean);
+    setIfscLookupError(null);
+    setIfscLookupResult(null);
+    setBankName("");
+
+    if (lookupDebounceRef.current) {
+      clearTimeout(lookupDebounceRef.current);
+    }
+
+    if (ifscService.isValidFormat(clean)) {
+      lookupDebounceRef.current = setTimeout(() => {
+        void performIfscLookup(clean);
+      }, IFSC_LOOKUP_DEBOUNCE_MS);
+    }
   };
 
   const handleSaveBank = () => {
@@ -68,7 +131,6 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
     const cleanAccountNum = accountNumber.trim();
     const cleanIfsc = ifscCode.trim().toUpperCase();
 
-    // 1. Mandatory Fields Check
     if (!cleanBankName || !cleanAccountNum || !cleanIfsc) {
       Alert.alert(
         "Required Fields",
@@ -77,7 +139,6 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
       return;
     }
 
-    // 2. GST-Aligned Bank Name Validation (Min 2 characters, letters, spaces, &.-)
     if (cleanBankName.length < 2 || !/^[a-zA-Z0-9\s&.-]{2,100}$/.test(cleanBankName)) {
       Alert.alert(
         "Invalid Bank Name",
@@ -86,33 +147,14 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
       return;
     }
 
-    // 3. GST-Aligned Account Number Validation (9 to 18 digits, digits only, not all zeros)
-    if (/[^0-9]/.test(cleanAccountNum)) {
-      Alert.alert(
-        "Invalid Account Number",
-        "Account number must contain digits only."
-      );
+    const accountError = validators.bankAccountNumber("Account Number")(cleanAccountNum);
+    if (accountError) {
+      Alert.alert("Invalid Account Number", accountError);
       return;
     }
 
-    if (/^0+$/.test(cleanAccountNum)) {
-      Alert.alert(
-        "Invalid Account Number",
-        "Account number cannot contain only zeros."
-      );
-      return;
-    }
-
-    if (cleanAccountNum.length < 9 || cleanAccountNum.length > 18) {
-      Alert.alert(
-        "Invalid Account Number",
-        "Please enter a valid bank account number between 9 and 18 digits."
-      );
-      return;
-    }
-
-    // 4. GST-Aligned IFSC Code Validation (11 characters: 4 letters, '0', 6 alphanumeric)
-    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(cleanIfsc)) {
+    const ifscError = validators.ifsc("IFSC Code")(cleanIfsc);
+    if (ifscError) {
       Alert.alert(
         "Invalid IFSC Code",
         "Please enter a valid 11-digit IFSC code (e.g. SBIN0001234 or HDFC0001234)."
@@ -120,7 +162,6 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
       return;
     }
 
-    // 5. Duplicate Prevention (Exclude self if in Edit mode)
     const isDuplicate = banks.some(
       (b) =>
         b.id !== initialBank?.id &&
@@ -137,6 +178,7 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
     }
 
     const masked = `•••• •••• ${cleanAccountNum.slice(-4)}`;
+    const validationStatus: "Validated" | "Pending" = ifscLookupResult ? "Validated" : "Pending";
 
     if (initialBank) {
       const updatedBank: ItrSelectableBank = {
@@ -146,6 +188,7 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
         maskedAccountNumber: masked,
         ifscCode: cleanIfsc,
         accountType,
+        validationStatus,
       };
       if (onUpdateBank) {
         onUpdateBank(updatedBank);
@@ -162,17 +205,18 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
         ifscCode: cleanIfsc,
         accountType,
         isPrimaryRefund: true,
-        validationStatus: "Validated",
+        validationStatus,
       };
       onAddBank(newBank);
       onSelectBank(newBank.id);
     }
 
-    resetForm();
+    resetFormState();
     onClose();
   };
 
   const isEditing = Boolean(initialBank);
+  const isBankNameLocked = Boolean(ifscLookupResult);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
@@ -196,19 +240,67 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
           </Text>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.formContainer}>
-            {/* Bank Name */}
+            {/* IFSC Code — placed first so bank name auto-fills below it */}
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>IFSC Code</Text>
+                <Text style={styles.mandatoryStar}>*</Text>
+              </View>
+              <View style={[styles.inputBox, ifscLookupError ? styles.inputBoxError : null]}>
+                <View style={styles.ifscInputRow}>
+                  <TextInput
+                    style={[styles.textInput, styles.ifscTextInput]}
+                    autoCapitalize="characters"
+                    placeholder="e.g. SBIN0001234"
+                    placeholderTextColor="#94A3B8"
+                    value={ifscCode}
+                    onChangeText={handleIfscChange}
+                    maxLength={11}
+                  />
+                  {ifscLookupLoading && (
+                    <ActivityIndicator size="small" color={BrandColors.PRIMARY_ORANGE} />
+                  )}
+                  {ifscLookupResult && !ifscLookupLoading && (
+                    <Ionicons name="checkmark-circle" size={18} color="#16A34A" />
+                  )}
+                </View>
+              </View>
+              {ifscLookupError ? (
+                <Text style={styles.errorText}>{ifscLookupError}</Text>
+              ) : null}
+              {ifscLookupResult && !ifscLookupLoading ? (
+                <View style={styles.lookupResultBox}>
+                  <Ionicons name="business-outline" size={13} color="#166534" />
+                  <Text style={styles.lookupResultText}>
+                    <Text style={styles.lookupResultBank}>{ifscLookupResult.bank}</Text>
+                    {ifscLookupResult.branch ? ` — ${ifscLookupResult.branch}` : ""}
+                    {ifscLookupResult.city ? `, ${ifscLookupResult.city}` : ""}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Bank Name — auto-filled from IFSC lookup and locked */}
             <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
                 <Text style={styles.inputLabel}>Bank Name</Text>
                 <Text style={styles.mandatoryStar}>*</Text>
+                {isBankNameLocked && (
+                  <Ionicons name="lock-closed-outline" size={11} color="#64748B" style={styles.lockIcon} />
+                )}
               </View>
-              <View style={styles.inputBox}>
+              <View style={[styles.inputBox, isBankNameLocked && styles.inputBoxLocked]}>
                 <TextInput
                   style={styles.textInput}
-                  placeholder="e.g. State Bank of India"
+                  placeholder="Auto-filled from IFSC lookup"
                   placeholderTextColor="#94A3B8"
                   value={bankName}
-                  onChangeText={(val) => setBankName(val.replace(/[^A-Za-z\s&.-]/g, ""))}
+                  onChangeText={(val) => {
+                    if (!isBankNameLocked) {
+                      setBankName(val.replace(/[^A-Za-z\s&.-]/g, ""));
+                    }
+                  }}
+                  editable={!isBankNameLocked}
                   maxLength={60}
                 />
               </View>
@@ -233,33 +325,45 @@ export const BankSelectorModal: React.FC<BankSelectorModalProps> = ({
               </View>
             </View>
 
-            {/* IFSC Code */}
+            {/* Account Type */}
             <View style={styles.inputGroup}>
               <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>IFSC Code</Text>
-                <Text style={styles.mandatoryStar}>*</Text>
+                <Text style={styles.inputLabel}>Account Type</Text>
               </View>
-              <View style={styles.inputBox}>
-                <TextInput
-                  style={styles.textInput}
-                  autoCapitalize="characters"
-                  placeholder="e.g. SBIN0001234"
-                  placeholderTextColor="#94A3B8"
-                  value={ifscCode}
-                  onChangeText={(val) => setIfscCode(val.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
-                  maxLength={11}
-                />
+              <View style={styles.accountTypeRow}>
+                {(["Savings", "Current"] as const).map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    activeOpacity={0.8}
+                    style={[styles.accountTypePill, accountType === type && styles.accountTypePillActive]}
+                    onPress={() => setAccountType(type)}
+                  >
+                    <Text
+                      style={[
+                        styles.accountTypePillText,
+                        accountType === type && styles.accountTypePillTextActive,
+                      ]}
+                    >
+                      {type === "Savings" ? "Savings Account" : "Current Account"}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
 
             {/* Save Button */}
             <TouchableOpacity
               activeOpacity={0.85}
-              style={styles.saveBankBtn}
+              style={[styles.saveBankBtn, ifscLookupLoading && styles.saveBankBtnDisabled]}
               onPress={handleSaveBank}
+              disabled={ifscLookupLoading}
             >
               <Text style={styles.saveBankBtnText}>
-                {isEditing ? "Update & Validate Account" : "Save & Validate Account"}
+                {ifscLookupLoading
+                  ? "Verifying IFSC…"
+                  : isEditing
+                  ? "Update & Validate Account"
+                  : "Save & Validate Account"}
               </Text>
             </TouchableOpacity>
           </ScrollView>

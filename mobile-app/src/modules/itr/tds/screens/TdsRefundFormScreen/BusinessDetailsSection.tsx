@@ -14,6 +14,7 @@ interface BusinessDetailsSectionProps {
   onUploadSuccess?: (id: string, payload: any) => void;
   onUploadError?: (id: string, errorMessage: string) => void;
   onRemove?: (id: string) => void;
+  onBlurField?: (key: string) => void;
 }
 
 export const BusinessDetailsSection: React.FC<BusinessDetailsSectionProps> = ({
@@ -24,6 +25,7 @@ export const BusinessDetailsSection: React.FC<BusinessDetailsSectionProps> = ({
   onUploadSuccess,
   onUploadError,
   onRemove,
+  onBlurField,
 }) => (
   <View style={styles.sectionCard}>
     <SectionHeader number={2} title="Business Details" />
@@ -39,6 +41,7 @@ export const BusinessDetailsSection: React.FC<BusinessDetailsSectionProps> = ({
         placeholderTextColor="#94A3B8"
         value={business.legalName}
         onChangeText={(t) => updateBusiness("legalName", t.replace(/[^a-zA-Z0-9\s.\-&']/g, ""))}
+        onBlur={() => onBlurField?.("business.legalName")}
         maxLength={100}
       />
       {errors["business.legalName"] && (
@@ -58,6 +61,7 @@ export const BusinessDetailsSection: React.FC<BusinessDetailsSectionProps> = ({
           autoCapitalize="characters"
           value={business.pan}
           onChangeText={(t) => updateBusiness("pan", t.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+          onBlur={() => onBlurField?.("business.pan")}
           maxLength={10}
         />
         {documents && documents.length > 0 && onUploadSuccess && onUploadError && onRemove && (
@@ -90,6 +94,7 @@ export const BusinessDetailsSection: React.FC<BusinessDetailsSectionProps> = ({
           keyboardType="number-pad"
           value={business.aadhaar}
           onChangeText={(t) => updateBusiness("aadhaar", t.replace(/[^0-9]/g, ""))}
+          onBlur={() => onBlurField?.("business.aadhaar")}
           maxLength={12}
         />
         {documents && documents.length > 1 && onUploadSuccess && onUploadError && onRemove && (
@@ -121,6 +126,7 @@ export const BusinessDetailsSection: React.FC<BusinessDetailsSectionProps> = ({
         keyboardType="number-pad"
         value={business.mobileNumber}
         onChangeText={(t) => updateBusiness("mobileNumber", t.replace(/[^0-9]/g, ""))}
+        onBlur={() => onBlurField?.("business.mobileNumber")}
         maxLength={10}
       />
       {errors["business.mobileNumber"] && (

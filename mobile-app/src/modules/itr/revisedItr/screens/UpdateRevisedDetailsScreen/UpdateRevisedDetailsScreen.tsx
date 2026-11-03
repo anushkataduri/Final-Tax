@@ -17,6 +17,7 @@ import { RevisedFormField } from "../../components/update";
 import { DEFAULT_REVISED_FORM_FIELDS } from "../../mock/revisedItrData";
 import { RevisedFormFields } from "../../types/revisedItr.types";
 import { useKeyboard } from "@/shared/hooks/useKeyboard";
+import { validators } from "@/shared/validation/validators";
 import {
   styles,
   getContainerInsetsStyle,
@@ -44,13 +45,19 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
   const storeFormData = useRevisedProgressStore((s) => s.formData);
   const setStoreFormData = useRevisedProgressStore((s) => s.setFormData);
   
-  const getInitialForm = () => {
+  const getInitialForm = (): RevisedFormFields => {
     if (params.revisedDetails) {
       try {
-        return JSON.parse(params.revisedDetails);
-      } catch (e) {}
+        const parsed: unknown = JSON.parse(params.revisedDetails);
+        if (parsed && typeof parsed === "object") {
+          return { ...DEFAULT_REVISED_FORM_FIELDS, ...(parsed as Partial<RevisedFormFields>) };
+        }
+      } catch { }
     }
-    return storeFormData || DEFAULT_REVISED_FORM_FIELDS;
+    if (storeFormData) {
+      return { ...DEFAULT_REVISED_FORM_FIELDS, ...storeFormData };
+    }
+    return DEFAULT_REVISED_FORM_FIELDS;
   };
   
   const [form, setForm] = useState<RevisedFormFields>(getInitialForm());
@@ -100,31 +107,25 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
     const newErrors: Partial<Record<keyof RevisedFormFields, string>> = {};
 
     if (reason === "missed_income" || reason === "other") {
-      if (!form.salaryBusinessIncome.trim()) {
+      if (!(form.salaryBusinessIncome || "").trim()) {
         newErrors.salaryBusinessIncome = "Salary / Business income is required.";
       }
-      if (!form.taxableIncome.trim()) {
+      if (!(form.taxableIncome || "").trim()) {
         newErrors.taxableIncome = "Taxable income is required.";
       }
     }
 
     if (reason === "wrong_deduction") {
-      if (!form.taxableIncome.trim()) {
+      if (!(form.taxableIncome || "").trim()) {
         newErrors.taxableIncome = "Taxable income is required.";
       }
     }
 
     if (reason === "incorrect_bank") {
-      const cleanBank = form.bankAccount.replace(/[^\w]/g, "");
-      if (!cleanBank || cleanBank.length < 4) {
-        newErrors.bankAccount = "Enter a valid bank account number.";
-      }
-      const cleanIfsc = form.ifsc.trim().toUpperCase();
-      if (!cleanIfsc) {
-        newErrors.ifsc = "IFSC code is required.";
-      } else if (cleanIfsc.length !== 11) {
-        newErrors.ifsc = "IFSC must be 11 characters.";
-      }
+      const bankError = validators.bankAccountNumber("Bank account for refund")(form.bankAccount || "");
+      if (bankError) newErrors.bankAccount = bankError;
+      const ifscError = validators.ifsc("IFSC")(form.ifsc || "");
+      if (ifscError) newErrors.ifsc = ifscError;
     }
 
     setErrors(newErrors);
@@ -270,7 +271,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
               changeValue={getChange(originalValues.salaryBusinessIncome, form.salaryBusinessIncome)}
               onChangeText={(val) => handleChange("salaryBusinessIncome", val.replace(/[^0-9]/g, ""))}
                 maxLength={12}
-                keyboardType="numeric"
+                keyboardType="number-pad"
               isMandatory
               placeholder="Enter revised income"
               error={errors.salaryBusinessIncome}
@@ -283,7 +284,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
               changeValue={getChange(originalValues.otherIncome, form.otherIncome)}
               onChangeText={(val) => handleChange("otherIncome", val.replace(/[^0-9]/g, ""))}
                 maxLength={12}
-                keyboardType="numeric"
+                keyboardType="number-pad"
               placeholder="Enter revised income"
               error={errors.otherIncome}
             />
@@ -304,7 +305,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
               changeValue={getChange(originalValues.sec80c, form.sec80c)}
               onChangeText={(val) => handleChange("sec80c", val.replace(/[^0-9]/g, ""))}
                 maxLength={12}
-                keyboardType="numeric"
+                keyboardType="number-pad"
               placeholder="Enter amount"
             />
 
@@ -315,7 +316,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
               changeValue={getChange(originalValues.sec80d, form.sec80d)}
               onChangeText={(val) => handleChange("sec80d", val.replace(/[^0-9]/g, ""))}
                 maxLength={12}
-                keyboardType="numeric"
+                keyboardType="number-pad"
               placeholder="Enter amount"
             />
 
@@ -326,7 +327,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
               changeValue={getChange(originalValues.homeLoanInterest, form.homeLoanInterest)}
               onChangeText={(val) => handleChange("homeLoanInterest", val.replace(/[^0-9]/g, ""))}
                 maxLength={12}
-                keyboardType="numeric"
+                keyboardType="number-pad"
               placeholder="Enter amount"
             />
           </View>
@@ -374,7 +375,7 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
               changeValue={getChange(originalValues.taxableIncome, form.taxableIncome)}
               onChangeText={(val) => handleChange("taxableIncome", val.replace(/[^0-9]/g, ""))}
                 maxLength={12}
-                keyboardType="numeric"
+                keyboardType="number-pad"
               isMandatory
               placeholder="Enter taxable income"
               error={errors.taxableIncome}

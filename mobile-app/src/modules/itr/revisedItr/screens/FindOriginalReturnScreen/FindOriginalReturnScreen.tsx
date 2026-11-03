@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  ScrollView,
   ActivityIndicator,
   Alert,
 } from "react-native";
@@ -21,8 +22,6 @@ import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { RevisedItrApiService } from "../../services/RevisedItrApiService";
 import { OriginalReturnDetails } from "../../types/revisedItr.types";
 import { getPastAssessmentYears } from "@/modules/itr/taxRules";
-import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
-import { useKeyboard } from "@/shared/hooks/useKeyboard";
 import {
   styles,
   getContainerInsetsStyle,
@@ -35,7 +34,6 @@ export const FindOriginalReturnScreen: React.FC = () => {
   const params = useLocalSearchParams<{ acknowledgementNumber?: string; assessmentYear?: string; isEditing?: string }>();
   const maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
   const insets = useSafeAreaInsets();
-  const { keyboardShown, keyboardHeight } = useKeyboard();
   const applications = useApplicationStore((state) => state.applications);
 
   const existingItr = applications.find(
@@ -243,7 +241,7 @@ export const FindOriginalReturnScreen: React.FC = () => {
       <RevisedItrHeader subtitle="Find Original Return" />
 
       {/* Main Content */}
-      <KeyboardAwareScrollView
+      <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
           getScrollContentInsetsStyle(insets.bottom),
@@ -325,14 +323,13 @@ export const FindOriginalReturnScreen: React.FC = () => {
 
         {/* Return Summary Card if Found */}
         {foundReturn && <ReturnSummaryCard details={foundReturn} />}
-      </KeyboardAwareScrollView>
+      </ScrollView>
 
       {/* Sticky Bottom Action Button */}
       <View
         style={[
           styles.bottomBar,
           getBottomBarInsetsStyle(insets.bottom),
-          { bottom: keyboardShown ? keyboardHeight : 0 },
         ]}
       >
         {params.isEditing === "true" ? (

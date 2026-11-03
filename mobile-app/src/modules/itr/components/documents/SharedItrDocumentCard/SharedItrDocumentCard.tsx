@@ -1,12 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { pickDocumentFromDrive } from "@/shared/utils/driveDocumentUploader";
-
-// Import existing icon component
-import { DocumentUploadIcon } from "../DocumentUploadIcons";
 
 // Import existing Modals
 import { UploadSourceModal } from "@/modules/itr/tds/components/documents/UploadSourceModal";
@@ -35,6 +31,8 @@ export interface SharedDocumentItem {
 interface SharedItrDocumentCardProps {
   item: SharedDocumentItem;
   variant?: "default" | "inline";
+  allowedExtensions?: string[];
+  maxSizeBytes?: number;
   onUploadSuccess: (
     id: string,
     payload: { uri: string; name: string; size: string; mimeType?: string; fileTypeLabel?: string }
@@ -71,6 +69,8 @@ const getDocIconConfig = (title: string, id: string) => {
 export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
   item,
   variant = "default",
+  allowedExtensions,
+  maxSizeBytes,
   onUploadSuccess,
   onRemove,
 }) => {
@@ -92,16 +92,21 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
     const fileName = asset.name || defaultName;
     const extension = fileName.split(".").pop()?.toLowerCase() || "";
 
-    const allowed = DEFAULT_EXTENSIONS;
-    const isValidFormat = allowed.includes(extension);
+    const effectiveAllowed = allowedExtensions || DEFAULT_EXTENSIONS;
+    const isValidFormat = effectiveAllowed.includes(extension);
 
     if (!isValidFormat) {
-      onUploadError(`Unsupported file (.${extension || "unknown"}). Accepted: PDF, JPG, PNG`);
+      const allowedStr = allowedExtensions
+        ? effectiveAllowed.map((e) => e.toUpperCase()).join(", ")
+        : "PDF, JPG, PNG, DOC, DOCX, XLS, XLSX, JSON";
+      onUploadError(`Unsupported file (.${extension || "unknown"}). Accepted: ${allowedStr}`);
       return;
     }
 
-    if (asset.size && asset.size > MAX_FILE_SIZE_BYTES) {
-      onUploadError("File exceeds 10 MB limit. Please select a smaller file.");
+    const effectiveMaxBytes = maxSizeBytes ?? MAX_FILE_SIZE_BYTES;
+    if (asset.size && asset.size > effectiveMaxBytes) {
+      const limitMb = Math.round(effectiveMaxBytes / (1024 * 1024));
+      onUploadError(`File exceeds ${limitMb} MB limit. Please select a smaller file.`);
       return;
     }
 
@@ -121,15 +126,18 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
   const handleChooseFiles = async () => {
     setShowSourceModal(false);
     try {
+      const effectiveMaxBytes = maxSizeBytes ?? MAX_FILE_SIZE_BYTES;
+      const effectiveAllowed = allowedExtensions || DEFAULT_EXTENSIONS;
       const picked = await pickDocumentFromDrive({
-        maxSizeBytes: MAX_FILE_SIZE_BYTES,
-        allowedExtensions: DEFAULT_EXTENSIONS,
+        maxSizeBytes: effectiveMaxBytes,
+        allowedExtensions: effectiveAllowed,
       });
 
       if (picked) {
-        if (picked.sizeBytes > MAX_FILE_SIZE_BYTES) {
-          Alert.alert("File Too Large", "File size exceeds the 10 MB limit.");
-          onUploadError("File exceeds 10 MB limit. Please select a smaller file.");
+        if (picked.sizeBytes > effectiveMaxBytes) {
+          const limitMb = Math.round(effectiveMaxBytes / (1024 * 1024));
+          Alert.alert("File Too Large", `File size exceeds the ${limitMb} MB limit.`);
+          onUploadError(`File exceeds ${limitMb} MB limit. Please select a smaller file.`);
           return;
         }
 
@@ -258,7 +266,7 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
       <UploadSourceModal
         visible={showSourceModal}
         documentTitle={item.title}
-        maxSizeText="Maximum file size: 10 MB"
+        maxSizeText="Maximum file size: 15 MB"
         onChooseFiles={handleChooseFiles}
         onSelectGallery={handlePickGallery}
         onTakePhoto={handleTakePhoto}
@@ -444,7 +452,7 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
       <UploadSourceModal
         visible={showSourceModal}
         documentTitle={item.title}
-        maxSizeText="Maximum file size: 10 MB"
+        maxSizeText="Maximum file size: 15 MB"
         onChooseFiles={handleChooseFiles}
         onSelectGallery={handlePickGallery}
         onTakePhoto={handleTakePhoto}

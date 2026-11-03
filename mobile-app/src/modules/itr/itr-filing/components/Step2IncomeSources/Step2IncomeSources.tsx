@@ -105,14 +105,14 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({
         return false;
       }
       // BUG_ITR_036/037: Exempt allowances must not exceed gross salary
-      const grossSal = parseFloat(sources.salary.grossSalary || "0");
-      const exemptAll = parseFloat(sources.salary.allowances || "0");
+      const grossSal = parseFloat(sources.salary.grossSalary || "0") || 0;
+      const exemptAll = parseFloat(sources.salary.allowances || "0") || 0;
       if (exemptAll > grossSal) {
         Alert.alert("Invalid Salary Data", "Exempt Allowances cannot exceed Gross Salary.");
         return false;
       }
       // BUG_ITR_041: TDS deducted must not exceed gross salary
-      const tdsAmt = parseFloat(sources.salary.tdsDeducted || "0");
+      const tdsAmt = parseFloat(sources.salary.tdsDeducted || "0") || 0;
       if (tdsAmt > grossSal) {
         Alert.alert("Invalid Salary Data", "TDS Deducted by Employer cannot exceed Gross Salary.");
         return false;
@@ -135,8 +135,8 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({
           return false;
         }
         // BUG_ITR_045: Municipal taxes must not exceed annual rent received
-        const annualRent = parseFloat(sources.houseProperty.annualRentReceived || "0");
-        const munTax = parseFloat(sources.houseProperty.municipalTaxesPaid || "0");
+        const annualRent = parseFloat(sources.houseProperty.annualRentReceived || "0") || 0;
+        const munTax = parseFloat(sources.houseProperty.municipalTaxesPaid || "0") || 0;
         if (munTax > annualRent) {
           Alert.alert("Invalid House Property Data", "Municipal Taxes Paid cannot exceed Annual Rent Received.");
           return false;
@@ -148,7 +148,7 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({
       }
       // BUG_ITR_042/051: Home loan interest deduction for self-occupied is limited to ₹2,00,000 (Sec 24b)
       if (sources.houseProperty.propertyType === "self_occupied") {
-        const loanInt = parseFloat(sources.houseProperty.homeLoanInterest || "0");
+        const loanInt = parseFloat(sources.houseProperty.homeLoanInterest || "0") || 0;
         if (loanInt > 200000) {
           Alert.alert(
             "Home Loan Interest Limit",
@@ -168,13 +168,17 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({
         Alert.alert("Business Details Required", "Gross Turnover is mandatory for Business / Profession income.");
         return false;
       }
+      if ((parseFloat(sources.business.grossTurnover || "0") || 0) === 0) {
+        Alert.alert("Business Details Required", "Gross Turnover must be greater than zero.");
+        return false;
+      }
       if (!sources.business.declaredProfit?.trim()) {
         Alert.alert("Business Details Required", "Declared Profit is mandatory (enter 0 if none).");
         return false;
       }
       // BUG_ITR_055/056: Declared profit must not exceed gross turnover
-      const turnover = parseFloat(sources.business.grossTurnover || "0");
-      const profit = parseFloat(sources.business.declaredProfit || "0");
+      const turnover = parseFloat(sources.business.grossTurnover || "0") || 0;
+      const profit = parseFloat(sources.business.declaredProfit || "0") || 0;
       if (profit > turnover) {
         Alert.alert("Invalid Business Data", "Declared Net Profit cannot exceed Gross Turnover.");
         return false;
@@ -199,6 +203,15 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({
         Alert.alert("Capital Gains Details Required", "Long-Term Gains (LTCG) is mandatory (enter 0 if none).");
         return false;
       }
+      const stcg = parseFloat(sources.capitalGains.shortTermGains || "0") || 0;
+      const ltcg = parseFloat(sources.capitalGains.longTermGains || "0") || 0;
+      if (stcg + ltcg === 0) {
+        Alert.alert(
+          "Capital Gains Details Required",
+          "At least one of Short-Term Gains (STCG) or Long-Term Gains (LTCG) must be greater than zero."
+        );
+        return false;
+      }
     }
 
     if (sources.otherSources.enabled) {
@@ -212,6 +225,10 @@ export const Step2IncomeSources: React.FC<Step2IncomeSourcesProps> = ({
       }
       if (!sources.otherSources.dividendIncome?.trim()) {
         Alert.alert("Other Sources Required", "Dividend Income is mandatory (enter 0 if none).");
+        return false;
+      }
+      if (!sources.otherSources.familyPension?.trim()) {
+        Alert.alert("Other Sources Required", "Family Pension is mandatory (enter 0 if none).");
         return false;
       }
       if (!sources.otherSources.otherIncome?.trim()) {

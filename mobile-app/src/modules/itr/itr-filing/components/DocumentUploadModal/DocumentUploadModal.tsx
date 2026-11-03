@@ -51,7 +51,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
     if (sizeInBytes && sizeInBytes > MAX_FILE_SIZE_BYTES) {
       Alert.alert(
         "File Too Large",
-        "The selected file exceeds 2 MB. Please select a smaller file (under 2 MB) to proceed."
+        "The selected file exceeds 15 MB. Please select a smaller file (under 15 MB) to proceed."
       );
       return false;
     }
@@ -170,7 +170,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
     <DocumentUploadBottomSheet
       visible={visible}
       documentTitle={docTitle}
-      maxSizeBytesText="2 MB"
+      maxSizeBytesText="15 MB"
       onClose={onClose}
       onPickFiles={handlePickDocument}
       onPickGallery={handlePickGallery}

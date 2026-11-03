@@ -118,4 +118,48 @@ export const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.bold,
   },
+  saveBankBtnDisabled: {
+    backgroundColor: "#CBD5E1",
+  },
+  inputBoxError: {
+    borderColor: "#DC2626",
+  },
+  inputBoxLocked: {
+    backgroundColor: "#F8FAFC",
+    borderColor: "#E2E8F0",
+  },
+  ifscInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
+  },
+  ifscTextInput: {
+    flex: 1,
+  },
+  errorText: {
+    fontSize: Typography.fontSize.xs,
+    color: "#DC2626",
+    marginTop: 2,
+  },
+  lookupResultBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 4,
+    backgroundColor: "#ECFDF5",
+    borderRadius: BorderRadius.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 5,
+  },
+  lookupResultText: {
+    fontSize: Typography.fontSize.xs,
+    color: "#166534",
+    flex: 1,
+  },
+  lookupResultBank: {
+    fontWeight: Typography.fontWeight.bold,
+  },
+  lockIcon: {
+    marginLeft: 2,
+  },
 });

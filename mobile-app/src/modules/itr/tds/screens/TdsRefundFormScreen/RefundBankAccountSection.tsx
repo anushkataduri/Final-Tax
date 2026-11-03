@@ -1,8 +1,6 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { BrandColors } from "@/shared/theme";
-import { BankAccountType, BankRefundDetails } from "../../types/customerIncome.types";
+import { View, Text, TextInput } from "react-native";
+import { BankRefundDetails } from "../../types/customerIncome.types";
 import { cleanAccountNumber } from "../../utils/tdsValidation";
 import { CustomerFormErrors } from "../../validation/tdsCustomerSchema";
 import { styles } from "./TdsRefundFormScreen.styles";
@@ -12,20 +10,18 @@ interface RefundBankAccountSectionProps {
   bank: BankRefundDetails;
   errors: CustomerFormErrors;
   inputs: TdsFormInputRefs;
-  isIfscLoading: boolean;
-  ifscError: string | null;
   updateBank: UpdateBankField;
   onIfscChange: (val: string) => void;
+  onBlurField?: (key: string) => void;
 }
 
 export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> = ({
   bank,
   errors,
-  inputs: { accHolderRef, accNumRef, confirmAccNumRef, ifscRef, salaryRef },
-  isIfscLoading,
-  ifscError,
+  inputs: { accHolderRef, accNumRef, confirmAccNumRef, ifscRef },
   updateBank,
   onIfscChange,
+  onBlurField,
 }) => (
   <View style={styles.sectionCard}>
     <SectionHeader number={3} title="Refund Bank Account" />
@@ -42,6 +38,7 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
         placeholderTextColor="#94A3B8"
         value={bank.accountHolderName}
         onChangeText={(t) => updateBank("accountHolderName", t.replace(/[^A-Za-z\s]/g, ""))}
+        onBlur={() => onBlurField?.("bank.accountHolderName")}
         maxLength={50}
         returnKeyType="next"
         onSubmitEditing={() => accNumRef.current?.focus()}
@@ -64,6 +61,7 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
         keyboardType="number-pad"
         value={bank.accountNumber}
         onChangeText={(t) => updateBank("accountNumber", cleanAccountNumber(t))}
+        onBlur={() => onBlurField?.("bank.accountNumber")}
         maxLength={18}
         returnKeyType="next"
         onSubmitEditing={() => confirmAccNumRef.current?.focus()}
@@ -86,6 +84,7 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
         keyboardType="number-pad"
         value={bank.confirmAccountNumber}
         onChangeText={(t) => updateBank("confirmAccountNumber", cleanAccountNumber(t))}
+        onBlur={() => onBlurField?.("bank.confirmAccountNumber")}
         maxLength={18}
         returnKeyType="next"
         onSubmitEditing={() => ifscRef.current?.focus()}
@@ -100,28 +99,20 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
       <Text style={styles.fieldLabel}>
         IFSC Code <Text style={styles.requiredAsterisk}>*</Text>
       </Text>
-      <View style={styles.ifscRow}>
-        <View style={styles.ifscInputWrap}>
-          <TextInput
-            ref={ifscRef}
-            style={[
-              styles.textInput,
-              errors["bank.ifscCode"] || ifscError ? styles.textInputError : null,
-            ]}
-            placeholder="Enter IFSC"
-            placeholderTextColor="#94A3B8"
-            autoCapitalize="characters"
-            value={bank.ifscCode}
-            onChangeText={onIfscChange}
-            maxLength={11}
-            returnKeyType="next"
-            onSubmitEditing={() => salaryRef.current?.focus()}
-          />
-        </View>
-      </View>
-
-      {(errors["bank.ifscCode"] || ifscError) && (
-        <Text style={styles.errorText}>{errors["bank.ifscCode"] || ifscError}</Text>
+      <TextInput
+        ref={ifscRef}
+        style={[styles.textInput, errors["bank.ifscCode"] ? styles.textInputError : null]}
+        placeholder="Enter IFSC (e.g. HDFC0001234)"
+        placeholderTextColor="#94A3B8"
+        autoCapitalize="characters"
+        value={bank.ifscCode}
+        onChangeText={onIfscChange}
+        onBlur={() => onBlurField?.("bank.ifscCode")}
+        maxLength={11}
+        returnKeyType="done"
+      />
+      {errors["bank.ifscCode"] && (
+        <Text style={styles.errorText}>{errors["bank.ifscCode"]}</Text>
       )}
     </View>
 
@@ -138,6 +129,7 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
           placeholderTextColor="#94A3B8"
           value={bank.bankName}
           onChangeText={(val) => updateBank("bankName", val)}
+          onBlur={() => onBlurField?.("bank.bankName")}
         />
         {errors["bank.bankName"] && (
           <Text style={styles.errorText}>{errors["bank.bankName"]}</Text>
@@ -157,24 +149,6 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
       </View>
     </View>
 
-    {/* Account Type */}
-    <View style={styles.fieldGroup}>
-      <Text style={styles.fieldLabel}>Account Type</Text>
-      <View style={styles.chipGroup}>
-        {(["savings", "current"] as BankAccountType[]).map((type) => (
-          <TouchableOpacity
-            key={type}
-            activeOpacity={0.8}
-            onPress={() => updateBank("accountType", type)}
-            style={[styles.chip, bank.accountType === type ? styles.chipActive : null]}
-          >
-            <Text style={[styles.chipText, bank.accountType === type ? styles.chipTextActive : null]}>
-              {type === "savings" ? "Savings Account" : "Current Account"}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
   </View>
 );
 

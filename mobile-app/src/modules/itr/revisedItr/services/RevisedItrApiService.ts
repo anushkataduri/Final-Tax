@@ -1,7 +1,12 @@
-import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { tokenManager } from "@/core/authentication/tokenManager";
 import { getDefaultBaseUrl, getActiveBaseUrl } from "@/core/api/apiConfig";
 import { apiClient } from "@/core/api/apiClient";
+import {
+  REVISED_DOCUMENT_FIELD_MAP,
+  resolveMimeType,
+  prepareLocalFileForUpload,
+  createBlobFromFileUri,
+} from "../utils/revisedDocumentUploadHelper";
 
 let activeBaseUrlCache = "";
 const getBaseUrl = async () => {
@@ -174,125 +179,143 @@ export const RevisedItrApiService = {
   // Step 4: Documents
   saveRevisedDocuments: async (revisedItrId: string, documents: any[]) => {
     try {
+      const cleanId = String(revisedItrId || "").trim();
+      if (!cleanId) {
+        throw new Error("Missing Revised ITR ID for document upload.");
+      }
+
       const formData = new FormData();
-      const fieldMapping: Record<string, string> = {
-        "doc-1": "panCard",
-        "doc-2": "aadhaarCard",
-        "doc-3": "form16Form16A",
-        "doc-4": "aisTisStatement",
-        "doc-5": "bankStatements",
-        "doc-6": "investmentProofs"
-      };
-
       let hasUploadedAny = false;
+
       for (const doc of documents) {
-        if (doc.fileUri && fieldMapping[doc.id]) {
-          const paramName = fieldMapping[doc.id];
-          try {
-            let mimeType = doc.mimeType as string | undefined;
-            let extension = "pdf";
+        if (doc.fileUri && REVISED_DOCUMENT_FIELD_MAP[doc.id]) {
+          const paramName = REVISED_DOCUMENT_FIELD_MAP[doc.id];
+          const fileName = doc.fileName || `${doc.id}.pdf`;
+          const mimeType = resolveMimeType(fileName, doc.mimeType);
 
-            const lowerName = (doc.fileName || "").toLowerCase();
-            if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) {
-              mimeType = "image/jpeg";
-              extension = "jpg";
-            } else if (lowerName.endsWith(".png")) {
-              mimeType = "image/png";
-              extension = "png";
-            } else {
-              mimeType = mimeType || "application/pdf";
-            }
+          const { localUri } = await prepareLocalFileForUpload(doc.fileUri, fileName);
+          const fileBlob = await createBlobFromFileUri(localUri, fileName, mimeType);
 
-            const finalFileName = doc.fileName || `${doc.id}.${extension}`;
-            formData.append(paramName, { uri: doc.fileUri, name: finalFileName, type: mimeType } as any);
-            hasUploadedAny = true;
-          } catch (err) {
-            console.error(`Failed to attach file ${doc.id} at ${doc.fileUri}`, err);
-          }
+          formData.append(paramName, fileBlob, fileName);
+
+          hasUploadedAny = true;
         }
       }
 
       if (!hasUploadedAny) {
-        const dummyBlob = new Blob(['%PDF-1.4 dummy content'], { type: 'application/pdf' });
-        formData.append("panCard", dummyBlob, "dummy.pdf");
+        throw new Error("At least one document is required before proceeding.");
       }
 
-      const token = await tokenManager.getAccessToken();
-      const targetUrl = await getApiUrl(`/${revisedItrId}/document/register`);
-      const response = await fetch(targetUrl, {
+      let token = await tokenManager.getAccessToken();
+      const targetUrl = await getApiUrl(`/${cleanId}/document/register`);
+      let response = await fetch(targetUrl, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData,
       });
-      if (!response.ok) throw new Error("Document upload failed");
-      const result = await response.text();
-      return { documentId: extractId(result) };
+
+      if (response.status === 401) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { tokenRefreshManager } = require("@/core/authentication/tokenRefreshManager");
+          const refreshed = await tokenRefreshManager.attemptRefresh();
+          if (refreshed) {
+            token = await tokenManager.getAccessToken();
+            response = await fetch(targetUrl, {
+              method: "POST",
+              headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: formData,
+            });
+          }
+        } catch {
+          // Silent refresh failed; proceed to evaluate response
+        }
+      }
+
+      const responseText = await response.text();
+      if (!response.ok) {
+        throw new Error(responseText || `Document upload failed with status ${response.status}`);
+      }
+
+      return { documentId: extractId(responseText) };
     } catch (error) {
       console.error("Error saving Revised Documents:", error);
       throw error;
     }
   },
+
   updateRevisedDocuments: async (documentId: string, documents: any[]) => {
     try {
+      const cleanId = String(documentId || "").trim();
+      if (!cleanId) {
+        throw new Error("Missing document ID for update.");
+      }
+
       const formData = new FormData();
-      const fieldMapping: Record<string, string> = {
-        "doc-1": "panCard",
-        "doc-2": "aadhaarCard",
-        "doc-3": "form16Form16A",
-        "doc-4": "aisTisStatement",
-        "doc-5": "bankStatements",
-        "doc-6": "investmentProofs"
-      };
-
       let hasUploadedAny = false;
+
       for (const doc of documents) {
-        if (doc.fileUri && fieldMapping[doc.id]) {
-          const paramName = fieldMapping[doc.id];
-          try {
-            let mimeType = doc.mimeType as string | undefined;
-            let extension = "pdf";
+        if (doc.fileUri && REVISED_DOCUMENT_FIELD_MAP[doc.id]) {
+          const paramName = REVISED_DOCUMENT_FIELD_MAP[doc.id];
+          const fileName = doc.fileName || `${doc.id}.pdf`;
+          const mimeType = resolveMimeType(fileName, doc.mimeType);
 
-            const lowerName = (doc.fileName || "").toLowerCase();
-            if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) {
-              mimeType = "image/jpeg";
-              extension = "jpg";
-            } else if (lowerName.endsWith(".png")) {
-              mimeType = "image/png";
-              extension = "png";
-            } else {
-              mimeType = mimeType || "application/pdf";
-            }
+          const { localUri } = await prepareLocalFileForUpload(doc.fileUri, fileName);
+          const fileBlob = await createBlobFromFileUri(localUri, fileName, mimeType);
 
-            const finalFileName = doc.fileName || `${doc.id}.${extension}`;
-            formData.append(paramName, { uri: doc.fileUri, name: finalFileName, type: mimeType } as any);
-            hasUploadedAny = true;
-          } catch (err) {
-            console.error(`Failed to attach file ${doc.id} at ${doc.fileUri}`, err);
-          }
+          formData.append(paramName, fileBlob, fileName);
+
+          hasUploadedAny = true;
         }
       }
 
       if (!hasUploadedAny) {
-        const dummyBlob = new Blob(['%PDF-1.4 dummy content'], { type: 'application/pdf' });
-        formData.append("panCard", dummyBlob, "dummy.pdf");
+        throw new Error("At least one document is required before proceeding.");
       }
 
-      const token = await tokenManager.getAccessToken();
-      const targetUrl = await getApiUrl(`/document/update/${documentId}`);
-      const response = await fetch(targetUrl, {
+      let token = await tokenManager.getAccessToken();
+      const targetUrl = await getApiUrl(`/document/update/${cleanId}`);
+      let response = await fetch(targetUrl, {
         method: "PUT",
         headers: {
-          "Authorization": `Bearer ${token}`
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: formData,
       });
-      if (!response.ok) throw new Error("Document update failed");
-      return await response.text();
+
+      if (response.status === 401) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const { tokenRefreshManager } = require("@/core/authentication/tokenRefreshManager");
+          const refreshed = await tokenRefreshManager.attemptRefresh();
+          if (refreshed) {
+            token = await tokenManager.getAccessToken();
+            response = await fetch(targetUrl, {
+              method: "PUT",
+              headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: formData,
+            });
+          }
+        } catch {
+          // Silent refresh failed; proceed to evaluate response
+        }
+      }
+
+      const responseText = await response.text();
+      if (!response.ok) {
+        throw new Error(responseText || `Document update failed with status ${response.status}`);
+      }
+
+      return responseText;
     } catch (error) {
       console.error("Error updating Revised Documents:", error);
       throw error;
     }
-  }
+  },
 };

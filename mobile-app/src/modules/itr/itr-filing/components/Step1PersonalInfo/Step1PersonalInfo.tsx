@@ -144,13 +144,13 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
       return;
     }
 
-    const accountError = validators.bankAccountNumber()(bankDetails.accountNumber);
+    const accountError = validators.bankAccountNumber("Bank account number")(bankDetails.accountNumber);
     if (accountError) {
       Alert.alert("Invalid Account Number", accountError);
       return;
     }
 
-    const ifscError = validators.ifsc()(bankDetails.ifscCode);
+    const ifscError = validators.ifsc("IFSC code")(bankDetails.ifscCode);
     if (ifscError) {
       Alert.alert("Invalid IFSC Code", ifscError);
       return;
@@ -269,11 +269,14 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
                   })
                 }
               >
+                {/* BUG_B26_003: "Non-Resident (NRI)" exceeds single-line pill width on narrow
+                    screens — allow up to 2 lines so the label wraps instead of clipping */}
                 <Text
                   style={[
                     styles.pickerPillText,
                     isSelected && styles.pickerPillTextSelected,
                   ]}
+                  numberOfLines={2}
                 >
                   {res.label}
                 </Text>

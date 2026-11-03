@@ -123,7 +123,7 @@ export const Step4DocumentChecklist: React.FC<Step4DocumentChecklistProps> = ({
           onUpdateDocument(id, fileInfo);
         }}
         onRemove={(id: string) => {
-          onUpdateDocument(id, { uri: "", name: "", size: "" });
+          onUpdateDocument(id, null);
         }}
       />
     );
