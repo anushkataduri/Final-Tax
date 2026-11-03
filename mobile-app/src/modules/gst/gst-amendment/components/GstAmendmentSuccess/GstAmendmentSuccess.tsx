@@ -4,8 +4,8 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  StatusBar,
 } from "react-native";
+import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import {
@@ -33,7 +33,7 @@ export const GstAmendmentSuccess: React.FC<GstAmendmentSuccessProps> = ({
 }) => {
   return (
     <View style={styles.successContainer}>
-      <StatusBar barStyle="light-content" backgroundColor={BrandColors.PRIMARY_BLUE} />
+      <FocusAwareStatusBar barStyle="light-content" backgroundColor={BrandColors.PRIMARY_BLUE} />
 
       {/* Scrollable Content */}
       <ScrollView

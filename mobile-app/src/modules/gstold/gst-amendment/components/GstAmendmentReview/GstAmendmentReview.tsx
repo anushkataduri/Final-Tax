@@ -4,8 +4,8 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  StatusBar,
 } from "react-native";
+import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import {
@@ -81,7 +81,7 @@ export const GstAmendmentReview: React.FC<GstAmendmentReviewProps> = ({
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <FocusAwareStatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       {/* Header (No back arrow: edits are accessed via the dedicated Edit button) */}
       <View style={[styles.headerBar, getHeaderBarStyle(insets.top)]}>
