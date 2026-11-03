@@ -3,10 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  ScrollView,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
 } from "react-native";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
@@ -22,27 +19,20 @@ import {
   PersonalInfoSection,
   BusinessDetailsSection,
   RefundBankAccountSection,
+  IncomeTaxInfoSection,
+  TdsTaxesPaidSection,
   TdsFormInputRefs,
-  SectionHeader,
 } from "./TdsRefundFormSections";
-import { TdsDocumentCard } from "../../components/documents";
-import { useTdsProgressStore } from "../../store/tdsProgressStore";
 import { styles } from "./TdsRefundFormScreen.styles";
 import { useTdsRefundForm } from "./useTdsRefundForm";
-import { useKeyboard } from "@/shared/hooks/useKeyboard";
 
 export const TdsRefundFormScreen: React.FC = () => {
   const router = useRouter();
-  const maxStepReached = useTdsProgressStore((s) => s.maxStepReached);
   const insets = useSafeAreaInsets();
-
-  const { keyboardShown, keyboardHeight } = useKeyboard();
 
   const {
     formData,
     errors,
-    isIfscLoading,
-    ifscError,
     isProfileLoading,
     profileFetchError,
     fetchAndPopulateProfile,
@@ -51,6 +41,7 @@ export const TdsRefundFormScreen: React.FC = () => {
     updateBank,
     updateIncome,
     handleIfscChange,
+    handleBlurField,
     handleContinue,
     draftGuard,
     documents,
@@ -80,7 +71,7 @@ export const TdsRefundFormScreen: React.FC = () => {
   const tcsRef = useRef<TextInput>(null);
   const advanceTaxRef = useRef<TextInput>(null);
   const selfTaxRef = useRef<TextInput>(null);
-  
+
   const inputRefs: TdsFormInputRefs = {
     accHolderRef,
     accNumRef,
@@ -167,6 +158,7 @@ export const TdsRefundFormScreen: React.FC = () => {
           errorMessage={profileFetchError}
           onRetry={fetchAndPopulateProfile}
           onSaveProfile={handleSaveProfile}
+          onBlurField={handleBlurField}
         />
 
         <BusinessDetailsSection
@@ -177,26 +169,36 @@ export const TdsRefundFormScreen: React.FC = () => {
           onUploadSuccess={handleUploadSuccess}
           onUploadError={handleUploadError}
           onRemove={handleRemove}
+          onBlurField={handleBlurField}
         />
 
         <RefundBankAccountSection
           bank={formData.bank}
           errors={errors}
           inputs={inputRefs}
-          isIfscLoading={isIfscLoading}
-          ifscError={ifscError}
           updateBank={updateBank}
           onIfscChange={handleIfscChange}
+          onBlurField={handleBlurField}
         />
 
-        
+        <IncomeTaxInfoSection
+          income={formData.income}
+          inputs={inputRefs}
+          updateIncome={updateIncome}
+          errors={errors}
+          onBlurField={handleBlurField}
+        />
 
-
-
+        <TdsTaxesPaidSection
+          income={formData.income}
+          errors={errors}
+          inputs={inputRefs}
+          updateIncome={updateIncome}
+        />
       </KeyboardAwareScrollView>
 
       {/* Sticky Bottom CTA - 2 Distinct Buttons */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 14, bottom: keyboardShown ? keyboardHeight : 0 }]}>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 14 }]}>
         {isEditing ? (
           /* Separate Button 1: Update & Continue (PUT Method) */
           <TouchableOpacity

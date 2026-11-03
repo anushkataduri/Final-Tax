@@ -1,40 +1,22 @@
 import React from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  BackHandler,
-} from "react-native";
-import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { SuccessCelebrationHeader } from "../../components/success/SuccessCelebrationHeader";
-import { FilingProgressTracker } from "../../components/success/FilingProgressTracker";
-import { ApplicationSummaryCard } from "../../components/success/ApplicationSummaryCard";
-import { WhatHappensNextCard } from "../../components/success/WhatHappensNextCard";
-import { ApplicationSummaryData } from "../../types/success.types";
+import { useLocalSearchParams } from "expo-router";
 import { useRevisedProgressStore } from "@/modules/itr/revisedItr/store/revisedProgressStore";
 import {
-  styles,
-  getContainerInsetsStyle,
-  getScrollContentInsetsStyle,
-  getBottomBarInsetsStyle,
-} from "./ApplicationSuccessScreen.styles";
+  CommonPostSubmissionScreen,
+  PostSubmissionConfig,
+} from "../../components/submission/CommonPostSubmissionScreen";
 
-interface ApplicationSuccessScreenProps {
+export interface ApplicationSuccessScreenProps {
+  config?: PostSubmissionConfig;
   onTrackStatus?: () => void;
   onDownloadAcknowledgement?: () => void;
 }
 
 export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> = ({
+  config: providedConfig,
   onTrackStatus,
   onDownloadAcknowledgement,
 }) => {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     applicationId?: string;
     serviceType?: string;
@@ -46,152 +28,62 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
     uploadedDocsCount?: string;
     totalDocsCount?: string;
     refundBank?: string;
+    originalAckNumber?: string;
+    revisionReason?: string;
+    status?: string;
   }>();
 
   const storeDocuments = useRevisedProgressStore((s) => s.documents);
-
   const isRevised = params.serviceType === "revised" || params.serviceTitle === "Revised ITR";
-  const appId = params.applicationId || "Application Received";
-  const incomeType = isRevised ? "Revised Return Filing" : (params.incomeType || "Declared Income");
-  const formType = params.formType || (isRevised ? "Revised ITR" : "ITR Form");
-  const rawAy = params.assessmentYear || "";
-  const formattedAy = rawAy ? (rawAy.startsWith("AY") ? rawAy : `AY ${rawAy}`) : "Current AY";
-  const uploadedCount = (isRevised && storeDocuments)
-    ? storeDocuments.filter((d) => d.status === "uploaded" || !!d.fileUri).length.toString()
-    : params.uploadedDocsCount || "0";
-  const totalCount = (isRevised && storeDocuments)
-    ? storeDocuments.length.toString()
-    : params.totalDocsCount || "0";
-  const docsUploaded = `${uploadedCount} of ${totalCount} received`;
-  const refundBank = params.refundBank || "Verified Primary Bank";
-  const taxRegime = params.regime || "New Tax Regime";
 
-  const summaryData: ApplicationSummaryData = {
-    applicationId: appId,
-    incomeType,
-    itrForm: formType,
-    assessmentYear: formattedAy,
-    taxRegime,
-    documentsUploaded: docsUploaded,
-    refundBank,
-    submissionDate: new Date().toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }),
-    status: "Received",
-  };
-
-  const handleBack = React.useCallback(() => {
-    router.replace("/(main)/home" as any);
-  }, [router]);
-
-  const handleGoHome = () => {
-    router.replace("/(main)/home" as any);
-  };
-
-  const handleTrackStatus = () => {
-    if (onTrackStatus) {
-      onTrackStatus();
-      return;
-    }
-    router.replace("/(main)/applications" as any);
-  };
-
-  React.useEffect(() => {
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      handleBack();
-      return true;
-    });
-    return () => sub.remove();
-  }, [handleBack]);
-
-  const handleDownload = () => {
-    if (onDownloadAcknowledgement) {
-      onDownloadAcknowledgement();
-    } else {
-      Alert.alert(
-        "Application Receipt Downloaded",
-        `TaxEdge Application Receipt for ${appId} has been saved to your device.`
-      );
-    }
-  };
+  const resolvedConfig: PostSubmissionConfig =
+    providedConfig ||
+    (isRevised
+      ? {
+        moduleType: "revised-itr",
+        referenceId: params.applicationId || "",
+        headerTitle: "Revised ITR",
+        headerSubtitle: "Application Received",
+        title: "Your Revised ITR application has been received.",
+        description:
+          "Your documents and revised tax information have been received. A Tax Executive will review them before preparing your return.",
+        assessmentYear: params.assessmentYear || "AY 2025–26",
+        formType: params.formType || "Revised ITR",
+        incomeType: params.incomeType || "Revised Return Filing",
+        revisionReason: params.revisionReason,
+        originalAckNumber: params.originalAckNumber,
+        uploadedDocsCount: storeDocuments
+          ? storeDocuments.filter((d) => d.status === "uploaded" || !!d.fileUri).length
+          : params.uploadedDocsCount || "0",
+        totalDocsCount: storeDocuments
+          ? storeDocuments.length
+          : params.totalDocsCount || "0",
+        status: params.status || "Received",
+      }
+      : {
+        moduleType: "itr",
+        referenceId: params.applicationId || "",
+        headerTitle: params.serviceTitle || "ITR Filing",
+        headerSubtitle: "Application Received",
+        title: "Your application has been received!",
+        description:
+          "Your documents and tax information have been received. A Tax Executive will review them before preparing your return.",
+        assessmentYear: params.assessmentYear || "AY 2025–26",
+        formType: params.formType || "ITR Form",
+        incomeType: params.incomeType || "Declared Income",
+        taxRegime: params.regime || "New Tax Regime",
+        uploadedDocsCount: params.uploadedDocsCount || "0",
+        totalDocsCount: params.totalDocsCount || "0",
+        refundBank: params.refundBank || "Verified Primary Bank",
+        status: params.status || "Received",
+      });
 
   return (
-    <View style={[styles.container, getContainerInsetsStyle(insets.top)]}>
-      <FocusAwareStatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-
-      {/* Screen Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={handleBack}
-          style={styles.backButton}
-        >
-          <Ionicons name="chevron-back" size={20} color="#0B1F3A" />
-        </TouchableOpacity>
-
-        <View style={styles.headerTitleGroup}>
-          <Text style={styles.headerTitle}>
-            {isRevised ? "Revised ITR" : (params.serviceTitle || "ITR Filing")}
-          </Text>
-          <Text style={styles.headerSubtitle}>Application Received</Text>
-        </View>
-
-        <View style={styles.headerRightSpacer} />
-      </View>
-
-      {/* Main Content */}
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          getScrollContentInsetsStyle(insets.bottom),
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Celebration Header & ID Card */}
-        <SuccessCelebrationHeader applicationId={appId} isRevised={isRevised} />
-
-        {/* 6-Stage Progress Tracker */}
-        <FilingProgressTracker isRevised={isRevised} />
-
-        {/* What We Have Summary Card */}
-        <ApplicationSummaryCard summary={summaryData} />
-
-        {/* What Happens Next Card */}
-        <WhatHappensNextCard />
-      </ScrollView>
-
-      {/* Sticky Bottom Actions */}
-      <View style={[styles.bottomBar, getBottomBarInsetsStyle(insets.bottom)]}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleTrackStatus}
-          style={styles.primaryButton}
-        >
-          <Text style={styles.primaryButtonText}>Track My Application</Text>
-          <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleGoHome}
-          style={styles.secondaryButton}
-        >
-          <Ionicons name="home-outline" size={18} color="#0B1F3A" />
-          <Text style={[styles.secondaryButtonText, { color: "#0B1F3A" }]}>Go Home</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleDownload}
-          style={styles.secondaryButton}
-        >
-          <Ionicons name="download-outline" size={18} color="#F97316" />
-          <Text style={styles.secondaryButtonText}>Download TaxEdge Application Receipt</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    <CommonPostSubmissionScreen
+      config={resolvedConfig}
+      onTrackStatus={onTrackStatus}
+      onDownloadAcknowledgement={onDownloadAcknowledgement}
+    />
   );
 };
 

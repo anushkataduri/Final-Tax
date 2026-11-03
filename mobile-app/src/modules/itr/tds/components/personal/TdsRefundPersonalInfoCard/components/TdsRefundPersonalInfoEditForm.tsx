@@ -24,6 +24,7 @@ export interface TdsRefundPersonalInfoEditFormProps {
   updateEditField: (field: keyof PersonalDetails, val: string) => void;
   handleCancelEdit: () => void;
   handleSave: () => void;
+  onBlurField?: (field: keyof PersonalDetails) => void;
 }
 
 export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFormProps> = ({
@@ -33,6 +34,7 @@ export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFo
   updateEditField,
   handleCancelEdit,
   handleSave,
+  onBlurField,
 }) => {
   return (
     <View style={styles.card}>
@@ -57,7 +59,8 @@ export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFo
             placeholderTextColor="#94A3B8"
             value={editForm.fullName}
             onChangeText={(t) => updateEditField("fullName", t.replace(/[^A-Za-z\s]/g, ""))}
-        maxLength={50}
+            onBlur={() => onBlurField?.("fullName")}
+            maxLength={50}
           />
           {editErrors.fullName && (
             <Text style={styles.fieldErrorText}>{editErrors.fullName}</Text>
@@ -77,6 +80,7 @@ export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFo
               autoCapitalize="characters"
               value={editForm.pan}
               onChangeText={(t) => updateEditField("pan", cleanPan(t))}
+              onBlur={() => onBlurField?.("pan")}
             />
             {editErrors.pan && (
               <Text style={styles.fieldErrorText}>{editErrors.pan}</Text>
@@ -92,6 +96,7 @@ export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFo
               keyboardType="number-pad"
               value={editForm.aadhaar}
               onChangeText={(t) => updateEditField("aadhaar", cleanAadhaar(t))}
+              onBlur={() => onBlurField?.("aadhaar")}
             />
             {editErrors.aadhaar && (
               <Text style={styles.fieldErrorText}>{editErrors.aadhaar}</Text>
@@ -110,6 +115,7 @@ export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFo
             placeholderTextColor="#94A3B8"
             value={editForm.dob}
             onChangeText={(t) => updateEditField("dob", t)}
+            onBlur={() => onBlurField?.("dob")}
           />
           {editErrors.dob && (
             <Text style={styles.fieldErrorText}>{editErrors.dob}</Text>
@@ -129,7 +135,8 @@ export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFo
               keyboardType="phone-pad"
               value={editForm.mobileNumber}
               onChangeText={(t) => updateEditField("mobileNumber", cleanMobile(t))}
-        maxLength={10}
+              onBlur={() => onBlurField?.("mobileNumber")}
+              maxLength={10}
             />
             {editErrors.mobileNumber && (
               <Text style={styles.fieldErrorText}>{editErrors.mobileNumber}</Text>
@@ -148,6 +155,7 @@ export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFo
               autoCapitalize="none"
               value={editForm.email}
               onChangeText={(t) => updateEditField("email", t)}
+              onBlur={() => onBlurField?.("email")}
             />
             {editErrors.email && (
               <Text style={styles.fieldErrorText}>{editErrors.email}</Text>
@@ -166,6 +174,7 @@ export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFo
             placeholderTextColor="#94A3B8"
             value={editForm.residentialAddress}
             onChangeText={(t) => updateEditField("residentialAddress", t)}
+            onBlur={() => onBlurField?.("residentialAddress")}
           />
           {editErrors.residentialAddress && (
             <Text style={styles.fieldErrorText}>{editErrors.residentialAddress}</Text>
@@ -184,6 +193,7 @@ export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFo
               placeholderTextColor="#94A3B8"
               value={editForm.city}
               onChangeText={(t) => updateEditField("city", t)}
+              onBlur={() => onBlurField?.("city")}
             />
             {editErrors.city && (
               <Text style={styles.fieldErrorText}>{editErrors.city}</Text>
@@ -200,6 +210,7 @@ export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFo
               placeholderTextColor="#94A3B8"
               value={editForm.state}
               onChangeText={(t) => updateEditField("state", t)}
+              onBlur={() => onBlurField?.("state")}
             />
             {editErrors.state && (
               <Text style={styles.fieldErrorText}>{editErrors.state}</Text>
@@ -217,7 +228,8 @@ export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFo
               keyboardType="number-pad"
               value={editForm.pinCode}
               onChangeText={(t) => updateEditField("pinCode", cleanPinCode(t))}
-        maxLength={6}
+              onBlur={() => onBlurField?.("pinCode")}
+              maxLength={6}
             />
             {editErrors.pinCode && (
               <Text style={styles.fieldErrorText}>{editErrors.pinCode}</Text>

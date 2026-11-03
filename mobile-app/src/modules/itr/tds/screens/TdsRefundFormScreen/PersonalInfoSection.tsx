@@ -11,6 +11,7 @@ interface PersonalInfoSectionProps {
   errorMessage: string | null;
   onRetry: () => void;
   onSaveProfile: (updated: PersonalDetails) => Promise<void>;
+  onBlurField?: (key: string) => void;
 }
 
 export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
@@ -20,6 +21,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
   errorMessage,
   onRetry,
   onSaveProfile,
+  onBlurField,
 }) => (
   <TdsRefundPersonalInfoCard
     personalData={personal}
@@ -29,6 +31,7 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
     errorMessage={errorMessage || undefined}
     onRetry={onRetry}
     onSaveProfile={onSaveProfile}
+    onBlurField={onBlurField}
   />
 );
 

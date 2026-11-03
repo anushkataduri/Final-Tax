@@ -123,10 +123,21 @@ export const tdsApplicationApiService = {
         try {
           bankDto = await tdsBankAndIncomeApiService.getBankAccount(tdsRefundId);
         } catch {
-          bankDto = await tdsBankAndIncomeApiService.getBankAccountByCustId(custId);
+          if (custId) {
+            bankDto = await tdsBankAndIncomeApiService.getBankAccountByCustId(custId);
+          }
         }
-      } else {
+      } else if (custId) {
         bankDto = await tdsBankAndIncomeApiService.getBankAccountByCustId(custId);
+      }
+
+      // Fallback: direct getTdsRefund lookup
+      if ((!bankDto || !bankDto.id) && tdsRefundId) {
+        try {
+          bankDto = (await tdsBankAndIncomeApiService.getTdsRefund(tdsRefundId)) as any;
+        } catch {
+          // ignore fallback error
+        }
       }
 
       if (!bankDto || !bankDto.id) {
@@ -135,12 +146,23 @@ export const tdsApplicationApiService = {
 
       tdsRefundId = bankDto.id;
 
-      // Parallel fetch of income, taxes paid, and documents
-      const [incomeDto, taxesPaidDto, docsList] = await Promise.all([
-        tdsBankAndIncomeApiService.getIncomeTaxInfo(tdsRefundId),
-        tdsBankAndIncomeApiService.getTdsTaxesPaid(tdsRefundId),
-        tdsDocumentsApiService.fetchAndMapDocumentsList(tdsRefundId),
-      ]);
+      // Resilient auxiliary fetches — failure of optional endpoints never drops bank/business data
+      let incomeDto: any = null;
+      let taxesPaidDto: any = null;
+      let docsList: TdsDocumentItem[] = [];
+
+      try {
+        const [incomeRes, taxesPaidRes, docsRes] = await Promise.allSettled([
+          tdsBankAndIncomeApiService.getIncomeTaxInfo(tdsRefundId),
+          tdsBankAndIncomeApiService.getTdsTaxesPaid(tdsRefundId),
+          tdsDocumentsApiService.fetchAndMapDocumentsList(tdsRefundId),
+        ]);
+        if (incomeRes.status === "fulfilled") incomeDto = incomeRes.value;
+        if (taxesPaidRes.status === "fulfilled") taxesPaidDto = taxesPaidRes.value;
+        if (docsRes.status === "fulfilled" && Array.isArray(docsRes.value)) docsList = docsRes.value;
+      } catch (auxErr) {
+        console.warn("[TDS App API] Auxiliary fetch warning:", auxErr);
+      }
 
       const bankData: TdsCustomerIncomeFormData["bank"] = {
         accountHolderName: bankDto.accountHolderName || "",
@@ -452,9 +474,6 @@ export const tdsApplicationApiService = {
   fetchStatus: async (
     applicationId: string,
   ): Promise<BackendApplicationResponse> => {
-    return await apiClient.get<BackendApplicationResponse>(
-      `/tds-refund/status/${applicationId}`,
-    );
     try {
       return await apiClient.get<BackendApplicationResponse>(
         `/tds-refund/status/${applicationId}`,
