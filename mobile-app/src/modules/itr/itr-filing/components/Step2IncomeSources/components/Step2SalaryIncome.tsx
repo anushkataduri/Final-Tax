@@ -114,7 +114,7 @@ export const Step2SalaryIncome: React.FC<Props> = ({ data, onUpdate, onPressInfo
               onChangeText={(val) =>
                 onUpdate({
                   employerName: val
-                    .replace(/[^a-zA-Z\s]/g, "")
+                    .replace(/[^a-zA-Z0-9\s&.'-]/g, "")
                     .trimStart()
                     .replace(/  +/g, " "),
                 })

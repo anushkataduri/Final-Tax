@@ -34,6 +34,15 @@ import { DEFAULT_REVISED_FORM_FIELDS } from "../../mock/revisedItrData";
 import { RevisedFormFields } from "../../types/revisedItr.types";
 import { buildComparisonRows, computeRevisedRefund } from "../../services/revisedItrCalculations";
 
+// BUG_B25_001: backend returns dob as YYYY-MM-DD; convert to DD/MM/YYYY for display
+const formatCustomerDob = (dob?: string): string => {
+  if (!dob || !dob.trim()) return "Not provided";
+  const clean = dob.trim();
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(clean);
+  if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+  return clean.replace(/-/g, "/");
+};
+
 export const ReviewRevisedComputationScreen: React.FC = () => {
   React.useEffect(() => {
     useRevisedProgressStore.getState().setMaxStepReached(3);
@@ -442,7 +451,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Date of Birth</Text>
-              <Text style={styles.infoVal}>{customer?.dob || "15/08/1990"}</Text>
+              <Text style={styles.infoVal}>{formatCustomerDob(customer?.dob)}</Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Mobile</Text>

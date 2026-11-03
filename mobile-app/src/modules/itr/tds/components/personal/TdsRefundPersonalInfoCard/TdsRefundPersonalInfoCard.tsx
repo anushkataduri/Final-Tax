@@ -9,6 +9,7 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import { PersonalDetails } from "../../../types/customerIncome.types";
+import { CustomerFormErrors } from "../../../validation/tdsCustomerSchema";
 import {
   cleanPan,
   cleanAadhaar,
@@ -21,8 +22,9 @@ import { TdsRefundPersonalInfoEditForm } from "./components/TdsRefundPersonalInf
 
 export interface TdsRefundPersonalInfoCardProps {
   personalData: PersonalDetails;
+  // BUG_B23_004: outer form validation errors for personal fields
+  personalErrors?: CustomerFormErrors;
   isLoading?: boolean;
-
   isError?: boolean;
   errorMessage?: string;
   onRetry?: () => void;
@@ -33,6 +35,7 @@ export const TdsRefundPersonalInfoCard: React.FC<
   TdsRefundPersonalInfoCardProps
 > = ({
   personalData,
+  personalErrors,
   isLoading = false,
   isError = false,
   errorMessage = "Unable to load your profile information.",
@@ -250,6 +253,12 @@ export const TdsRefundPersonalInfoCard: React.FC<
 
   const addressInfo = formatAddressForData(activeData);
 
+  // BUG_B23_004: compute personal error count for read-only banner
+  const personalErrorKeys = personalErrors
+    ? Object.keys(personalErrors).filter((k) => !k.includes(".") || k.startsWith("personal."))
+    : [];
+  const hasPersonalErrors = personalErrorKeys.length > 0;
+
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -277,6 +286,16 @@ export const TdsRefundPersonalInfoCard: React.FC<
           <Text style={styles.editButtonText}>Edit</Text>
         </TouchableOpacity>
       </View>
+
+      {/* BUG_B23_004: validation error banner in read-only mode */}
+      {hasPersonalErrors && !isEditing && (
+        <View style={styles.personalErrorBanner}>
+          <Ionicons name="alert-circle" size={14} color="#DC2626" />
+          <Text style={styles.personalErrorBannerText}>
+            Personal information is incomplete. Tap Edit to fix the required fields.
+          </Text>
+        </View>
+      )}
 
       <View style={styles.infoRowsList}>
         {/* Full Name */}

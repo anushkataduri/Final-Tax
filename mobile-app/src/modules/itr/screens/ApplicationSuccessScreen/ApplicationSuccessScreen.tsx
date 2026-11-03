@@ -16,6 +16,7 @@ import { FilingProgressTracker } from "../../components/success/FilingProgressTr
 import { ApplicationSummaryCard } from "../../components/success/ApplicationSummaryCard";
 import { WhatHappensNextCard } from "../../components/success/WhatHappensNextCard";
 import { ApplicationSummaryData } from "../../types/success.types";
+import { useRevisedProgressStore } from "@/modules/itr/revisedItr/store/revisedProgressStore";
 import {
   styles,
   getContainerInsetsStyle,
@@ -47,14 +48,20 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
     refundBank?: string;
   }>();
 
+  const storeDocuments = useRevisedProgressStore((s) => s.documents);
+
   const isRevised = params.serviceType === "revised" || params.serviceTitle === "Revised ITR";
   const appId = params.applicationId || "Application Received";
   const incomeType = isRevised ? "Revised Return Filing" : (params.incomeType || "Declared Income");
   const formType = params.formType || (isRevised ? "Revised ITR" : "ITR Form");
   const rawAy = params.assessmentYear || "";
   const formattedAy = rawAy ? (rawAy.startsWith("AY") ? rawAy : `AY ${rawAy}`) : "Current AY";
-  const uploadedCount = params.uploadedDocsCount || "0";
-  const totalCount = params.totalDocsCount || "0";
+  const uploadedCount = (isRevised && storeDocuments)
+    ? storeDocuments.filter((d) => d.status === "uploaded" || !!d.fileUri).length.toString()
+    : params.uploadedDocsCount || "0";
+  const totalCount = (isRevised && storeDocuments)
+    ? storeDocuments.length.toString()
+    : params.totalDocsCount || "0";
   const docsUploaded = `${uploadedCount} of ${totalCount} received`;
   const refundBank = params.refundBank || "Verified Primary Bank";
   const taxRegime = params.regime || "New Tax Regime";
@@ -66,6 +73,7 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
     assessmentYear: formattedAy,
     taxRegime,
     documentsUploaded: docsUploaded,
+    refundBank,
     submissionDate: new Date().toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
@@ -74,20 +82,12 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
     status: "Received",
   };
 
-  const handleBack = () => {
-    if (router.canDismiss()) {
-      router.dismissAll();
-    } else {
-      router.replace("/(main)/home" as any);
-    }
-  };
+  const handleBack = React.useCallback(() => {
+    router.replace("/(main)/home" as any);
+  }, [router]);
 
   const handleGoHome = () => {
-    if (router.canDismiss()) {
-      router.dismissAll();
-    } else {
-      router.replace("/(main)/home" as any);
-    }
+    router.replace("/(main)/home" as any);
   };
 
   const handleTrackStatus = () => {
@@ -95,12 +95,7 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
       onTrackStatus();
       return;
     }
-    if (router.canDismiss()) {
-      router.dismissAll();
-      router.navigate("/(main)/applications" as any);
-    } else {
-      router.replace("/(main)/applications" as any);
-    }
+    router.replace("/(main)/applications" as any);
   };
 
   React.useEffect(() => {
@@ -109,7 +104,7 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
       return true;
     });
     return () => sub.remove();
-  }, []);
+  }, [handleBack]);
 
   const handleDownload = () => {
     if (onDownloadAcknowledgement) {
@@ -181,7 +176,7 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleGoHome}
-          style={[styles.secondaryButton, { marginTop: 8 }]}
+          style={styles.secondaryButton}
         >
           <Ionicons name="home-outline" size={18} color="#0B1F3A" />
           <Text style={[styles.secondaryButtonText, { color: "#0B1F3A" }]}>Go Home</Text>
@@ -190,7 +185,7 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={handleDownload}
-          style={[styles.secondaryButton, { marginTop: 8 }]}
+          style={styles.secondaryButton}
         >
           <Ionicons name="download-outline" size={18} color="#F97316" />
           <Text style={styles.secondaryButtonText}>Download TaxEdge Application Receipt</Text>

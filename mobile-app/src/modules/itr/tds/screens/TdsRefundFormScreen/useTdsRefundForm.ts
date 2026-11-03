@@ -38,6 +38,11 @@ export const useTdsRefundForm = () => {
   const [isEditing, setIsEditing] = useState(isEditingParam === "true");
   const [ifscError, setIfscError] = useState<string | null>(null);
 
+  // BUG_B23_007: Sync isEditing when route params update (e.g. after navigation)
+  useEffect(() => {
+    setIsEditing(isEditingParam === "true");
+  }, [isEditingParam]);
+
   const { isProfileLoading, profileFetchError, fetchAndPopulateProfile } = useTdsProfileSync(setFormData);
 
   const initialSnapshotRef = useRef<string | null>(null);
@@ -120,7 +125,8 @@ export const useTdsRefundForm = () => {
         const mergedIncome = { ...prev.income, ...(backendApp?.income || {}), ...(draftIncome || {}) };
         const mergedBusiness = { ...prev.business, ...(backendApp?.business || {}), ...(draftBusiness || {}) };
         
-        initialSnapshotRef.current = JSON.stringify({ bank: mergedBank, income: mergedIncome, business: mergedBusiness });
+        // BUG_B23_001: snapshot keys must match isDirty keys ({bank, income}) — business excluded
+        initialSnapshotRef.current = JSON.stringify({ bank: mergedBank, income: mergedIncome });
         
         return {
           ...prev,
@@ -246,10 +252,15 @@ export const useTdsRefundForm = () => {
     }));
 
     const errorKey = `bank.${field}` as keyof CustomerFormErrors;
-    if (errors[errorKey]) {
+    // BUG_B23_006: when accountNumber changes, the confirmAccountNumber mismatch error is stale — clear it too
+    const shouldClearConfirm = field === "accountNumber" && Boolean(errors["bank.confirmAccountNumber"]);
+    if (errors[errorKey] || shouldClearConfirm) {
       setErrors((prev) => {
         const next = { ...prev };
         delete next[errorKey];
+        if (field === "accountNumber") {
+          delete next["bank.confirmAccountNumber"];
+        }
         return next;
       });
     }
@@ -296,6 +307,50 @@ export const useTdsRefundForm = () => {
     }
   };
 
+  // BUG_B23_002: documents state moved before handleContinue to fix forward reference
+  const [documents, setDocuments] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadDocs() {
+      const { INITIAL_TDS_DOCUMENTS } = await import("../../constants/tdsDocuments.constants");
+      const draftDocs = await tdsDraftService.getDocumentsDraft();
+      if (draftDocs && draftDocs.length > 0) {
+        const mergedDocs = INITIAL_TDS_DOCUMENTS.map(initialDoc => {
+          const draftDoc = draftDocs.find((d: any) => d.id === initialDoc.id);
+          return draftDoc ? { ...initialDoc, ...draftDoc, title: initialDoc.title, subtitle: initialDoc.subtitle } : initialDoc;
+        });
+        setDocuments(mergedDocs);
+        documentsRef.current = mergedDocs;
+      } else {
+        setDocuments(INITIAL_TDS_DOCUMENTS);
+        documentsRef.current = INITIAL_TDS_DOCUMENTS;
+      }
+    }
+    loadDocs();
+  }, []);
+
+  const handleUploadSuccess = (id: string, payload: any) => {
+    setDocuments((prev) => {
+      const next = prev.map((doc) => doc.id === id ? { ...doc, status: "uploaded", fileUri: payload.uri, fileName: payload.name } : doc);
+      documentsRef.current = next;
+      return next;
+    });
+  };
+  const handleUploadError = (id: string, errorMessage: string) => {
+    setDocuments((prev) => {
+      const next = prev.map((doc) => doc.id === id ? { ...doc, status: "not_uploaded", errorMessage } : doc);
+      documentsRef.current = next;
+      return next;
+    });
+  };
+  const handleRemove = (id: string) => {
+    setDocuments((prev) => {
+      const next = prev.map((doc) => doc.id === id ? { ...doc, status: "not_uploaded", fileUri: undefined } : doc);
+      documentsRef.current = next;
+      return next;
+    });
+  };
+
   const handleContinue = async () => {
     const activeDocs =
       documentsRef.current && documentsRef.current.length > 0
@@ -306,17 +361,18 @@ export const useTdsRefundForm = () => {
     const hasMissingMandatoryDocs = activeDocs.some((doc) => doc.isMandatory && doc.status !== 'uploaded');
 
     if (!validation.isValid || hasMissingMandatoryDocs) {
-      if (!validation.isValid) setErrors(validation.errors);
-      
-      if (hasMissingMandatoryDocs) {
-        Alert.alert(
-          "Incomplete Documents",
-          "Please upload all mandatory documents (PAN and Aadhaar) to proceed."
-        );
-      } else {
+      // BUG_B23_005: form field errors take priority — show "Incomplete Information" when form is
+      // invalid so the user knows to fix fields first, not just upload documents
+      if (!validation.isValid) {
+        setErrors(validation.errors);
         Alert.alert(
           "Incomplete Information",
           "Please complete all required fields correctly to proceed."
+        );
+      } else {
+        Alert.alert(
+          "Incomplete Documents",
+          "Please upload all mandatory documents (PAN and Aadhaar) to proceed."
         );
       }
       return;
@@ -400,50 +456,11 @@ export const useTdsRefundForm = () => {
     if (useTdsProgressStore.getState().maxStepReached < 3) {
       useTdsProgressStore.getState().setMaxStepReached(3);
     }
-    router.push("/service/tds-estimate" as any);
-  };
-
-  const [documents, setDocuments] = useState<any[]>([]);
-
-  useEffect(() => {
-    async function loadDocs() {
-      const { INITIAL_TDS_DOCUMENTS } = await import("../../constants/tdsDocuments.constants");
-      const draftDocs = await tdsDraftService.getDocumentsDraft();
-      if (draftDocs && draftDocs.length > 0) {
-        const mergedDocs = INITIAL_TDS_DOCUMENTS.map(initialDoc => {
-          const draftDoc = draftDocs.find((d: any) => d.id === initialDoc.id);
-          return draftDoc ? { ...initialDoc, ...draftDoc, title: initialDoc.title, subtitle: initialDoc.subtitle } : initialDoc;
-        });
-        setDocuments(mergedDocs);
-        documentsRef.current = mergedDocs;
-      } else {
-        setDocuments(INITIAL_TDS_DOCUMENTS);
-        documentsRef.current = INITIAL_TDS_DOCUMENTS;
-      }
+    if (isEditing) {
+      router.back();
+    } else {
+      router.push("/service/tds-estimate" as any);
     }
-    loadDocs();
-  }, []);
-
-  const handleUploadSuccess = (id: string, payload: any) => {
-    setDocuments((prev) => {
-      const next = prev.map((doc) => doc.id === id ? { ...doc, status: "uploaded", fileUri: payload.uri, fileName: payload.name } : doc);
-      documentsRef.current = next;
-      return next;
-    });
-  };
-  const handleUploadError = (id: string, errorMessage: string) => {
-    setDocuments((prev) => {
-      const next = prev.map((doc) => doc.id === id ? { ...doc, status: "not_uploaded", errorMessage } : doc);
-      documentsRef.current = next;
-      return next;
-    });
-  };
-  const handleRemove = (id: string) => {
-    setDocuments((prev) => {
-      const next = prev.map((doc) => doc.id === id ? { ...doc, status: "not_uploaded", fileUri: undefined } : doc);
-      documentsRef.current = next;
-      return next;
-    });
   };
 
   return {

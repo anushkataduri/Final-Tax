@@ -47,7 +47,8 @@ export const TdsRefundEstimateScreen: React.FC = () => {
     handleDiscardAndExit,
     handleCancel,
   } = useUniversalDraftGuard({
-    isDirty: () => true,
+    // BUG_B24_003: estimate screen is a read-only calculation view — never dirty so back is always free
+    isDirty: () => false,
     onSaveDraft: async () => {
       await useApplicationStore.getState().saveTdsDraft({ step: "ESTIMATE" });
     },
@@ -216,7 +217,7 @@ export const TdsRefundEstimateScreen: React.FC = () => {
 
   const handleEditDocuments = () => {
     router.push({
-      pathname: "/service/tds-form" as any,
+      pathname: "/service/tds-checklist" as any,
       params: { isEditing: "true", id: currentAppId || routeId || routeAppId || "" },
     });
   };

@@ -96,7 +96,7 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
     const isValidFormat = allowed.includes(extension);
 
     if (!isValidFormat) {
-      onUploadError(`Unsupported file (.${extension || "unknown"}). Accepted: PDF, JPG, PNG`);
+      onUploadError(`Unsupported file (.${extension || "unknown"}). Accepted: PDF, JPG, PNG, DOC, DOCX, XLS, XLSX, JSON`);
       return;
     }
 
@@ -128,7 +128,7 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
 
       if (picked) {
         if (picked.sizeBytes > MAX_FILE_SIZE_BYTES) {
-          Alert.alert("File Too Large", "File size exceeds the 10 MB limit.");
+          Alert.alert("File Too Large", "File size exceeds the 15 MB limit.");
           onUploadError("File exceeds 10 MB limit. Please select a smaller file.");
           return;
         }
@@ -258,7 +258,7 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
       <UploadSourceModal
         visible={showSourceModal}
         documentTitle={item.title}
-        maxSizeText="Maximum file size: 10 MB"
+        maxSizeText="Maximum file size: 15 MB"
         onChooseFiles={handleChooseFiles}
         onSelectGallery={handlePickGallery}
         onTakePhoto={handleTakePhoto}
@@ -444,7 +444,7 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
       <UploadSourceModal
         visible={showSourceModal}
         documentTitle={item.title}
-        maxSizeText="Maximum file size: 10 MB"
+        maxSizeText="Maximum file size: 15 MB"
         onChooseFiles={handleChooseFiles}
         onSelectGallery={handlePickGallery}
         onTakePhoto={handleTakePhoto}

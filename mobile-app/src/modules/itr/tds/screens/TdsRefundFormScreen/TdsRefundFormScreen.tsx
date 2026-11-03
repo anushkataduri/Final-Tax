@@ -162,6 +162,7 @@ export const TdsRefundFormScreen: React.FC = () => {
 
         <PersonalInfoSection
           personal={formData.personal}
+          errors={errors}
           isLoading={isProfileLoading}
           errorMessage={profileFetchError}
           onRetry={fetchAndPopulateProfile}

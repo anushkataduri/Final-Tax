@@ -169,6 +169,30 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
 
           <View style={styles.inputGroupHalf}>
             <View style={styles.labelWithInfoRow}>
+              <Text style={styles.inputLabel}>Family Pension</Text>
+              <Text style={styles.mandatoryAsterisk}>*</Text>
+            </View>
+            <View style={styles.inputBox}>
+              <Text style={styles.currencyPrefix}>₹</Text>
+              <TextInput
+                style={styles.textInput}
+                keyboardType="decimal-pad"
+                placeholder="e.g. 0 if none"
+                placeholderTextColor="#94A3B8"
+                value={otherSources.familyPension}
+                onChangeText={(val) => {
+                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
+                  onUpdateOtherSources({ familyPension: clean });
+                }}
+                maxLength={15}
+              />
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.inputRow}>
+          <View style={styles.inputGroupHalf}>
+            <View style={styles.labelWithInfoRow}>
               <Text style={styles.inputLabel}>Other Miscellaneous</Text>
               <Text style={styles.mandatoryAsterisk}>*</Text>
             </View>
