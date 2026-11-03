@@ -18,7 +18,7 @@ import path from "node:path";
 
 const readProjectFile = (relPath: string): string => {
   const fullPath = path.join(process.cwd(), relPath);
-  return fs.readFileSync(fullPath, "utf-8");
+  return fs.readFileSync(fullPath, "utf-8").replace(/\r\n/g, "\n");
 };
 
 test("1. State Initialization: declared state is initialized as false", () => {
