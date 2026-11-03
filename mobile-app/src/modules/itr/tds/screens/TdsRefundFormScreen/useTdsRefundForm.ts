@@ -26,7 +26,7 @@ import {
   loadDraftDocuments,
   syncApplicationBackend,
 } from "./useTdsRefundForm.helpers";
-import { UpdateBankField, UpdateIncomeField } from "./TdsRefundFormSections.types";
+import { UpdateBankField } from "./TdsRefundFormSections.types";
 
 export const useTdsRefundForm = () => {
   const router = useRouter();
@@ -269,22 +269,6 @@ export const useTdsRefundForm = () => {
     }
   };
 
-  const updateIncome: UpdateIncomeField = (field, value) => {
-    setHasUserEdited(true);
-    setFormData((prev) => ({
-      ...prev,
-      income: { ...prev.income, [field]: value },
-    }));
-
-    const errorKey = `income.${field}` as keyof CustomerFormErrors;
-    if (errors[errorKey]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[errorKey];
-        return next;
-      });
-    }
-  };
 
   const handleIfscChange = (val: string) => {
     updateBank("ifscCode", cleanIfsc(val));
@@ -449,7 +433,6 @@ export const useTdsRefundForm = () => {
     handleSaveProfile,
     updateBusiness,
     updateBank,
-    updateIncome,
     handleIfscChange,
     handleBlurField,
     handleContinue,

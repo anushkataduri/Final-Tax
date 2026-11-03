@@ -12,15 +12,11 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
-import { tdsCalculationService } from "../../services/tdsCalculationService";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
-import { formatCurrency } from "../../utils/tdsValidation";
 import {
   PersonalInfoSection,
   BusinessDetailsSection,
   RefundBankAccountSection,
-  IncomeTaxInfoSection,
-  TdsTaxesPaidSection,
   TdsFormInputRefs,
 } from "./TdsRefundFormSections";
 import { styles } from "./TdsRefundFormScreen.styles";
@@ -39,7 +35,6 @@ export const TdsRefundFormScreen: React.FC = () => {
     handleSaveProfile,
     updateBusiness,
     updateBank,
-    updateIncome,
     handleIfscChange,
     handleBlurField,
     handleContinue,
@@ -59,34 +54,18 @@ export const TdsRefundFormScreen: React.FC = () => {
     handleCancel,
   } = draftGuard;
 
-  // Bank & Income Input refs
+  // Bank Input refs
   const accHolderRef = useRef<TextInput>(null);
   const accNumRef = useRef<TextInput>(null);
   const confirmAccNumRef = useRef<TextInput>(null);
   const ifscRef = useRef<TextInput>(null);
-  const salaryRef = useRef<TextInput>(null);
-  const otherIncomeRef = useRef<TextInput>(null);
-  const interestRef = useRef<TextInput>(null);
-  const tdsRef = useRef<TextInput>(null);
-  const tcsRef = useRef<TextInput>(null);
-  const advanceTaxRef = useRef<TextInput>(null);
-  const selfTaxRef = useRef<TextInput>(null);
 
   const inputRefs: TdsFormInputRefs = {
     accHolderRef,
     accNumRef,
     confirmAccNumRef,
     ifscRef,
-    salaryRef,
-    otherIncomeRef,
-    interestRef,
-    tdsRef,
-    tcsRef,
-    advanceTaxRef,
-    selfTaxRef,
   };
-
-  const liveCalculation = tdsCalculationService.calculate(formData);
 
   return (
     <View
@@ -132,25 +111,6 @@ export const TdsRefundFormScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Dynamic Preliminary Estimate Pill */}
-        <View style={styles.previewEstimateBanner}>
-          <View style={styles.previewLeft}>
-            <Text style={styles.previewLabel}>
-              {liveCalculation.isAdditionalTaxPayable
-                ? "Preliminary Tax Payable"
-                : "Preliminary Estimated Refund"}
-            </Text>
-            <Text style={styles.previewAmount}>
-              {liveCalculation.isAdditionalTaxPayable
-                ? formatCurrency(liveCalculation.estimatedTaxPayable)
-                : formatCurrency(liveCalculation.estimatedRefund)}
-            </Text>
-          </View>
-          <View style={styles.previewRight}>
-            <Text style={styles.previewTag}>AY 2025-26</Text>
-          </View>
-        </View>
-
         <PersonalInfoSection
           personal={formData.personal}
           errors={errors}
@@ -181,20 +141,6 @@ export const TdsRefundFormScreen: React.FC = () => {
           onBlurField={handleBlurField}
         />
 
-        <IncomeTaxInfoSection
-          income={formData.income}
-          inputs={inputRefs}
-          updateIncome={updateIncome}
-          errors={errors}
-          onBlurField={handleBlurField}
-        />
-
-        <TdsTaxesPaidSection
-          income={formData.income}
-          errors={errors}
-          inputs={inputRefs}
-          updateIncome={updateIncome}
-        />
       </KeyboardAwareScrollView>
 
       {/* Sticky Bottom CTA - 2 Distinct Buttons */}

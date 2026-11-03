@@ -1,6 +1,6 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
-import { BankAccountType, BankRefundDetails } from "../../types/customerIncome.types";
+import { View, Text, TextInput } from "react-native";
+import { BankRefundDetails } from "../../types/customerIncome.types";
 import { cleanAccountNumber } from "../../utils/tdsValidation";
 import { CustomerFormErrors } from "../../validation/tdsCustomerSchema";
 import { styles } from "./TdsRefundFormScreen.styles";
@@ -18,7 +18,7 @@ interface RefundBankAccountSectionProps {
 export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> = ({
   bank,
   errors,
-  inputs: { accHolderRef, accNumRef, confirmAccNumRef, ifscRef, salaryRef },
+  inputs: { accHolderRef, accNumRef, confirmAccNumRef, ifscRef },
   updateBank,
   onIfscChange,
   onBlurField,
@@ -109,8 +109,7 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
         onChangeText={onIfscChange}
         onBlur={() => onBlurField?.("bank.ifscCode")}
         maxLength={11}
-        returnKeyType="next"
-        onSubmitEditing={() => salaryRef.current?.focus()}
+        returnKeyType="done"
       />
       {errors["bank.ifscCode"] && (
         <Text style={styles.errorText}>{errors["bank.ifscCode"]}</Text>
@@ -150,24 +149,6 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
       </View>
     </View>
 
-    {/* Account Type */}
-    <View style={styles.fieldGroup}>
-      <Text style={styles.fieldLabel}>Account Type</Text>
-      <View style={styles.chipGroup}>
-        {(["savings", "current"] as BankAccountType[]).map((type) => (
-          <TouchableOpacity
-            key={type}
-            activeOpacity={0.8}
-            onPress={() => updateBank("accountType", type)}
-            style={[styles.chip, bank.accountType === type ? styles.chipActive : null]}
-          >
-            <Text style={[styles.chipText, bank.accountType === type ? styles.chipTextActive : null]}>
-              {type === "savings" ? "Savings Account" : "Current Account"}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
   </View>
 );
 
