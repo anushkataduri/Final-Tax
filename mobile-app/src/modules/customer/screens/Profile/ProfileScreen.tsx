@@ -22,6 +22,7 @@ import {
   getKycPillStyle,
   getProfileHeroThemedStyle,
 } from "./ProfileScreen.styles";
+import { HeaderGradientBackground } from "@/shared/components/HeaderGradientBackground/HeaderGradientBackground";
 
 import type { IconName } from "@/types/domain";
 import { useProfileManager } from "@/components/screens/profile/useProfileManager";
@@ -163,6 +164,7 @@ export function ProfileScreen() {
             getProfileHeroThemedStyle(colors.primaryDark, insets.top),
           ]}
         >
+          <HeaderGradientBackground />
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={handleChangePhoto}

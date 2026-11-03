@@ -11,11 +11,12 @@ export const styles = StyleSheet.create({
 
   /* Navy Header matching My Applications */
   navyHeader: {
-    backgroundColor: "#0A2346",
     paddingHorizontal: 16,
     paddingBottom: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+    position: "relative",
+    overflow: "hidden",
   },
   headerTopRow: {
     flexDirection: "row",
@@ -364,4 +365,8 @@ export const styles = StyleSheet.create({
     backgroundColor: "#F1F5F9",
     marginLeft: 64,
   },
+});
+
+export const getPaymentHeaderThemedStyle = (topInset: number) => ({
+  paddingTop: topInset + 10,
 });

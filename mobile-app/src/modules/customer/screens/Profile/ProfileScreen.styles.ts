@@ -22,6 +22,8 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: 42,
     paddingHorizontal: Spacing.lg,
+    position: "relative",
+    overflow: "hidden",
   },
   avatarWrap: { width: 88, height: 88 },
   avatarBg: {
@@ -37,7 +39,11 @@ export const styles = StyleSheet.create({
   },
   avatarImage: { width: "100%", height: "100%" },
   avatarLoading: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "center",
     alignItems: "center",
@@ -475,7 +481,6 @@ export const getKycPillStyle = (kycVerified: boolean, colors: any) => ({
 });
 
 /** Dynamic theme styling for Profile Hero shifted to screen top */
-export const getProfileHeroThemedStyle = (primaryDark: string, topInset: number) => ({
-  backgroundColor: primaryDark,
+export const getProfileHeroThemedStyle = (_primaryDark: string, topInset: number) => ({
   paddingTop: topInset + Spacing.md,
 });

@@ -15,7 +15,8 @@ import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { useTheme } from "@/hooks/use-theme";
 import { useApplicationStore } from "@/store/applicationStore";
 import { SCREEN_BOTTOM_PADDING } from "@/shared/components/ScreenLayout";
-import { styles } from "./PaymentOverviewScreen.styles";
+import { styles, getPaymentHeaderThemedStyle } from "./PaymentOverviewScreen.styles";
+import { HeaderGradientBackground } from "@/shared/components/HeaderGradientBackground/HeaderGradientBackground";
 import type { Application } from "@/types/domain";
 
 export function PaymentOverviewScreen() {
@@ -109,7 +110,8 @@ export function PaymentOverviewScreen() {
       />
 
       {/* ── Navy Curved Header Matching My Applications ── */}
-      <View style={[styles.navyHeader, { paddingTop: insets.top + 10 }]}>
+      <View style={[styles.navyHeader, getPaymentHeaderThemedStyle(insets.top)]}>
+        <HeaderGradientBackground />
         <View style={styles.headerTopRow}>
           <View style={styles.headerTitleWrap}>
             <Text style={styles.headerTitle}>Payments</Text>
