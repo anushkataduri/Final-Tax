@@ -18,9 +18,9 @@ import {
 } from "@/modules/gst/gst-registration/utils/gstDraftLifecycle";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
 import { logger } from "@/core/logging/logger";
+import { formatSubmissionDate } from "@/shared/formatters/dateFormatter";
 
 export { isBackendGstId, extractGstId, resolveTargetGstId };
-
 export type GstScrollViewRef = React.RefObject<ScrollViewInstance | { scrollTo: (options: { x?: number; y?: number; animated?: boolean }) => void } | null> | React.RefObject<any>;
 
 export const useGstRegistrationFlow = (scrollViewRef: GstScrollViewRef) => {
@@ -30,7 +30,7 @@ export const useGstRegistrationFlow = (scrollViewRef: GstScrollViewRef) => {
   const [screenIndex, setScreenIndex] = useState(0), [isEditMode, setIsEditMode] = useState(false);
   const [editSection, setEditSection] = useState<string | null>(null), [documentId, setDocumentId] = useState("");
   const [isLoading, setIsLoading] = useState(false), [declared, setDeclared] = useState(false);
-  const [createdAppId, setCreatedAppId] = useState(""), [createdGstId, setCreatedGstId] = useState("");
+  const [createdAppId, setCreatedAppId] = useState(""), [createdGstId, setCreatedGstId] = useState(""), [submittedDate, setSubmittedDate] = useState("");
   const [documents, setDocuments] = useState<DocumentItem[]>(INITIAL_DOCUMENTS);
   const [businessErrors, setBusinessErrors] = useState<Record<string, string>>({}), [businessData, setBusinessData] = useState<GstBusinessFormData>(INITIAL_BUSINESS_DATA);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export const useGstRegistrationFlow = (scrollViewRef: GstScrollViewRef) => {
   const handleFieldLayout = useCallback((field: string, y: number) => { fieldPositionsRef.current[field] = y; }, []);
 
   // Store Hooks
-  const { gstDraft, createApplication } = useApplicationStore(), addNotification = useNotificationStore((s) => s.addNotification);
+  const { gstDraft, createApplication, applications } = useApplicationStore(), addNotification = useNotificationStore((s) => s.addNotification);
   const { customer: authCustomer, authenticatedUser: authUser } = useAuthStore();
 
   // Customer ID Resolution with Exception Handling (Bug 17)
@@ -359,9 +359,10 @@ export const useGstRegistrationFlow = (scrollViewRef: GstScrollViewRef) => {
       try { await gstApi.submitFinalRegistration(targetGstId); } catch (subErr) { logger.warn("[useGstRegistrationFlow] Backend submit notification call failed", { error: subErr }); }
     }
 
+    const nowIso = new Date().toISOString();
+    setSubmittedDate(nowIso);
     const appId = createApplication("gst-registration", "GST Registration", "GST", {
-      ...businessData, gstId: targetGstId, applicantName: businessData.businessName || businessData.legalName || "Your Business",
-      appliedDate: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+      ...businessData, gstId: targetGstId, applicantName: businessData.businessName || businessData.legalName || "Your Business", submissionDate: nowIso,
     }, documents.map((d) => ({ name: d.name, status: "Uploaded" as const, fileUri: d.fileUri, fileName: d.fileName, fileSize: d.fileSize })), 0, "Pending", false, targetGstId || undefined);
     const finalDisplayId = targetGstId || appId;
     setCreatedAppId(finalDisplayId);
@@ -372,7 +373,6 @@ export const useGstRegistrationFlow = (scrollViewRef: GstScrollViewRef) => {
     setScreenIndex(3);
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   };
-
   const handleContinue = async () => {
     if (isLoading) return;
     setIsLoading(true);
@@ -384,14 +384,15 @@ export const useGstRegistrationFlow = (scrollViewRef: GstScrollViewRef) => {
       logger.error("[useGstRegistrationFlow] GST Flow Error:", { error: err });
     } finally { setIsLoading(false); }
   };
-
   const resolvedBackendGstId = useMemo(() => resolveTargetGstId([createdGstId, businessData.gstId, createdAppId]), [createdGstId, businessData.gstId, createdAppId]);
-
+  const appIdForLookup = resolvedBackendGstId || createdAppId;
+  const existingApp = useMemo(() => applications.find((a) => a.id === appIdForLookup || a.formData?.gstId === appIdForLookup), [applications, appIdForLookup]);
+  const appliedDate = formatSubmissionDate(existingApp?.createdAt || existingApp?.formData?.submissionDate || submittedDate) || undefined;
   return {
     screenIndex, setScreenIndex, isLoading, declared, setDeclared, businessData, businessErrors, documents,
     createdAppId: resolvedBackendGstId || createdAppId, createdGstId: resolvedBackendGstId,
     draftGuard, handleBusinessChange, handleBusinessBlur, handleUpdateDocuments, handleContinue, handleBack,
     isEditMode, editSection, handleEditStep, fetchRegistrationDetails, isFetchingReview, reviewFetchError,
-    handleRetryReviewFetch, handleSectionLayout, handleFieldLayout, focusedField,
+    handleRetryReviewFetch, handleSectionLayout, handleFieldLayout, focusedField, appliedDate,
   };
 };

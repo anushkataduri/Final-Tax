@@ -1,0 +1,126 @@
+import { test } from "node:test";
+import assert from "node:assert";
+import fs from "node:fs";
+import path from "node:path";
+
+test("GstComplianceScreen: edit banner removes Back to Review button while keeping banner", () => {
+  const filePath = path.resolve(
+    process.cwd(),
+    "src/modules/gst/gst-compliance/screens/GstComplianceScreen/GstComplianceScreen.tsx"
+  );
+  const content = fs.readFileSync(filePath, "utf8");
+
+  // Verify banner text is present
+  assert.ok(
+    content.includes("Editing Application Details"),
+    "Banner text should remain"
+  );
+
+  // Verify 'Back to Review' button is removed
+  assert.ok(
+    !content.includes("Back to Review"),
+    "'Back to Review' button should be removed from GstComplianceScreen"
+  );
+  assert.ok(
+    !content.includes("returnToReviewBtn"),
+    "returnToReviewBtn should not be rendered in GstComplianceScreen"
+  );
+});
+
+test("gstold GstComplianceScreen: edit banner removes Back to Review button while keeping banner", () => {
+  const filePath = path.resolve(
+    process.cwd(),
+    "src/modules/gstold/gst-compliance/screens/GstComplianceScreen/GstComplianceScreen.tsx"
+  );
+  const content = fs.readFileSync(filePath, "utf8");
+
+  assert.ok(
+    content.includes("Editing Application Details"),
+    "gstold banner text should remain"
+  );
+
+  assert.ok(
+    !content.includes("Back to Review"),
+    "'Back to Review' button should be removed from gstold GstComplianceScreen"
+  );
+  assert.ok(
+    !content.includes("returnToReviewBtn"),
+    "gstold returnToReviewBtn should not be rendered in GstComplianceScreen"
+  );
+});
+
+test("GstComplianceReviewStep styles: value and valueMultiline are right-aligned", () => {
+  const files = [
+    path.resolve(
+      process.cwd(),
+      "src/modules/gst/gst-compliance/components/GstComplianceReviewStep/GstComplianceReviewStep.styles.ts"
+    ),
+    path.resolve(
+      process.cwd(),
+      "src/modules/gstold/gst-compliance/components/GstComplianceReviewStep/GstComplianceReviewStep.styles.ts"
+    ),
+  ];
+
+  for (const f of files) {
+    const content = fs.readFileSync(f, "utf8");
+    assert.ok(
+      content.includes('value: {\n    fontSize: 13.5,\n    color: BrandColors.TEXT_PRIMARY,\n    fontWeight: "600",\n    textAlign: "right",') ||
+      content.includes('textAlign: "right",'),
+      "Styles should specify textAlign: 'right' for values"
+    );
+    assert.ok(
+      content.includes('valueMultiline: {\n    textAlign: "right",\n    lineHeight: 18,\n  }'),
+      `File ${f} should have valueMultiline right-aligned`
+    );
+  }
+});
+
+test("GstComplianceScreen: source file wires showBack and onBackPress to isEditMode", () => {
+  const filePath = path.resolve(
+    process.cwd(),
+    "src/modules/gst/gst-compliance/screens/GstComplianceScreen/GstComplianceScreen.tsx"
+  );
+  const content = fs.readFileSync(filePath, "utf8");
+
+  assert.ok(
+    content.includes("showBack={!isEditMode && currentStep !== 1}"),
+    "ComplianceHeader should hide back button during edit mode and on review step"
+  );
+
+  assert.ok(
+    content.includes("onBackPress={isEditMode ? undefined : handleBack}"),
+    "ComplianceHeader onBackPress should be undefined when in edit mode"
+  );
+
+  assert.ok(
+    content.includes('key={currentStep === 1 ? "review-step" : "form-step"}'),
+    "KeyboardAwareScrollView should use step key to isolate step rendering"
+  );
+});
+
+test("RequestTypeSection: downward sliding animation removed in favor of smooth fade in/out", () => {
+  const f1 = path.resolve(
+    process.cwd(),
+    "src/modules/gst/gst-compliance/components/RequestTypeSection/RequestTypeSection.tsx"
+  );
+  const f2 = path.resolve(
+    process.cwd(),
+    "src/modules/gstold/gst-compliance/components/RequestTypeSection/RequestTypeSection.tsx"
+  );
+
+  for (const f of [f1, f2]) {
+    const content = fs.readFileSync(f, "utf8");
+    assert.ok(
+      !content.includes("FadeInDown"),
+      `File ${f} should not use FadeInDown which causes downward sliding`
+    );
+    assert.ok(
+      !content.includes("FadeOutUp"),
+      `File ${f} should not use FadeOutUp which causes upward sliding`
+    );
+    assert.ok(
+      content.includes("FadeIn.duration(200)"),
+      `File ${f} should use FadeIn for smooth fade transition`
+    );
+  }
+});

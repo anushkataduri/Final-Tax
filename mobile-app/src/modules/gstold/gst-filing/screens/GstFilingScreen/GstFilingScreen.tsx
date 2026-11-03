@@ -56,6 +56,7 @@ export const GstFilingScreen: React.FC = () => {
     requiredDocs,
     missingDocsCount,
     uploadedDocsCount,
+    isEditMode,
     handleEditStep,
     isFetchingReview,
   } = useGstFiling();
@@ -123,8 +124,8 @@ export const GstFilingScreen: React.FC = () => {
           currentStep={currentStep + 1}
           totalSteps={3}
           stepLabel={FILING_STEP_LABELS[currentStep] || "Filing"}
-          onBack={handleBack}
-          showBack={currentStep !== 2}
+          onBack={isEditMode ? undefined : handleBack}
+          showBack={!isEditMode && currentStep !== 2}
         />
       ) : (
         <View style={[styles.headerBar, getHeaderBarStyle(insets.top)]}>

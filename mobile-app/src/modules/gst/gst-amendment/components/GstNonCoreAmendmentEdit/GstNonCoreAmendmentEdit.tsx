@@ -2,10 +2,10 @@ import React, { useMemo } from "react";
 import {
   View,
   Text,
+  ScrollView,
   TouchableOpacity,
-  type ScrollViewInstance,
+  StatusBar,
 } from "react-native";
-import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { KeyboardStickyFooter } from "@/shared/components/KeyboardStickyFooter";
 import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -33,7 +33,7 @@ interface GstNonCoreAmendmentEditProps {
   supportingDoc: SupportingDoc | null;
   isProofsExpanded: boolean;
   insets: { top: number; bottom: number };
-  scrollViewRef: React.Ref<ScrollViewInstance> | React.RefObject<any>;
+  scrollViewRef: React.RefObject<ScrollView | null>;
   onBack: () => void;
   onUpdateField: (field: keyof AmendmentFormData, value: string) => void;
   onClearError: (key: string) => void;
@@ -77,7 +77,7 @@ export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = (
 
   return (
     <View style={styles.root}>
-      <FocusAwareStatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
 
       {/* Header (Back button hidden when returned from review to preserve edit mode integrity) */}
       <View style={[styles.headerBar, getHeaderBarStyle(insets.top)]}>
@@ -119,129 +119,129 @@ export const GstNonCoreAmendmentEdit: React.FC<GstNonCoreAmendmentEditProps> = (
             </View>
 
             {sectionId === "bank-accounts" && (
-            <>
-              <InputField
-                label="New Bank Name"
-                value={formData.newBankName}
-                onChangeText={(val) => onUpdateField("newBankName", val)}
-                placeholder="Enter bank name"
-                error={errors.newBankName}
-              />
-              <InputField
-                label="New Bank Account Number"
-                value={formData.newBankAccountNumber}
-                onChangeText={(val) => onUpdateField("newBankAccountNumber", val.replace(/[^0-9]/g, "").slice(0, 18))}
-                placeholder="Enter bank account number"
-                keyboardType="number-pad"
-                error={errors.newBankAccountNumber}
-              />
-              <InputField
-                label="Confirm Bank Account Number"
-                value={formData.confirmBankAccountNumber}
-                onChangeText={(val) => onUpdateField("confirmBankAccountNumber", val.replace(/[^0-9]/g, "").slice(0, 18))}
-                placeholder="Re-enter bank account number"
-                keyboardType="number-pad"
-                error={errors.confirmBankAccountNumber}
-              />
-              <InputField
-                label="IFSC Code"
-                value={formData.newIfscCode}
-                onChangeText={(val) => onUpdateField("newIfscCode", val.toUpperCase())}
-                placeholder="Enter IFSC code"
-                autoCapitalize="characters"
-                maxLength={11}
-                error={errors.newIfscCode}
-              />
-              <DropdownField
-                label="Account Type"
-                value={formData.newAccountType}
-                placeholder="Select Account Type"
-                error={errors.newAccountType}
-                onPress={() =>
-                  onOpenPicker("Select Account Type", BANK_ACCOUNT_TYPES, formData.newAccountType, (val) => {
-                    onUpdateField("newAccountType", val);
-                    onClearError("newAccountType");
-                  })
-                }
-              />
-            </>
-          )}
+              <>
+                <InputField
+                  label="New Bank Name"
+                  value={formData.newBankName}
+                  onChangeText={(val) => onUpdateField("newBankName", val)}
+                  placeholder="Enter bank name"
+                  error={errors.newBankName}
+                />
+                <InputField
+                  label="New Bank Account Number"
+                  value={formData.newBankAccountNumber}
+                  onChangeText={(val) => onUpdateField("newBankAccountNumber", val.replace(/[^0-9]/g, "").slice(0, 18))}
+                  placeholder="Enter bank account number"
+                  keyboardType="number-pad"
+                  error={errors.newBankAccountNumber}
+                />
+                <InputField
+                  label="Confirm Bank Account Number"
+                  value={formData.confirmBankAccountNumber}
+                  onChangeText={(val) => onUpdateField("confirmBankAccountNumber", val.replace(/[^0-9]/g, "").slice(0, 18))}
+                  placeholder="Re-enter bank account number"
+                  keyboardType="number-pad"
+                  error={errors.confirmBankAccountNumber}
+                />
+                <InputField
+                  label="IFSC Code"
+                  value={formData.newIfscCode}
+                  onChangeText={(val) => onUpdateField("newIfscCode", val.toUpperCase())}
+                  placeholder="Enter IFSC code"
+                  autoCapitalize="characters"
+                  maxLength={11}
+                  error={errors.newIfscCode}
+                />
+                <DropdownField
+                  label="Account Type"
+                  value={formData.newAccountType}
+                  placeholder="Select Account Type"
+                  error={errors.newAccountType}
+                  onPress={() =>
+                    onOpenPicker("Select Account Type", BANK_ACCOUNT_TYPES, formData.newAccountType, (val) => {
+                      onUpdateField("newAccountType", val);
+                      onClearError("newAccountType");
+                    })
+                  }
+                />
+              </>
+            )}
 
-          {sectionId === "authorised-signatories" && (
-            <>
-              <InputField
-                label="Full Name of Signatory"
-                value={formData.newSignatoryName}
-                onChangeText={(val) => onUpdateField("newSignatoryName", val)}
-                placeholder="Enter full name"
-                error={errors.newSignatoryName}
-              />
-              <InputField
-                label="PAN Number"
-                value={formData.newSignatoryPan}
-                onChangeText={(val) => onUpdateField("newSignatoryPan", val.toUpperCase())}
-                placeholder="Enter PAN number"
-                autoCapitalize="characters"
-                maxLength={10}
-                keyboardType={panKeyboardType}
-                error={errors.newSignatoryPan}
-              />
-              <DateField
-                label="Date of Birth (as on PAN)"
-                value={formData.newSignatoryDob}
-                onChangeText={(val) => onUpdateField("newSignatoryDob", val)}
-                placeholder="Select date of birth"
-                error={errors.newSignatoryDob}
-                maximumDate={maxDob}
-              />
-              <InputField
-                label="Designation / Status"
-                value={formData.newSignatoryDesignation}
-                onChangeText={(val) => onUpdateField("newSignatoryDesignation", val.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 3))}
-                placeholder="MR / MS / DR"
-                autoCapitalize="characters"
-                maxLength={3}
-                error={errors.newSignatoryDesignation}
-              />
-              <PhoneField
-                label="Mobile Number"
-                value={formData.newSignatoryMobile}
-                onChangeText={(val) => onUpdateField("newSignatoryMobile", val.replace(/[^0-9]/g, "").slice(0, 10))}
-                placeholder="Enter mobile number"
-                error={errors.newSignatoryMobile}
-              />
-              <InputField
-                label="Email Address"
-                value={formData.newSignatoryEmail}
-                onChangeText={(val) => onUpdateField("newSignatoryEmail", val.toLowerCase())}
-                placeholder="Enter email address"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                error={errors.newSignatoryEmail}
-              />
-            </>
-          )}
+            {sectionId === "authorised-signatories" && (
+              <>
+                <InputField
+                  label="Full Name of Signatory"
+                  value={formData.newSignatoryName}
+                  onChangeText={(val) => onUpdateField("newSignatoryName", val)}
+                  placeholder="Enter full name"
+                  error={errors.newSignatoryName}
+                />
+                <InputField
+                  label="PAN Number"
+                  value={formData.newSignatoryPan}
+                  onChangeText={(val) => onUpdateField("newSignatoryPan", val.toUpperCase())}
+                  placeholder="Enter PAN number"
+                  autoCapitalize="characters"
+                  maxLength={10}
+                  keyboardType={panKeyboardType}
+                  error={errors.newSignatoryPan}
+                />
+                <DateField
+                  label="Date of Birth (as on PAN)"
+                  value={formData.newSignatoryDob}
+                  onChangeText={(val) => onUpdateField("newSignatoryDob", val)}
+                  placeholder="Select date of birth"
+                  error={errors.newSignatoryDob}
+                  maximumDate={maxDob}
+                />
+                <InputField
+                  label="Designation / Status"
+                  value={formData.newSignatoryDesignation}
+                  onChangeText={(val) => onUpdateField("newSignatoryDesignation", val.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 3))}
+                  placeholder="MR / MS / DR"
+                  autoCapitalize="characters"
+                  maxLength={3}
+                  error={errors.newSignatoryDesignation}
+                />
+                <PhoneField
+                  label="Mobile Number"
+                  value={formData.newSignatoryMobile}
+                  onChangeText={(val) => onUpdateField("newSignatoryMobile", val.replace(/[^0-9]/g, "").slice(0, 10))}
+                  placeholder="Enter mobile number"
+                  error={errors.newSignatoryMobile}
+                />
+                <InputField
+                  label="Email Address"
+                  value={formData.newSignatoryEmail}
+                  onChangeText={(val) => onUpdateField("newSignatoryEmail", val.toLowerCase())}
+                  placeholder="Enter email address"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  error={errors.newSignatoryEmail}
+                />
+              </>
+            )}
 
-          {sectionId === "contact-details" && (
-            <>
-              <PhoneField
-                label="New Primary Contact Mobile"
-                value={formData.newContactMobile}
-                onChangeText={(val) => onUpdateField("newContactMobile", val.replace(/[^0-9]/g, "").slice(0, 10))}
-                placeholder="Enter mobile number"
-                error={errors.newContactMobile}
-              />
-              <InputField
-                label="New Primary Contact Email"
-                value={formData.newContactEmail}
-                onChangeText={(val) => onUpdateField("newContactEmail", val.toLowerCase())}
-                placeholder="Enter email address"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                error={errors.newContactEmail}
-              />
-            </>
-          )}
+            {sectionId === "contact-details" && (
+              <>
+                <PhoneField
+                  label="New Primary Contact Mobile"
+                  value={formData.newContactMobile}
+                  onChangeText={(val) => onUpdateField("newContactMobile", val.replace(/[^0-9]/g, "").slice(0, 10))}
+                  placeholder="Enter mobile number"
+                  error={errors.newContactMobile}
+                />
+                <InputField
+                  label="New Primary Contact Email"
+                  value={formData.newContactEmail}
+                  onChangeText={(val) => onUpdateField("newContactEmail", val.toLowerCase())}
+                  placeholder="Enter email address"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  error={errors.newContactEmail}
+                />
+              </>
+            )}
           </View>
 
           {/* Supporting Proof Upload */}

@@ -21,7 +21,6 @@ import {
 import { RequestTypeSection } from "@/modules/gst/gst-compliance/components/RequestTypeSection/RequestTypeSection";
 import { FloatingLabelInput } from "@/modules/gst/gst-compliance/components/FloatingLabelInput/FloatingLabelInput";
 import { GstinInfoIcon } from "@/modules/gst/components/common";
-import { ComplianceConfirmModal } from "@/modules/gst/gst-compliance/components/ComplianceModals/ComplianceModals";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import { GstComplianceReviewStep } from "@/modules/gst/gst-compliance/components/GstComplianceReviewStep/GstComplianceReviewStep";
 import { useComplianceForm } from "@/modules/gst/gst-compliance/hooks/useComplianceForm";
@@ -123,10 +122,10 @@ export function GstComplianceScreen() {
   }, [handleScrollToTarget]);
 
   // Coordinated section-aware scrolling between steps and edit actions
-  useEffect(() => {
+    useEffect(() => {
     if (currentStep === 1) {
       pendingScrollSectionRef.current = null;
-      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
       return;
     }
 
@@ -134,13 +133,13 @@ export function GstComplianceScreen() {
       const targetY = sectionPositionsRef.current[editSection];
       if (typeof targetY === "number" && targetY > 0) {
         pendingScrollSectionRef.current = null;
-        handleScrollToTarget(targetY);
+        setTimeout(() => handleScrollToTarget(targetY), 50);
       } else {
         pendingScrollSectionRef.current = editSection;
       }
     } else {
       pendingScrollSectionRef.current = null;
-      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
     }
   }, [currentStep, editSection, handleScrollToTarget]);
 
@@ -173,14 +172,15 @@ export function GstComplianceScreen() {
         currentStep={currentStep + 1}
         totalSteps={2}
         stepLabel={currentStep === 1 ? "Review & Submit" : "Request Details"}
-        onBackPress={hasEnteredReview ? undefined : handleBack}
-        showBack={!hasEnteredReview}
+        onBackPress={isEditMode ? undefined : handleBack}
+        showBack={!isEditMode && currentStep !== 1}
       />
 
       <KeyboardAwareScrollView
+        key={currentStep === 1 ? "review-step" : "form-step"}
         ref={scrollViewRef}
         controllerRef={kbControllerRef}
-        style={styles.scrollView}
+        style={[styles.scrollView, isDark ? styles.scrollViewDark : styles.scrollViewLight]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -211,17 +211,6 @@ export function GstComplianceScreen() {
                   Editing Application Details
                 </Text>
               </View>
-              <TouchableOpacity
-                style={[
-                  styles.returnToReviewBtn,
-                  (isSaving || isSubmitting) && styles.returnToReviewBtnDisabled,
-                ]}
-                onPress={handleReturnToReview}
-                disabled={isSaving || isSubmitting}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.returnToReviewBtnText}>Back to Review</Text>
-              </TouchableOpacity>
             </View>
           )}
 
@@ -253,8 +242,9 @@ export function GstComplianceScreen() {
                 <FloatingLabelInput
                   label="GSTIN"
                   floatingLabel="GSTIN"
-                  placeholder="Enter 15-character GSTIN"
+                  placeholder="Enter GSTIN"
                   required
+                  labelAbove
                   value={formData.gstin}
                   onChangeText={handleGstinChange}
                   autoCapitalize="characters"
@@ -262,7 +252,7 @@ export function GstComplianceScreen() {
                   autoCorrect={false}
                   error={errors.gstin}
                   cardBackground={isDark ? "#1E293B" : BrandColors.WHITE}
-                  labelRightElement={<GstinInfoIcon size={14} />}
+                  labelRightElement={<GstinInfoIcon size={16} />}
                   rightElement={
                     formData.gstin.length === 15 && !errors.gstin ? (
                       <Ionicons
@@ -399,17 +389,7 @@ export function GstComplianceScreen() {
           clearError("requestType");
         }}
         onClose={() => setShowTypeModal(false)}
-      />
-
-      {/* Confirmation Modal Before Submission */}
-      <ComplianceConfirmModal
-        visible={showConfirmModal}
-        isDark={isDark}
-        requestType={formData.requestType}
-        gstin={formData.gstin}
-        onCancel={() => setShowConfirmModal(false)}
-        onConfirm={handleConfirmSubmit}
-      />
+      />
 
       {/* Universal Draft Modal */}
       <UniversalDraftModal

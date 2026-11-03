@@ -11,6 +11,12 @@ export const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollViewLight: {
+    backgroundColor: "#F8FAFC",
+  },
+  scrollViewDark: {
+    backgroundColor: "#0F172A",
+  },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,

@@ -10,7 +10,7 @@ import { BrandColors, Colors } from "@/shared/theme";
 import { GstBusinessFormData } from "@/modules/gst/gst-registration/components/GstBusinessStep/GstBusinessStep";
 import { DocumentItem } from "@/modules/gst/gst-registration/components/GstUnifiedDocumentStep/GstUnifiedDocumentStep.types";
 import { GstViewDocumentModal } from "@/modules/gst/components/GstDocumentCard";
-import { styles, getDocProgressFillStyle } from "./GstReviewStep.styles";
+import { styles } from "./GstReviewStep.styles";
 
 interface GstReviewStepProps {
   businessData: GstBusinessFormData;
@@ -62,8 +62,6 @@ export const GstReviewStep: React.FC<GstReviewStepProps> = ({
 }) => {
   const [previewDoc, setPreviewDoc] = useState<DocumentItem | null>(null);
   const uploadedDocs = documents.filter((d) => Boolean(d.fileUri));
-  const progressPercent =
-    documents.length > 0 ? (uploadedDocs.length / documents.length) * 100 : 0;
 
   if (isFetching && !businessData.legalName) {
     return (
@@ -192,7 +190,17 @@ export const GstReviewStep: React.FC<GstReviewStepProps> = ({
         />
         <ReviewRow
           label="Contact"
-          value={`${businessData.signatoryMobile ? `+91 ${businessData.signatoryMobile}` : "-"}\n${businessData.signatoryEmail || "-"}`}
+          value={
+            businessData.signatoryMobile
+              ? businessData.signatoryMobile.startsWith("+91")
+                ? businessData.signatoryMobile
+                : `+91 ${businessData.signatoryMobile}`
+              : "-"
+          }
+        />
+        <ReviewRow
+          label="Email"
+          value={businessData.signatoryEmail || "-"}
           multiline
         />
       </View>
@@ -210,14 +218,6 @@ export const GstReviewStep: React.FC<GstReviewStepProps> = ({
             <Ionicons name="pencil" size={16} color={BrandColors.PRIMARY_ORANGE} />
             <Text style={styles.editDocsButtonText}>Edit</Text>
           </TouchableOpacity>
-        </View>
-        <View style={styles.docProgressBar}>
-          <View
-            style={[
-              styles.docProgressFill,
-              getDocProgressFillStyle(progressPercent),
-            ]}
-          />
         </View>
 
         {uploadedDocs.length > 0 && (
