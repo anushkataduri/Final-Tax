@@ -98,7 +98,7 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
         <View style={styles.estimatesContainer}>
           <View style={styles.estimateInputRow}>
             <Text style={styles.estimateLabel}>
-              Estimated Taxable Sales (₹)
+              Estimated Taxable Sales (₹) <Text style={styles.star}>*</Text>
             </Text>
             <TextInput
               style={[styles.estimateInput, errors.taxableSales && styles.inputError]}
@@ -122,7 +122,7 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
 
           <View style={styles.estimateInputRow}>
             <Text style={styles.estimateLabel}>
-              Estimated Taxable Purchases (₹)
+              Estimated Taxable Purchases (₹) <Text style={styles.star}>*</Text>
             </Text>
             <TextInput
               style={[styles.estimateInput, errors.taxablePurchases && styles.inputError]}
@@ -146,7 +146,7 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
 
           <View style={styles.estimateInputRow}>
             <Text style={styles.estimateLabel}>
-              Estimated Eligible ITC (₹)
+              Estimated Eligible ITC (₹) <Text style={styles.star}>*</Text>
             </Text>
             <TextInput
               style={[styles.estimateInput, errors.eligibleItc && styles.inputError]}

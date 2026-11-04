@@ -424,14 +424,15 @@ export const GstFilingPeriodStep: React.FC<GstFilingPeriodStepProps> = ({
             onChange(fields);
           }}
           onBlurField={(field) => {
+            const isManual = data.calculationMethod === "manual_estimates";
             if (field === "taxableSales") {
-              const err = validateEstimatedAmount(data.taxableSales, "sales", false);
+              const err = validateEstimatedAmount(data.taxableSales, "sales", isManual);
               onError?.("taxableSales", err || "");
             } else if (field === "taxablePurchases") {
-              const err = validateEstimatedAmount(data.taxablePurchases, "purchases", false);
+              const err = validateEstimatedAmount(data.taxablePurchases, "purchases", isManual);
               onError?.("taxablePurchases", err || "");
             } else if (field === "eligibleItc") {
-              const err = validateEstimatedAmount(data.eligibleItc, "eligible ITC", false);
+              const err = validateEstimatedAmount(data.eligibleItc, "eligible ITC", isManual);
               onError?.("eligibleItc", err || "");
             }
           }}

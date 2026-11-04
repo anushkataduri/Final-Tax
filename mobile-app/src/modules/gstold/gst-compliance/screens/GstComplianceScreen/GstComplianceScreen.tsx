@@ -150,7 +150,6 @@ export function GstComplianceScreen() {
       />
 
       <KeyboardAwareScrollView
-        key={currentStep === 1 ? "review-step" : "form-step"}
         ref={scrollViewRef}
         controllerRef={kbControllerRef}
         style={[styles.scrollView, isDark ? styles.scrollViewDark : styles.scrollViewLight]}

@@ -228,11 +228,12 @@ export function GstCertificateScreen() {
             )}
 
             <TouchableOpacity
-              style={st.textOnlyBtn}
+              style={st.blueOutlineBtn}
               activeOpacity={0.8}
               onPress={() => flow.router.replace("/(main)/applications")}
             >
-              <Text style={st.textOnlyBtnText}>Go to My Applications</Text>
+              <Ionicons name="folder-outline" size={18} color="#1E5EFF" style={st.iconMarginRight8} />
+              <Text style={st.blueOutlineBtnText}>Go to My Applications</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

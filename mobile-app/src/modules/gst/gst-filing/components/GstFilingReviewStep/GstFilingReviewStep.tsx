@@ -274,7 +274,6 @@ export const GstFilingReviewStep: React.FC<GstFilingReviewStepProps> = ({
       <View style={styles.card}>
         <View style={styles.cardHeaderRow}>
           <Text style={styles.cardTitle}>Documents</Text>
-          {!isNilReturn && renderEditButton(onEditDocuments || onReuploadDocuments)}
         </View>
         <View style={styles.divider} />
 
@@ -310,7 +309,7 @@ export const GstFilingReviewStep: React.FC<GstFilingReviewStepProps> = ({
               onPress={onReuploadDocuments || onEditDocuments}
             >
               <Ionicons name="cloud-upload-outline" size={17} color={BrandColors.PRIMARY_ORANGE} />
-              <Text style={styles.reuploadBtnText}>Reupload Here</Text>
+              <Text style={styles.reuploadBtnText}>Upload Here</Text>
               <Ionicons name="chevron-forward" size={13} color={BrandColors.PRIMARY_ORANGE} />
             </TouchableOpacity>
           </View>

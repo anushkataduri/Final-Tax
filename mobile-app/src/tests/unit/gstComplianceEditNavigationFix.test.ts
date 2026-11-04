@@ -93,8 +93,8 @@ test("GstComplianceScreen: source file wires showBack and onBackPress to isEditM
   );
 
   assert.ok(
-    content.includes('key={currentStep === 1 ? "review-step" : "form-step"}'),
-    "KeyboardAwareScrollView should use step key to isolate step rendering"
+    !content.includes('key={currentStep === 1 ? "review-step" : "form-step"}'),
+    "KeyboardAwareScrollView should not use dynamic step key to avoid remounting white cards and causing flickering"
   );
 });
 
