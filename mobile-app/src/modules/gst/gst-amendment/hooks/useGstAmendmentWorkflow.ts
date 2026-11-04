@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, ElementRef } from "react";
 import { ScrollView, Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { File as ExpoFile } from "expo-file-system";
@@ -37,7 +37,7 @@ const stripImageData = (data: any): any => {
 export function useGstAmendmentWorkflow() {
   const router = useRouter();
   const params = useLocalSearchParams<{ gstin?: string; section?: string; step?: string; resume?: string }>();
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ElementRef<typeof ScrollView>>(null);
 
   const customer = useAuthStore((state) => state.customer);
   const gstDraft = useApplicationStore((state) => state.gstDraft);
