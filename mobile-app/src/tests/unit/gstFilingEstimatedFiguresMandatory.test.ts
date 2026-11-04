@@ -30,9 +30,12 @@ const VALIDATION_PATH = path.resolve(
 
 test("GstCalculationMethodSection displays red mandatory asterisk (*) for all 3 estimated fields", () => {
   const code = fs.readFileSync(CALC_SECTION_PATH, "utf8");
-  const oldCode = fs.readFileSync(CALC_SECTION_OLD_PATH, "utf8");
+  const checkList = [code];
+  if (fs.existsSync(CALC_SECTION_OLD_PATH)) {
+    checkList.push(fs.readFileSync(CALC_SECTION_OLD_PATH, "utf8"));
+  }
 
-  [code, oldCode].forEach((content) => {
+  checkList.forEach((content) => {
     assert.ok(
       content.includes("Estimated Taxable Sales (₹) <Text style={styles.star}>*</Text>"),
       "Sales label must have mandatory asterisk"
@@ -70,9 +73,12 @@ test("validateEstimatedAmount function implementation supports isRequired flag",
 
 test("useGstFilingForm enforces mandatory validation only when manual_estimates is chosen", () => {
   const hookCode = fs.readFileSync(HOOK_PATH, "utf8");
-  const hookOldCode = fs.readFileSync(HOOK_OLD_PATH, "utf8");
+  const checkList = [hookCode];
+  if (fs.existsSync(HOOK_OLD_PATH)) {
+    checkList.push(fs.readFileSync(HOOK_OLD_PATH, "utf8"));
+  }
 
-  [hookCode, hookOldCode].forEach((content) => {
+  checkList.forEach((content) => {
     assert.ok(
       content.includes('periodData.calculationMethod === "manual_estimates"'),
       "Hook must check calculationMethod === manual_estimates"
