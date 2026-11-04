@@ -38,52 +38,42 @@ public class HomeLoanDocument {
     @JoinColumn(name = "home_loan_id", nullable = false, unique = true)
     private HomeLoanRequirementApplication homeLoanApplication;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "property_ownership_document", columnDefinition = "bytea")
+   
+    @Column(name = "property_ownership_document")
     private byte[] propertyOwnershipDocument;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "bank_statement_income_document", columnDefinition = "bytea")
+    @Column(name = "bank_statement_income_document")
     private byte[] bankStatementIncomeDocument;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "property_quotation_builder_document", columnDefinition = "bytea")
+    @Column(name = "property_quotation_builder_document")
     private byte[] propertyQuotationBuilderDocument;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "additional_property_document", columnDefinition = "bytea")
+    @Column(name = "additional_property_document")
     private byte[] additionalPropertyDocument;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "construction_document", columnDefinition = "bytea")
+    @Column(name = "construction_document")
     private byte[] constructionDocument;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "sanctioned_building_plan", columnDefinition = "bytea")
+    @Column(name = "sanctioned_building_plan")
     private byte[] sanctionedBuildingPlan;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "construction_cost_estimate", columnDefinition = "bytea")
+    @Column(name = "construction_cost_estimate")
     private byte[] constructionCostEstimate;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "renovation_cost_estimate", columnDefinition = "bytea")
+    
+    @Column(name = "renovation_cost_estimate")
     private byte[] renovationCostEstimate;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "contractor_quotation", columnDefinition = "bytea")
+    @Column(name = "contractor_quotation")
     private byte[] contractorQuotation;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "existing_loan_statement", columnDefinition = "bytea")
+    @Column(name = "existing_loan_statement")
     private byte[] existingLoanStatement;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "property_document_copy", columnDefinition = "bytea")
+    @Column(name = "property_document_copy")
     private byte[] propertyDocumentCopy;
 
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "foreclosure_outstanding_statement", columnDefinition = "bytea")
+    @Column(name = "foreclosure_outstanding_statement")
     private byte[] foreclosureOutstandingStatement;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -93,6 +83,44 @@ public class HomeLoanDocument {
     protected void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
+        }
+    }
+
+    public byte[] getContent(String documentType) {
+        if (documentType == null) return null;
+        return switch (documentType) {
+            case "propertyOwnershipDocument" -> propertyOwnershipDocument;
+            case "bankStatementIncomeDocument" -> bankStatementIncomeDocument;
+            case "propertyQuotationBuilderDocument" -> propertyQuotationBuilderDocument;
+            case "additionalPropertyDocument" -> additionalPropertyDocument;
+            case "constructionDocument" -> constructionDocument;
+            case "sanctionedBuildingPlan" -> sanctionedBuildingPlan;
+            case "constructionCostEstimate" -> constructionCostEstimate;
+            case "renovationCostEstimate" -> renovationCostEstimate;
+            case "contractorQuotation" -> contractorQuotation;
+            case "existingLoanStatement" -> existingLoanStatement;
+            case "propertyDocumentCopy" -> propertyDocumentCopy;
+            case "foreclosureOutstandingStatement" -> foreclosureOutstandingStatement;
+            default -> null;
+        };
+    }
+
+    public void setContent(String documentType, byte[] content) {
+        if (documentType == null) return;
+        switch (documentType) {
+            case "propertyOwnershipDocument" -> this.propertyOwnershipDocument = content;
+            case "bankStatementIncomeDocument" -> this.bankStatementIncomeDocument = content;
+            case "propertyQuotationBuilderDocument" -> this.propertyQuotationBuilderDocument = content;
+            case "additionalPropertyDocument" -> this.additionalPropertyDocument = content;
+            case "constructionDocument" -> this.constructionDocument = content;
+            case "sanctionedBuildingPlan" -> this.sanctionedBuildingPlan = content;
+            case "constructionCostEstimate" -> this.constructionCostEstimate = content;
+            case "renovationCostEstimate" -> this.renovationCostEstimate = content;
+            case "contractorQuotation" -> this.contractorQuotation = content;
+            case "existingLoanStatement" -> this.existingLoanStatement = content;
+            case "propertyDocumentCopy" -> this.propertyDocumentCopy = content;
+            case "foreclosureOutstandingStatement" -> this.foreclosureOutstandingStatement = content;
+            default -> throw new IllegalArgumentException("Unknown document type: " + documentType);
         }
     }
 }

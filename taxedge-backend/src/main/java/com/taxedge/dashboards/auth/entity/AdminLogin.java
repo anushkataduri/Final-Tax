@@ -41,6 +41,13 @@ public class AdminLogin {
     @Column(name = "full_name", length = 150)
     private String fullName;
 
+    /** SHA-256 hash of the current refresh token; the token itself is never stored. */
+    @Column(name = "refresh_token_hash", length = 255)
+    private String refreshTokenHash;
+
+    @Column(name = "refresh_token_expires_at")
+    private LocalDateTime refreshTokenExpiresAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

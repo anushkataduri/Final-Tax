@@ -143,37 +143,7 @@ public class HomeLoanApplicationController {
         return homeLoanDocumentService.removeDocument(
                 homeLoanId, documentType);
     }
-    private MediaType detectMediaType(byte[] content) {
-
-        if (content.length >= 5
-                && content[0] == '%'
-                && content[1] == 'P'
-                && content[2] == 'D'
-                && content[3] == 'F'
-                && content[4] == '-') {
-            return MediaType.APPLICATION_PDF;
-        }
-
-        if (content.length >= 8
-                && content[0] == (byte) 0x89
-                && content[1] == 'P'
-                && content[2] == 'N'
-                && content[3] == 'G'
-                && content[4] == 0x0D
-                && content[5] == 0x0A
-                && content[6] == 0x1A
-                && content[7] == 0x0A) {
-            return MediaType.IMAGE_PNG;
-        }
-
-        if (content.length >= 3
-                && content[0] == (byte) 0xFF
-                && content[1] == (byte) 0xD8
-                && content[2] == (byte) 0xFF) {
-            return MediaType.IMAGE_JPEG;
-        }
-
-        return MediaType.APPLICATION_OCTET_STREAM;
+    
     }
 
-}
+

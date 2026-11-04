@@ -21,6 +21,12 @@ public interface TdsRefundRepository extends JpaRepository<TdsRefund, String> {
 
     boolean existsByIdAndCustId(String id, String custId);
 
+    @Query("SELECT DISTINCT t FROM TdsRefund t LEFT JOIN FETCH t.customer ORDER BY t.createdAt DESC")
+    List<TdsRefund> findAllWithCustomer();
+
+    @Query("SELECT DISTINCT t FROM TdsRefund t LEFT JOIN FETCH t.customer WHERE t.assignedAgent.id = :agentId ORDER BY t.createdAt DESC")
+    List<TdsRefund> findByAssignedAgentId(@Param("agentId") Long agentId);
+
     @Query("SELECT t FROM TdsRefund t WHERE t.status = :status AND ((t.updatedAt IS NOT NULL AND t.updatedAt < :cutoff) OR (t.updatedAt IS NULL AND (t.createdAt < :cutoff OR t.createdAt IS NULL)))")
     List<TdsRefund> findByStatusAndUpdatedAtBefore(@Param("status") RegisterationStatus status, @Param("cutoff") LocalDateTime cutoff);
 }

@@ -14,7 +14,7 @@ public interface PropertyLoanDocumentService {
 
     List<PropertyLoanDocumentItemResponse> getDocuments(String loanApplicationId);
 
-    PropertyLoanDocument downloadDocument(String loanApplicationId, PropertyDocumentType documentType);
+    byte[] downloadDocument(String loanApplicationId, PropertyDocumentType documentType);
 
     void deleteDocument(String loanApplicationId, PropertyDocumentType documentType);
 }

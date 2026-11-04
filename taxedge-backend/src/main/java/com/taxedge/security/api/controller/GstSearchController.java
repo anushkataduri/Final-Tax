@@ -28,4 +28,9 @@ public class GstSearchController {
         GstSearchResponse response = gstSearchService.searchGstin(request.getGstin());
         return ResponseEntity.ok(response);
     }
+    
+    @PostMapping("/verify")
+    public ResponseEntity<Boolean> verifyGstin(@Valid @RequestBody VerifyGstinRequest request) {
+        return ResponseEntity.ok(gstSearchService.verifyGstin(request.getGstin()));
+    }
 }

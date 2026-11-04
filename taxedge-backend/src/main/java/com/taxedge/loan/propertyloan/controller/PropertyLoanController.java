@@ -21,7 +21,6 @@ import org.springframework.web.multipart.MultipartFile;
 import com.taxedge.loan.propertyloan.dto.PropertyLoanCreateRequest;
 import com.taxedge.loan.propertyloan.dto.PropertyLoanDocumentItemResponse;
 import com.taxedge.loan.propertyloan.dto.PropertyLoanResponse;
-import com.taxedge.loan.propertyloan.dto.PropertyLoanReviewResponse;
 import com.taxedge.loan.propertyloan.dto.PropertyLoanUpdateRequest;
 import com.taxedge.loan.propertyloan.entity.PropertyLoanDocument;
 import com.taxedge.loan.propertyloan.enums.PropertyDocumentType;
@@ -61,11 +60,6 @@ public class PropertyLoanController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("application/{id}/review")
-    public ResponseEntity<PropertyLoanReviewResponse> getReview(@PathVariable String id) {
-        return ResponseEntity.ok(applicationService.getReview(id));
-    }
-
     @PostMapping("application/{id}/submit")
     public ResponseEntity<PropertyLoanResponse> submitApplication(@PathVariable String id) {
         return ResponseEntity.ok(applicationService.submitApplication(id));
@@ -94,10 +88,9 @@ public class PropertyLoanController {
     public ResponseEntity<byte[]> downloadDocument(
             @PathVariable String id,
             @PathVariable PropertyDocumentType documentType) {
-        PropertyLoanDocument doc = documentService.downloadDocument(id, documentType);
-        byte[] content = doc.getFileContent(documentType);
-        String fileName = doc.getFileName(documentType) != null ? doc.getFileName(documentType) : (documentType.name().toLowerCase() + ".pdf");
-        String contentType = fileName.endsWith(".png") ? "image/png" : (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") ? "image/jpeg" : MediaType.APPLICATION_PDF_VALUE);
+        byte[] content = documentService.downloadDocument(id, documentType);
+        String fileName = documentType.name().toLowerCase() + ".pdf";
+        String contentType = MediaType.APPLICATION_PDF_VALUE;
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")

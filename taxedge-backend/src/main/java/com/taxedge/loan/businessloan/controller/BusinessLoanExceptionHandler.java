@@ -1,0 +1,66 @@
+package com.taxedge.loan.businessloan.controller;
+
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+
+import com.taxedge.exception.ErrorResponse;
+import com.taxedge.exception.ResourceNotFoundException;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Order(Ordered.HIGHEST_PRECEDENCE)
+@RestControllerAdvice(assignableTypes = BusinessLoanController.class)
+public class BusinessLoanExceptionHandler {
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException exception) {
+        return response(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException exception) {
+        return response(HttpStatus.FORBIDDEN, "Authenticated customer access is required");
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(DataIntegrityViolationException exception) {
+        return response(HttpStatus.CONFLICT, "Business loan operation conflicts with existing records");
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxSize(MaxUploadSizeExceededException exception) {
+        return response(HttpStatus.PAYLOAD_TOO_LARGE, "File size exceeds the allowable limit");
+    }
+
+    @ExceptionHandler({
+            IllegalArgumentException.class,
+            IllegalStateException.class,
+            MethodArgumentNotValidException.class,
+            HttpMessageNotReadableException.class
+    })
+    public ResponseEntity<ErrorResponse> handleInvalidRequest(Exception exception) {
+        log.warn("Invalid business loan request: {}", exception.getMessage());
+        String message = exception.getMessage();
+        if (exception instanceof MethodArgumentNotValidException manve && manve.getBindingResult().getFieldError() != null) {
+            message = manve.getBindingResult().getFieldError().getDefaultMessage();
+        } else if (exception instanceof HttpMessageNotReadableException notReadable) {
+            Throwable mostSpecific = notReadable.getMostSpecificCause();
+            message = (mostSpecific != null && mostSpecific.getMessage() != null) ? mostSpecific.getMessage() : notReadable.getMessage();
+        }
+        return response(HttpStatus.BAD_REQUEST, message);
+    }
+
+    private ResponseEntity<ErrorResponse> response(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(new ErrorResponse(message, status.value()));
+    }
+}

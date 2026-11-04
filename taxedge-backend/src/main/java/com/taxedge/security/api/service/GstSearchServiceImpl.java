@@ -48,9 +48,35 @@ public class GstSearchServiceImpl implements GstSearchService {
         return response;
     }
 
-	@Override
-	public Boolean verifyGstin(String gstin) {
-		
-		return null;
-	}
+    @Override
+    public Boolean verifyGstin(String gstin) {
+
+        String normalisedGstin = GstSearchHelper.normalise(gstin);
+        String payload = GstSearchHelper.buildPayload(objectMapper, normalisedGstin);
+
+        String responseBody = sandboxHttpExecutor.execute(
+                token -> GstSearchHelper.buildRequest(
+                        sandboxProperties.getBaseUrl(),
+                        sandboxProperties.getApiKey(),
+                        token,
+                        payload,
+                        sandboxProperties.getApiVersion()),
+                OPERATION);
+
+        GstSearchResponse response = GstSearchHelper.parseResponse(objectMapper, responseBody);
+
+        if (response.getData() == null || response.getData().getData() == null) {
+            log.warn("GST search [{}]: no record returned", normalisedGstin);
+            return Boolean.FALSE;
+        }
+
+        GstSearchResponse.GstBusinessDetails taxpayer = response.getData().getData();
+        boolean matches = normalisedGstin.equalsIgnoreCase(taxpayer.getGstin());
+
+        log.info("GST searched [{}]: returnedGstin={}, legalName={}, status={}, match={}",
+                normalisedGstin, taxpayer.getGstin(), taxpayer.getLegalName(),
+                taxpayer.getStatus(), matches);
+
+        return matches;
+    }
 }
