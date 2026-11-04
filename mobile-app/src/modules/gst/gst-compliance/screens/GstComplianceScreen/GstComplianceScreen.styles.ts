@@ -342,6 +342,10 @@ export const styles = StyleSheet.create({
   },
 });
 
+export const getScrollContentStyle = (bottomInset: number) => ({
+  paddingBottom: Math.max(bottomInset, 16) + 32,
+});
+
 export const getRootBgStyle = (isDark: boolean) => ({
   backgroundColor: isDark ? "#0F172A" : "#F8FAFC",
 });

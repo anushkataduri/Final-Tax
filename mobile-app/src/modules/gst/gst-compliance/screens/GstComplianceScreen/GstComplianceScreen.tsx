@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/shared/hooks/useTheme";
 import { BrandColors } from "@/shared/theme";
 import {
@@ -27,6 +28,7 @@ import { useComplianceForm } from "@/modules/gst/gst-compliance/hooks/useComplia
 import {
   styles,
   getRootBgStyle,
+  getScrollContentStyle,
 } from "@/modules/gst/gst-compliance/screens/GstComplianceScreen/GstComplianceScreen.styles";
 
 const FINANCIAL_YEARS: SelectorOption[] = [
@@ -53,13 +55,13 @@ const REQUEST_TYPES: SelectorOption[] = [
 
 export function GstComplianceScreen() {
   const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const scrollViewRef = useRef<ScrollView>(null);
   const kbControllerRef = useRef<KeyboardAwareScrollController>(null);
   const sectionPositionsRef = useRef<Record<string, number>>({});
   const innerPositionsRef = useRef<Record<string, number>>({});
   const requestTypeSectionYRef = useRef<number>(0);
-  const pendingScrollSectionRef = useRef<string | null>(null);
 
   const handleScrollToTarget = useCallback((targetY: number) => {
     scrollViewRef.current?.scrollTo({ y: Math.max(0, targetY - 12), animated: true });
@@ -97,13 +99,8 @@ export function GstComplianceScreen() {
 
   const handleSectionLayout = useCallback((section: string, relativeY: number) => {
     innerPositionsRef.current[section] = relativeY;
-    const computedY = requestTypeSectionYRef.current + relativeY;
-    sectionPositionsRef.current[section] = computedY;
-    if (pendingScrollSectionRef.current === section) {
-      pendingScrollSectionRef.current = null;
-      handleScrollToTarget(computedY);
-    }
-  }, [handleScrollToTarget]);
+    sectionPositionsRef.current[section] = requestTypeSectionYRef.current + relativeY;
+  }, []);
 
   const handleRequestTypeContainerLayout = useCallback((e: { nativeEvent: { layout: { y: number } } }) => {
     const parentY = e.nativeEvent.layout.y;
@@ -111,37 +108,13 @@ export function GstComplianceScreen() {
     Object.keys(innerPositionsRef.current).forEach((sec) => {
       sectionPositionsRef.current[sec] = parentY + innerPositionsRef.current[sec];
     });
-    if (
-      pendingScrollSectionRef.current &&
-      typeof sectionPositionsRef.current[pendingScrollSectionRef.current] === "number"
-    ) {
-      const targetY = sectionPositionsRef.current[pendingScrollSectionRef.current];
-      pendingScrollSectionRef.current = null;
-      handleScrollToTarget(targetY);
-    }
-  }, [handleScrollToTarget]);
+  }, []);
 
-  // Coordinated section-aware scrolling between steps and edit actions
-    useEffect(() => {
-    if (currentStep === 1) {
-      pendingScrollSectionRef.current = null;
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-      return;
-    }
-
-    if (editSection && editSection !== "details") {
-      const targetY = sectionPositionsRef.current[editSection];
-      if (typeof targetY === "number" && targetY > 0) {
-        pendingScrollSectionRef.current = null;
-        setTimeout(() => handleScrollToTarget(targetY), 50);
-      } else {
-        pendingScrollSectionRef.current = editSection;
-      }
-    } else {
-      pendingScrollSectionRef.current = null;
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    }
-  }, [currentStep, editSection, handleScrollToTarget]);
+  // Consistent screen initialization: on step transitions (Review <-> Form),
+  // reset scroll position cleanly to the top without arbitrary delayed jumps.
+  useEffect(() => {
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+  }, [currentStep]);
 
   const handleScrollField = useCallback((fieldName: string) => {
     if (fieldName === "gstin") {
@@ -181,38 +154,13 @@ export function GstComplianceScreen() {
         ref={scrollViewRef}
         controllerRef={kbControllerRef}
         style={[styles.scrollView, isDark ? styles.scrollViewDark : styles.scrollViewLight]}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, getScrollContentStyle(insets.bottom)]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         bounces={false}
         extraScrollHeight={72}
       >
-          {/* Edit Mode Top Banner */}
-          {isEditMode && currentStep === 0 && (
-            <View
-              style={[
-                styles.editModeBanner,
-                isDark && styles.editModeBannerDark,
-              ]}
-            >
-              <View style={styles.editModeBannerLeft}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={18}
-                  color={isDark ? "#FED7AA" : "#C2410C"}
-                />
-                <Text
-                  style={[
-                    styles.editModeBannerText,
-                    isDark && styles.editModeBannerTextDark,
-                  ]}
-                >
-                  Editing Application Details
-                </Text>
-              </View>
-            </View>
-          )}
 
           {/* Step 0: Input Form & Upload Cards */}
           {currentStep === 0 && (
@@ -389,7 +337,7 @@ export function GstComplianceScreen() {
           clearError("requestType");
         }}
         onClose={() => setShowTypeModal(false)}
-      />
+      />
 
       {/* Universal Draft Modal */}
       <UniversalDraftModal

@@ -111,7 +111,7 @@ export function useCreateProfile(
     state: "",
     password: "",
     confirmPassword: "",
-    customerType: params.customerType || "Individual",
+    customerType: params.customerType || "",
   });
 
   useEffect(() => {
@@ -170,10 +170,6 @@ export function useCreateProfile(
     resetAadhaarVerification();
     setTimeout(() => aadhaarRef.current?.focus(), 150);
   };
-
-  // ─── PAN Keyboard Type ───────────────────────────────────────────────────────
-  const panKeyboardType: "default" | "number-pad" =
-    form.pan.length >= 5 && form.pan.length < 9 ? "number-pad" : "default";
 
   // ─── PAN Sanitizer (functional, zero loops) ──────────────────────────────────
   const handlePanChange = (text: string) => {
@@ -266,9 +262,12 @@ export function useCreateProfile(
 
   // ─── Step Navigation ─────────────────────────────────────────────────────────
   const handleProceedToRegistration = () => {
-    !form.customerType
-      ? Alert.alert("Account Type Required", "Please select an account type.")
-      : (setCurrentStep(2), scrollRef.current?.scrollTo({ y: 0, animated: true }));
+    if (!form.customerType) {
+      Alert.alert("Account Type Required", "Please select an account type to continue.");
+      return;
+    }
+    setCurrentStep(2);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
   const handleBack = () => {
@@ -293,27 +292,27 @@ export function useCreateProfile(
       setProfileLoading(false);
       res.success
         ? (async () => {
-            const pendingRoute = useAuthStore.getState().pendingServiceRoute;
-            useAuthStore.getState().setPendingServiceRoute(null);
-            const destination = pendingRoute || "/(main)/home";
-            try {
-              const hasHardware = await biometricService.checkHardwareSupport();
-              const isEnrolled = await biometricService.checkEnrollment();
-              const isAlreadyEnabled = await biometricService.isBiometricEnabled();
-              hasHardware && isEnrolled && !isAlreadyEnabled
-                ? (async () => {
-                    const typeLabel = await biometricService.getBiometricTypeLabel();
-                    setBiometricType(typeLabel);
-                    setPendingPostRegistrationRoute(destination);
-                    setShowBiometricModal(true);
-                  })()
-                : router.replace(toHref(destination));
-              return;
-            } catch (bioCheckErr) {
-              logger.warn("Biometric check error during registration", { error: getErrorMessage(bioCheckErr) });
-            }
-            router.replace(toHref(destination));
-          })()
+          const pendingRoute = useAuthStore.getState().pendingServiceRoute;
+          useAuthStore.getState().setPendingServiceRoute(null);
+          const destination = pendingRoute || "/(main)/home";
+          try {
+            const hasHardware = await biometricService.checkHardwareSupport();
+            const isEnrolled = await biometricService.checkEnrollment();
+            const isAlreadyEnabled = await biometricService.isBiometricEnabled();
+            hasHardware && isEnrolled && !isAlreadyEnabled
+              ? (async () => {
+                const typeLabel = await biometricService.getBiometricTypeLabel();
+                setBiometricType(typeLabel);
+                setPendingPostRegistrationRoute(destination);
+                setShowBiometricModal(true);
+              })()
+              : router.replace(toHref(destination));
+            return;
+          } catch (bioCheckErr) {
+            logger.warn("Biometric check error during registration", { error: getErrorMessage(bioCheckErr) });
+          }
+          router.replace(toHref(destination));
+        })()
         : res.requiresReverification
           ? (Alert.alert("Verification expired", res.error || "Please verify your mobile number again."),
             router.replace("/(auth)/login"))
@@ -376,20 +375,20 @@ export function useCreateProfile(
     const hasErrors = Object.keys(errs).length > 0;
     hasErrors
       ? (() => {
-          setProfileErrors(errs);
-          const firstInvalid = fieldOrder.find((item) => Boolean(errs[item.key]));
-          firstInvalid
-            ? (() => {
-                const y = fieldYOffsets.current[firstInvalid.key];
-                y !== undefined &&
-                  scrollRef.current?.scrollTo({ y: Math.max(0, y - 70), animated: true });
-                firstInvalid.ref?.current &&
-                  setTimeout(() => firstInvalid.ref?.current?.focus(), 150);
-              })()
-            : errs.terms
-              ? scrollRef.current?.scrollToEnd({ animated: true })
-              : undefined;
-        })()
+        setProfileErrors(errs);
+        const firstInvalid = fieldOrder.find((item) => Boolean(errs[item.key]));
+        firstInvalid
+          ? (() => {
+            const y = fieldYOffsets.current[firstInvalid.key];
+            y !== undefined &&
+              scrollRef.current?.scrollTo({ y: Math.max(0, y - 70), animated: true });
+            firstInvalid.ref?.current &&
+              setTimeout(() => firstInvalid.ref?.current?.focus(), 150);
+          })()
+          : errs.terms
+            ? scrollRef.current?.scrollToEnd({ animated: true })
+            : undefined;
+      })()
       : executeRegistrationRequest();
   };
 
@@ -434,7 +433,6 @@ export function useCreateProfile(
     handleProceedToRegistration,
     handleFinalRegistration,
     handleBack,
-    panKeyboardType,
     showPassword,
     setShowPassword,
     showConfirmPassword,

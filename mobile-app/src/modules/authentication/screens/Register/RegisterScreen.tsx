@@ -27,7 +27,7 @@ export function RegisterScreen() {
   const {
     form, updateForm, handlePanChange, handleDobChange, handleBlur,
     profileErrors, profileLoading, handleProceedToRegistration, handleFinalRegistration,
-    handleBack, panKeyboardType, showPassword, setShowPassword,
+    handleBack, showPassword, setShowPassword,
     showConfirmPassword, setShowConfirmPassword, agreedToTerms, setAgreedToTerms,
     showAddressLine2, setShowAddressLine2, setFieldOffset,
     scrollRef, nameRef, emailRef, fatherSpouseRef,
@@ -77,6 +77,13 @@ export function RegisterScreen() {
   const yo = (key: string) => ({ onLayout: (e: any) => setFieldOffset(key, e.nativeEvent.layout.y) });
   const ff = (key: string) => ({ onBlur: () => handleBlur(key as any) });
 
+  const handleCustomerTypeSelect = (key: string) => {
+    updateForm("customerType", key);
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+  };
+
   // The keyboard gap is added by KeyboardAwareScrollView, measured from what the keyboard covers.
   const scrollBottomPadding = Math.max(insets.bottom + Spacing.xl, 40);
 
@@ -112,7 +119,7 @@ export function RegisterScreen() {
             {CUSTOMER_TYPE_OPTIONS.map((opt) => {
               const sel = form.customerType === opt.key;
               return (
-                <TouchableOpacity key={opt.key} activeOpacity={0.8} onPress={() => updateForm("customerType", opt.key)}
+                <TouchableOpacity key={opt.key} activeOpacity={0.8} onPress={() => handleCustomerTypeSelect(opt.key)}
                   style={[styles.customerTypeCard, sel && styles.customerTypeCardSelected]}>
                   <View style={[styles.cardIconContainer, sel && styles.cardIconContainerSelected]}>
                     <Ionicons name={opt.icon} size={22} color={sel ? BrandColors.PRIMARY_ORANGE : BrandColors.PRIMARY_BLUE} />
@@ -127,14 +134,18 @@ export function RegisterScreen() {
                 </TouchableOpacity>
               );
             })}
-            <TouchableOpacity activeOpacity={0.85} onPress={handleProceedToRegistration} style={styles.submitBtnOrange}>
+            <TouchableOpacity
+              activeOpacity={form.customerType ? 0.85 : 0.6}
+              onPress={handleProceedToRegistration}
+              style={[styles.submitBtnOrange, !form.customerType && { opacity: 0.55 }]}
+            >
               <Text style={styles.submitBtnText}>Continue</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.formSection}>
             <Text style={styles.requiredLegend}>
-              Please provide the required details to create your TaxEdge account.
+              Please provide the required details to create your Finsolz account.
             </Text>
 
             <FormField fieldRef={nameRef} {...yo("name")} label="Full Name" required leftIcon="person-outline"
@@ -172,7 +183,7 @@ export function RegisterScreen() {
                 valueFormat="DD-MM-YYYY"
                 placeholder="DD-MM-YYYY"
                 maximumDate={new Date()}
-                initialPickerDate={new Date(2000, 0, 1)}
+                initialPickerDate={new Date()}
                 iconColor={BrandColors.PRIMARY_ORANGE}
               />
             </View>
@@ -185,7 +196,7 @@ export function RegisterScreen() {
 
             <FormField fieldRef={panRef} {...yo("pan")} label="PAN Number" required leftIcon="card-outline"
               value={form.pan} onChange={handlePanChange} {...ff("pan")}
-              placeholder="PAN Number" autoCapitalize="characters" keyboardType={panKeyboardType} maxLength={10}
+              placeholder="PAN Number" autoCapitalize="characters" keyboardType="default" maxLength={10}
               rightElement={
                 isPanValid ? (
                   <View style={styles.validTickContainer}>
@@ -370,7 +381,6 @@ export function RegisterScreen() {
               </TouchableOpacity>
               {profileErrors.state ? <Text style={styles.errorText}>{profileErrors.state}</Text> : null}
             </View>
-
             <FormField fieldRef={passcodeRef} {...yo("password")} label="Passcode" required leftIcon="lock-closed-outline"
               value={form.password} onChange={(t) => updateForm("password", t.replace(/\D/g, "").slice(0, 6))} {...ff("password")}
               placeholder="Passcode" keyboardType="number-pad" maxLength={6} secure={!showPassword}
@@ -390,10 +400,10 @@ export function RegisterScreen() {
               </TouchableOpacity>
               <Text style={styles.termsText}>
                 By creating an account, I agree to the{" "}
-                <Text style={styles.termsLink} onPress={() => Alert.alert("Terms of Service", "By using TaxEdge, you agree to statutory Indian tax filing and compliance guidelines, confidential credential management, and authorized tax representation.")}>
+                <Text style={styles.termsLink} onPress={() => Alert.alert("Terms of Service", "By using Finsolz, you agree to statutory Indian tax filing and compliance guidelines, confidential credential management, and authorized tax representation.")}>
                   Terms of Service
                 </Text>{" "}and{" "}
-                <Text style={styles.termsLink} onPress={() => Alert.alert("Privacy Policy", "TaxEdge uses bank-grade 256-bit encryption to safeguard your PAN, Aadhaar, and financial records. We do not sell your data to third parties.")}>
+                <Text style={styles.termsLink} onPress={() => Alert.alert("Privacy Policy", "Finsolz uses bank-grade 256-bit encryption to safeguard your PAN, Aadhaar, and financial records. We do not sell your data to third parties.")}>
                   Privacy Policy
                 </Text>.
               </Text>

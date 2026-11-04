@@ -40,6 +40,7 @@ export const GstApplicationStatusStep: React.FC<GstApplicationStatusStepProps> =
   businessName = "Your Business",
   serviceName = "GST Filing",
   estCompletion = "1-2 Business Days",
+  statusText = "Under Verification",
   isFilingWorkflow,
   onReuploadDocuments,
   showTimeline = false,
@@ -103,7 +104,7 @@ export const GstApplicationStatusStep: React.FC<GstApplicationStatusStepProps> =
         <View style={styles.heroTopRow}>
           <Text style={styles.heroAppIdLabel}>APPLICATION ID</Text>
           <View style={styles.statusBadge}>
-            <Text style={styles.statusBadgeText}>Under Verification</Text>
+            <Text style={styles.statusBadgeText}>{statusText}</Text>
           </View>
         </View>
 

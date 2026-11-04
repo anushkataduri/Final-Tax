@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Platform } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "../../../../hooks/use-theme";
@@ -41,6 +41,7 @@ export function PasscodeLoginSection({
   const locked = lockRemaining > 0;
   const inputRef = useRef<TextInput>(null);
   const themed = getThemedStyles(colors);
+  const [showPasscode, setShowPasscode] = useState(false);
 
   useEffect(() => {
     if (!autoFocus) return;
@@ -65,6 +66,7 @@ export function PasscodeLoginSection({
     return Array.from({ length: 6 }).map((_, i) => {
       const isFilled = i < passcode.length;
       const isCurrent = i === passcode.length;
+      const digit = passcode[i];
       return (
         <View
           key={i}
@@ -73,7 +75,13 @@ export function PasscodeLoginSection({
             themed.getDotBoxStyle(isCurrent, error),
           ]}
         >
-          {isFilled ? <View style={styles.dot} /> : null}
+          {isFilled ? (
+            showPasscode ? (
+              <Text style={[styles.digitText, themed.digitText]}>{digit}</Text>
+            ) : (
+              <View style={styles.dot} />
+            )
+          ) : null}
         </View>
       );
     });
@@ -83,6 +91,23 @@ export function PasscodeLoginSection({
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={[styles.title, themed.title]}>Enter 6-Digit Passcode</Text>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => {
+            setShowPasscode((prev) => !prev);
+            inputRef.current?.focus();
+          }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={styles.eyeBtn}
+          accessibilityRole="button"
+          accessibilityLabel={showPasscode ? "Hide Passcode" : "Show Passcode"}
+        >
+          <Ionicons
+            name={showPasscode ? "eye-off-outline" : "eye-outline"}
+            size={22}
+            color={colors.textSecondary || "#64748B"}
+          />
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity
@@ -99,7 +124,7 @@ export function PasscodeLoginSection({
         onChangeText={handleChangeText}
         keyboardType="number-pad"
         maxLength={6}
-        secureTextEntry
+        secureTextEntry={!showPasscode}
         editable={!locked}
         style={styles.hiddenInput}
       />
@@ -150,3 +175,4 @@ export function PasscodeLoginSection({
 }
 
 export default PasscodeLoginSection;
+

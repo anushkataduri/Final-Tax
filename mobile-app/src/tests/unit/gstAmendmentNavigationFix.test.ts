@@ -70,7 +70,7 @@ test("gstold GstAmendmentScreen: maintains identical navigation behavior to /(ma
   );
 
   assert.ok(
-    content.includes('if (workflow.currentStep === "SUCCESS") {\n        workflow.router.replace("/(main)/applications");\n        return true;\n      }'),
+    content.replace(/\r\n/g, "\n").includes('if (workflow.currentStep === "SUCCESS") {\n        workflow.router.replace("/(main)/applications");\n        return true;\n      }'),
     "gstold BackHandler must handle SUCCESS by routing to /(main)/applications"
   );
 });

@@ -3,17 +3,17 @@ import assert from "node:assert";
 import fs from "node:fs";
 import path from "node:path";
 
-test("GstComplianceScreen: edit banner removes Back to Review button while keeping banner", () => {
+test("GstComplianceScreen: edit banner 'Editing Application Details' and Back to Review button are removed", () => {
   const filePath = path.resolve(
     process.cwd(),
     "src/modules/gst/gst-compliance/screens/GstComplianceScreen/GstComplianceScreen.tsx"
   );
   const content = fs.readFileSync(filePath, "utf8");
 
-  // Verify banner text is present
+  // Verify banner text is completely removed
   assert.ok(
-    content.includes("Editing Application Details"),
-    "Banner text should remain"
+    !content.includes("Editing Application Details"),
+    "Banner text 'Editing Application Details' should be completely removed"
   );
 
   // Verify 'Back to Review' button is removed
@@ -27,7 +27,7 @@ test("GstComplianceScreen: edit banner removes Back to Review button while keepi
   );
 });
 
-test("gstold GstComplianceScreen: edit banner removes Back to Review button while keeping banner", () => {
+test("gstold GstComplianceScreen: edit banner 'Editing Application Details' and Back to Review button are removed", () => {
   const filePath = path.resolve(
     process.cwd(),
     "src/modules/gstold/gst-compliance/screens/GstComplianceScreen/GstComplianceScreen.tsx"
@@ -35,8 +35,8 @@ test("gstold GstComplianceScreen: edit banner removes Back to Review button whil
   const content = fs.readFileSync(filePath, "utf8");
 
   assert.ok(
-    content.includes("Editing Application Details"),
-    "gstold banner text should remain"
+    !content.includes("Editing Application Details"),
+    "gstold banner text 'Editing Application Details' should be completely removed"
   );
 
   assert.ok(
@@ -69,7 +69,7 @@ test("GstComplianceReviewStep styles: value and valueMultiline are right-aligned
       "Styles should specify textAlign: 'right' for values"
     );
     assert.ok(
-      content.includes('valueMultiline: {\n    textAlign: "right",\n    lineHeight: 18,\n  }'),
+      content.replace(/\r\n/g, "\n").includes('valueMultiline: {\n    textAlign: "right",\n    lineHeight: 18,\n  }'),
       `File ${f} should have valueMultiline right-aligned`
     );
   }
