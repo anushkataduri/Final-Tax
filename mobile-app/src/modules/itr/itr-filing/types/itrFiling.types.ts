@@ -68,6 +68,7 @@ export interface ItrPersonalInfo {
 export interface ItrSelectableBank {
   id: string;
   bankName: string;
+  branchName?: string;
   accountNumber: string;
   maskedAccountNumber: string;
   ifscCode: string;
@@ -78,6 +79,7 @@ export interface ItrSelectableBank {
 
 export interface ItrBankDetails {
   bankName: string;
+  branchName?: string;
   accountNumber: string;
   confirmAccountNumber: string;
   ifscCode: string;

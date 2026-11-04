@@ -16,12 +16,14 @@ import { useRevisedProgressStore } from "../../store/revisedProgressStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { RevisedItrHeader } from "../../components/common";
-import { ReturnSummaryCard } from "../../components/find";
 import { useApplicationStore } from "@/store/applicationStore";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { RevisedItrApiService } from "../../services/RevisedItrApiService";
-import { OriginalReturnDetails } from "../../types/revisedItr.types";
 import { getPastAssessmentYears } from "@/modules/itr/taxRules";
+import {
+  filterNumericAcknowledgementNumber,
+  isOriginalItrAckNumberValid,
+} from "../../utils/acknowledgementValidation";
 import {
   styles,
   getContainerInsetsStyle,
@@ -31,29 +33,42 @@ import {
 
 export const FindOriginalReturnScreen: React.FC = () => {
   const router = useRouter();
-  const params = useLocalSearchParams<{ acknowledgementNumber?: string; assessmentYear?: string; isEditing?: string }>();
-  const maxStepReached = useRevisedProgressStore((s) => s.maxStepReached);
+  const params = useLocalSearchParams<{
+    acknowledgementNumber?: string;
+    assessmentYear?: string;
+    isEditing?: string;
+  }>();
+  useRevisedProgressStore((s) => s.maxStepReached);
   const insets = useSafeAreaInsets();
-  const applications = useApplicationStore((state) => state.applications);
 
-  const existingItr = applications.find(
-    (a) => a.serviceId === "itr-filing" || a.category === "ITR"
-  );
-
-  const [ackNumber, setAckNumber] = useState<string>(params.acknowledgementNumber || "");
+  const initialAck = filterNumericAcknowledgementNumber(params.acknowledgementNumber || "");
+  const [ackNumber, setAckNumber] = useState<string>(initialAck);
   const ayOptions = getPastAssessmentYears(3).map((ay) => ay.label);
-  const [assessmentYear, setAssessmentYear] = useState<string>(ayOptions[0]);
+  const [assessmentYear, setAssessmentYear] = useState<string>(
+    params.assessmentYear || ayOptions[0]
+  );
   const [showAyDropdown, setShowAyDropdown] = useState<boolean>(false);
-  const [foundReturn, setFoundReturn] = useState<OriginalReturnDetails | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    if (params.acknowledgementNumber) {
+      if (initialAck.length === 0) {
+        return "Please enter the 15-digit Acknowledgement Number.";
+      }
+      if (initialAck.length < 15) {
+        return "Acknowledgement number must be exactly 15 digits.";
+      }
+      return null;
+    }
+    return null;
+  });
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
   const {
     showDraftModal,
-    openDraftModal,
     handleSaveAndExit,
     handleDiscardAndExit,
     handleCancel,
   } = useUniversalDraftGuard({
-    isDirty: () => ackNumber.trim().length > 0 || foundReturn !== null,
+    isDirty: () => ackNumber.length > 0,
     onSaveDraft: () => {
       useApplicationStore.getState().saveRevisedItrDraft({ step: 0 });
     },
@@ -63,7 +78,6 @@ export const FindOriginalReturnScreen: React.FC = () => {
     },
     isSubmitted: () => useRevisedProgressStore.getState().isSubmitted,
   });
-
 
   useEffect(() => {
     const draft = useApplicationStore.getState().revisedItrDraft;
@@ -83,59 +97,41 @@ export const FindOriginalReturnScreen: React.FC = () => {
       // Clear any in-memory store data from earlier completed sessions
       useRevisedProgressStore.getState().reset();
     }
-  }, []);
+  }, [router]);
 
-  const handleFindReturn = () => {
-    // 15-digit numeric validation
-    const cleaned = ackNumber.trim();
-    if (!cleaned) {
+  const handleAckNumberChange = (val: string) => {
+    // Real-time numeric filtering: reject letters, emojis, spaces, commas, and special characters
+    const filtered = filterNumericAcknowledgementNumber(val);
+    setAckNumber(filtered);
+
+    if (filtered.length === 0) {
       setError("Please enter the 15-digit Acknowledgement Number.");
       return;
     }
-    if (!/^\d{15}$/.test(cleaned)) {
-      setError("Acknowledgement Number must be exactly 15 digits.");
+
+    if (filtered.length < 15) {
+      setError("Acknowledgement number must be exactly 15 digits.");
       return;
     }
 
     setError(null);
-    const matched = applications.find(
-      (a) =>
-        (a.formData as any)?.previousAckNumber === cleaned ||
-        a.id === cleaned
-    );
-
-    if (matched) {
-      const fd = (matched.formData || {}) as any;
-      setFoundReturn({
-        acknowledgementNumber: cleaned,
-        assessmentYear: fd.assessmentYear || assessmentYear,
-        filingDate: matched.createdAt || "Filed via TaxEdge",
-        itrForm: fd.formTitle || fd.formType || "ITR-1 (Sahaj)",
-        filingStatus: matched.status || "Successfully Filed",
-        grossTotalIncome: fd.grossTotalIncome
-          ? `₹${Number(fd.grossTotalIncome).toLocaleString("en-IN")}`
-          : "—",
-      });
-    } else {
-      setFoundReturn({
-        acknowledgementNumber: cleaned,
-        assessmentYear,
-        filingDate: "Verified from IT Portal",
-        itrForm: "ITR Form",
-        filingStatus: "Filed & Verified",
-        grossTotalIncome: "—",
-      });
-    }
   };
 
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const isAckValid = isOriginalItrAckNumberValid(ackNumber);
+  const isContinueDisabled = !isAckValid || isSubmitting;
+
   const { revisedItrId, setBackendIds, setMaxStepReached } = useRevisedProgressStore();
   const { customer, authenticatedUser } = useAuthStore();
 
   // POST Method - Normal Flow (Continue)
   const handleContinue = async () => {
-    if (!foundReturn) {
-      handleFindReturn();
+    const cleanAck = filterNumericAcknowledgementNumber(ackNumber);
+    if (cleanAck.length !== 15) {
+      setError(
+        cleanAck.length === 0
+          ? "Please enter the 15-digit Acknowledgement Number."
+          : "Acknowledgement number must be exactly 15 digits."
+      );
       return;
     }
 
@@ -156,8 +152,8 @@ export const FindOriginalReturnScreen: React.FC = () => {
 
       const payload = {
         customerId,
-        itrAcknowledgementNumber: foundReturn.acknowledgementNumber,
-        assessmentYear: foundReturn.assessmentYear.replace("AY ", "").trim()
+        itrAcknowledgementNumber: cleanAck,
+        assessmentYear: assessmentYear.replace("AY ", "").trim(),
       };
 
       const response = await RevisedItrApiService.saveRevisedItr(payload);
@@ -170,13 +166,13 @@ export const FindOriginalReturnScreen: React.FC = () => {
       router.push({
         pathname: "/service/revised-itr-reason" as any,
         params: {
-          acknowledgementNumber: foundReturn.acknowledgementNumber,
-          assessmentYear: foundReturn.assessmentYear,
+          acknowledgementNumber: cleanAck,
+          assessmentYear,
         },
       });
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error saving revised ITR:", e);
-      Alert.alert("Error", "Failed to save revised ITR.");
+      Alert.alert("Error", e?.message || "Failed to save revised ITR.");
     } finally {
       setIsSubmitting(false);
     }
@@ -184,8 +180,13 @@ export const FindOriginalReturnScreen: React.FC = () => {
 
   // PUT Method - Editing Flow (Update & Continue)
   const handleUpdateAndContinue = async () => {
-    if (!foundReturn) {
-      handleFindReturn();
+    const cleanAck = filterNumericAcknowledgementNumber(ackNumber);
+    if (cleanAck.length !== 15) {
+      setError(
+        cleanAck.length === 0
+          ? "Please enter the 15-digit Acknowledgement Number."
+          : "Acknowledgement number must be exactly 15 digits."
+      );
       return;
     }
 
@@ -211,8 +212,8 @@ export const FindOriginalReturnScreen: React.FC = () => {
 
       const payload = {
         customerId,
-        itrAcknowledgementNumber: foundReturn.acknowledgementNumber,
-        assessmentYear: foundReturn.assessmentYear.replace("AY ", "").trim()
+        itrAcknowledgementNumber: cleanAck,
+        assessmentYear: assessmentYear.replace("AY ", "").trim(),
       };
 
       await RevisedItrApiService.updateRevisedItr(revisedItrId, payload);
@@ -221,13 +222,13 @@ export const FindOriginalReturnScreen: React.FC = () => {
       router.push({
         pathname: "/service/revised-itr-review" as any,
         params: {
-          acknowledgementNumber: foundReturn.acknowledgementNumber,
-          assessmentYear: foundReturn.assessmentYear,
+          acknowledgementNumber: cleanAck,
+          assessmentYear,
         },
       });
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error updating revised ITR:", e);
-      Alert.alert("Error", "Failed to update revised ITR.");
+      Alert.alert("Error", e?.message || "Failed to update revised ITR.");
     } finally {
       setIsSubmitting(false);
     }
@@ -261,15 +262,14 @@ export const FindOriginalReturnScreen: React.FC = () => {
           </Text>
           <TextInput
             style={[styles.textInput, error ? styles.inputError : null]}
-            placeholder="Enter acknowledgement number"
+            placeholder="Enter 15-digit acknowledgement number"
             placeholderTextColor="#94A3B8"
             keyboardType="number-pad"
             maxLength={15}
+            autoCapitalize="none"
+            autoCorrect={false}
             value={ackNumber}
-            onChangeText={(val) => {
-              setAckNumber(val);
-              if (error) setError(null);
-            }}
+            onChangeText={handleAckNumberChange}
           />
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
@@ -320,9 +320,6 @@ export const FindOriginalReturnScreen: React.FC = () => {
             </View>
           )}
         </View>
-
-        {/* Return Summary Card if Found */}
-        {foundReturn && <ReturnSummaryCard details={foundReturn} />}
       </ScrollView>
 
       {/* Sticky Bottom Action Button */}
@@ -333,36 +330,58 @@ export const FindOriginalReturnScreen: React.FC = () => {
         ]}
       >
         {params.isEditing === "true" ? (
-          /* Separate Button 1: Update & Continue (PUT Method) */
+          /* Button 1: Update & Continue (PUT Method) */
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={handleUpdateAndContinue}
-            style={styles.ctaButton}
-            disabled={isSubmitting}
+            style={[styles.ctaButton, isContinueDisabled ? styles.ctaButtonDisabled : null]}
+            disabled={isContinueDisabled}
           >
             {isSubmitting ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.ctaButtonText}>Update & Continue</Text>
-                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                <Text
+                  style={[
+                    styles.ctaButtonText,
+                    isContinueDisabled ? styles.ctaButtonTextDisabled : null,
+                  ]}
+                >
+                  Update & Continue
+                </Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color={isContinueDisabled ? "#64748B" : "#FFFFFF"}
+                />
               </>
             )}
           </TouchableOpacity>
         ) : (
-          /* Separate Button 2: Continue (POST Method) */
+          /* Button 2: Continue (POST Method) */
           <TouchableOpacity
             activeOpacity={0.85}
-            onPress={foundReturn ? handleContinue : handleFindReturn}
-            style={styles.ctaButton}
-            disabled={isSubmitting}
+            onPress={handleContinue}
+            style={[styles.ctaButton, isContinueDisabled ? styles.ctaButtonDisabled : null]}
+            disabled={isContinueDisabled}
           >
             {isSubmitting ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Text style={styles.ctaButtonText}>Continue</Text>
-                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                <Text
+                  style={[
+                    styles.ctaButtonText,
+                    isContinueDisabled ? styles.ctaButtonTextDisabled : null,
+                  ]}
+                >
+                  Continue
+                </Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={18}
+                  color={isContinueDisabled ? "#64748B" : "#FFFFFF"}
+                />
               </>
             )}
           </TouchableOpacity>
@@ -380,6 +399,3 @@ export const FindOriginalReturnScreen: React.FC = () => {
 };
 
 export default FindOriginalReturnScreen;
-
-
-

@@ -64,7 +64,6 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
 
   const {
     showDraftModal,
-    openDraftModal,
     markSubmitted,
     handleSaveAndExit,
     handleDiscardAndExit,
@@ -82,7 +81,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
     isSubmitted: () => isSubmitting || useRevisedProgressStore.getState().isSubmitted,
   });
   const assessmentYear = params.assessmentYear || "AY 2025–26";
-  const ackNo = params.acknowledgementNumber || "284419250714208";
+  const ackNo = params.acknowledgementNumber || "";
 
   // BUG-ITR-060: compute live from store so doc count stays accurate after editing income/Changes.
   const storeDocumentsForCount = useRevisedProgressStore((s) => s.documents);
@@ -350,6 +349,7 @@ export const ReviewRevisedComputationScreen: React.FC = () => {
       const successParams = {
         serviceType: "revised",
         serviceTitle,
+        customerName: customer?.name || (customer as any)?.fullName || "",
         assessmentYear,
         applicationId: targetAppId,
         uploadedDocsCount: uploadedDocs,

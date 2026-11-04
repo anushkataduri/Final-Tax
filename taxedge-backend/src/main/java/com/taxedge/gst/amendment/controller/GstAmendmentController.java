@@ -21,7 +21,7 @@ import com.taxedge.gst.amendment.service.*;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/gst/amendment")
+@RequestMapping({"/api/v1/gst/amendment", "/api/v1/gst/amendments"})
 @RequiredArgsConstructor
 public class GstAmendmentController {
 

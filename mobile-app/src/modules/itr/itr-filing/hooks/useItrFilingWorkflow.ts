@@ -263,6 +263,7 @@ export function useItrFilingWorkflow({
         pathname: "/service/itr-success" as any,
         params: {
           applicationId: generatedAppId,
+          customerName: formData.personalInfo.fullName || "",
           serviceTitle,
           assessmentYear: submittedAy,
           formType: submittedForm,

@@ -17,6 +17,7 @@ import com.taxedge.gst.amendment.repository.AdditionalPlaceAmendmentRepository;
 import com.taxedge.exception.ResourceNotFoundException;
 import com.taxedge.gst.registration.enums.NatureOfPremises;
 import com.taxedge.gst.registration.enums.RegisterationStatus;
+import com.taxedge.gst.registration.entity.Business;
 import com.taxedge.gst.registration.repository.BusinessRepository;
 import com.taxedge.messaging.service.EmailService;
 import com.taxedge.notification.service.FcmNotificationService;
@@ -78,6 +79,10 @@ public class AdditionalPlaceAmendmentServiceImpl implements AdditionalPlaceAmend
         }
 
         if (resolvedCustId == null && gstId != null && !gstId.trim().isEmpty()) {
+            Optional<Business> businessOpt = businessRepository.findById(gstId.trim());
+            if (businessOpt.isPresent() && businessOpt.get().getCustomer() != null) {
+                return businessOpt.get().getCustomer();
+            }
             if (customerRepository.existsById(gstId.trim())) {
                 resolvedCustId = gstId.trim();
             }
@@ -89,6 +94,7 @@ public class AdditionalPlaceAmendmentServiceImpl implements AdditionalPlaceAmend
 
         final String finalCustId = resolvedCustId;
         return customerRepository.findById(finalCustId)
+                .or(() -> customerRepository.findByMobileNumber(finalCustId))
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + finalCustId));
     }
 

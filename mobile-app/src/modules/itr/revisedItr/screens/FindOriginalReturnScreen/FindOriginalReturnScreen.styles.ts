@@ -189,11 +189,26 @@ export const styles = StyleSheet.create({
       default: {},
     }),
   },
+  ctaButtonDisabled: {
+    backgroundColor: '#CBD5E1',
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0,
+      },
+      android: {
+        elevation: 0,
+      },
+      default: {},
+    }),
+  },
   ctaButtonText: {
     color: BrandColors.WHITE,
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.bold,
     letterSpacing: 0.2,
+  },
+  ctaButtonTextDisabled: {
+    color: '#64748B',
   },
 });
 

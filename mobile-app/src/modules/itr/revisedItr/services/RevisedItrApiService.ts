@@ -1,6 +1,9 @@
 import { tokenManager } from "@/core/authentication/tokenManager";
 import { getDefaultBaseUrl, getActiveBaseUrl } from "@/core/api/apiConfig";
 import { apiClient } from "@/core/api/apiClient";
+import { useApplicationStore } from "@/store/applicationStore";
+import { applicationService } from "@/modules/applications/services/applicationService";
+import { OriginalReturnDetails } from "../types/revisedItr.types";
 import {
   REVISED_DOCUMENT_FIELD_MAP,
   resolveMimeType,
@@ -317,5 +320,100 @@ export const RevisedItrApiService = {
       console.error("Error updating Revised Documents:", error);
       throw error;
     }
+  },
+
+  // Lookup Genuine Original Return by Acknowledgement Number
+  lookupOriginalReturn: async (
+    ackNumber: string,
+    assessmentYear?: string
+  ): Promise<OriginalReturnDetails | null> => {
+    const cleanAck = String(ackNumber || "").trim();
+    if (!cleanAck || cleanAck.length !== 15) return null;
+
+    // 1. Search confirmed applications in client application store
+    const applications = useApplicationStore.getState().applications || [];
+    let matched = applications.find(
+      (a) =>
+        (a.formData as any)?.previousAckNumber === cleanAck ||
+        (a.formData as any)?.acknowledgementNumber === cleanAck ||
+        (a.formData as any)?.ackNumber === cleanAck ||
+        (a.formData as any)?.arn === cleanAck ||
+        a.id === cleanAck
+    );
+
+    // 2. Fetch specific application by ID from backend if not in memory
+    if (!matched) {
+      try {
+        const fetched = await applicationService.getApplicationById(cleanAck);
+        if (fetched) {
+          matched = fetched;
+        }
+      } catch {
+        // Continue to API check
+      }
+    }
+
+    // 3. Check backend ITR filing service directly
+    if (!matched) {
+      try {
+        const token = await tokenManager.getAccessToken();
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const activeHost = await getActiveBaseUrl();
+        const res = await fetch(`${activeHost}/api/v1/itr/filing/${encodeURIComponent(cleanAck)}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            ...headers,
+          },
+        });
+        if (res.ok) {
+          const itrData = await res.json();
+          if (itrData && (itrData.itrId || itrData.id)) {
+            const rawIncome = itrData.salaryIncome?.totalIncome ?? itrData.salaryIncome?.grossSalary;
+            const ayVal = itrData.assessmentYear
+              ? (itrData.assessmentYear.startsWith("AY") ? itrData.assessmentYear : `AY ${itrData.assessmentYear}`)
+              : (assessmentYear || "Current AY");
+            return {
+              acknowledgementNumber: cleanAck,
+              assessmentYear: ayVal,
+              filingDate: itrData.submittedAt
+                ? new Date(itrData.submittedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                : "Filed via TaxEdge",
+              itrForm: itrData.filingType || "ITR-1 (Sahaj)",
+              filingStatus: itrData.status || "Successfully Filed",
+              grossTotalIncome: rawIncome !== undefined && rawIncome !== null
+                ? `₹${Number(rawIncome).toLocaleString("en-IN")}`
+                : "—",
+            };
+          }
+        }
+      } catch {
+        // Backend lookup not found
+      }
+    }
+
+    if (matched) {
+      const fd = (matched.formData || {}) as any;
+      const rawAy = fd.assessmentYear || (matched as any).assessmentYear || assessmentYear;
+      const formattedAy = rawAy ? (rawAy.startsWith("AY") ? rawAy : `AY ${rawAy}`) : "Current AY";
+      const rawIncome = fd.grossTotalIncome ?? fd.totalIncome ?? fd.taxSummary?.totalIncome;
+      const submittedDate = (matched as any).submittedAt || matched.createdAt;
+      return {
+        acknowledgementNumber: cleanAck,
+        assessmentYear: formattedAy,
+        filingDate: submittedDate
+          ? new Date(submittedDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+          : "Filed via TaxEdge",
+        itrForm: fd.formTitle || fd.formType || matched.serviceName || "ITR-1 (Sahaj)",
+        filingStatus: matched.status || "Successfully Filed",
+        grossTotalIncome: rawIncome !== undefined && rawIncome !== null && rawIncome !== ""
+          ? (String(rawIncome).startsWith("₹") ? String(rawIncome) : `₹${Number(rawIncome).toLocaleString("en-IN")}`)
+          : "—",
+      };
+    }
+
+    // Return null strictly on failure — never fabricate mock data
+    return null;
   },
 };

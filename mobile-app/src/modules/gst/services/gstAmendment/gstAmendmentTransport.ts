@@ -50,7 +50,7 @@ export const uploadAmendmentWithFile = async <T = unknown>(
   try {
     const baseUrl =
       apiClient.getBaseUrl() || `http://${SERVER_IP}:${SERVER_PORT}`;
-    const url = `${baseUrl}/api/v1/gst/amendments/${endpoint}`;
+    const url = `${baseUrl}/api/v1/gst/amendment/${endpoint}`;
     logger.debug(`[gstAmendmentTransport] Submitting amendment via XHR (${method}) to:`, { endpoint, method });
 
     try {
@@ -59,7 +59,9 @@ export const uploadAmendmentWithFile = async <T = unknown>(
         authState.customer?.customerId ||
         authState.authenticatedUser?.customerId ||
         authState.authenticatedUser?.custId ||
-        (authState.customer as any)?.custId;
+        (authState.customer as any)?.custId ||
+        authState.customer?.mobile ||
+        authState.authenticatedUser?.mobileNumber;
       if (custId && typeof custId === "string" && custId.trim() !== "") {
         formData.append("customerId", custId.trim());
       }

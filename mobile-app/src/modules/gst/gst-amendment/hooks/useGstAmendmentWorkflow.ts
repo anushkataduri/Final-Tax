@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ScrollView, Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import * as FileSystem from "expo-file-system";
+import { File as ExpoFile } from "expo-file-system";
+import * as FileSystemLegacy from "expo-file-system/legacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useApplicationStore } from "@/store/applicationStore";
@@ -14,9 +15,8 @@ import { pickDocumentFromDrive } from "@/shared/utils/driveDocumentUploader";
 import { logger } from "@/core/logging/logger";
 
 import {
-  AmendmentStep, SupportingDoc, PickerModalState,
-  SubmissionResult, AmendmentFormData, INITIAL_AMENDMENT_FORM_DATA,
-} from "../types/gstAmendmentTypes";
+  AmendmentStep, SupportingDoc, PickerModalState, SubmissionResult, AmendmentFormData, INITIAL_AMENDMENT_FORM_DATA,
+} from "../types/gstAmendmentTypes";
 import { AMENDMENT_SECTIONS } from "../config/gstNonCoreAmendmentConfig";
 import {
   validateGstinInput, validateSectionForm, validateFieldRealtime, isFormDataDirty,
@@ -60,7 +60,7 @@ export function useGstAmendmentWorkflow() {
   const [submissionResult, setSubmissionResult] = useState<SubmissionResult | null>(null);
   const [isProofsExpanded, setIsProofsExpanded] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [amendmentId, setAmendmentId] = useState<number | null>(null);
+  const [amendmentId, setAmendmentId] = useState<number | string | null>(null);
   const [dbReviewData, setDbReviewData] = useState<any>(null);
   const [isSavingRecord, setIsSavingRecord] = useState(false);
   const savedDraftStepRef = useRef<AmendmentStep | null>(null);
@@ -416,8 +416,19 @@ export function useGstAmendmentWorkflow() {
 
     // Live FileSystem accessibility check immediately before submission
     try {
-      const fileInfo = await FileSystem.getInfoAsync(supportingDoc.uri);
-      if (!fileInfo.exists) {
+      let isMissing = false;
+      try {
+        const file = new ExpoFile(supportingDoc.uri);
+        if (typeof file.exists === "boolean") isMissing = !file.exists;
+      } catch {
+        try {
+          const info = await FileSystemLegacy.getInfoAsync(supportingDoc.uri);
+          if (info && typeof info.exists === "boolean") isMissing = !info.exists;
+        } catch {
+          // Proceed safely if URI scheme doesn't support local stat
+        }
+      }
+      if (isMissing) {
         setSectionDocs((prev) => ({
           ...prev,
           [selectedSectionId]: null,

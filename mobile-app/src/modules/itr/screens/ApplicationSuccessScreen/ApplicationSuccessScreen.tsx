@@ -1,6 +1,7 @@
 import React from "react";
 import { useLocalSearchParams } from "expo-router";
 import { useRevisedProgressStore } from "@/modules/itr/revisedItr/store/revisedProgressStore";
+import { useAuthStore } from "@/modules/authentication/store/authStore";
 import {
   CommonPostSubmissionScreen,
   PostSubmissionConfig,
@@ -10,15 +11,21 @@ export interface ApplicationSuccessScreenProps {
   config?: PostSubmissionConfig;
   onTrackStatus?: () => void;
   onDownloadAcknowledgement?: () => void;
+  onGoHome?: () => void;
+  onContactSupport?: () => void;
 }
 
 export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> = ({
   config: providedConfig,
   onTrackStatus,
   onDownloadAcknowledgement,
+  onGoHome,
+  onContactSupport,
 }) => {
   const params = useLocalSearchParams<{
     applicationId?: string;
+    customerName?: string;
+    businessName?: string;
     serviceType?: string;
     serviceTitle?: string;
     formType?: string;
@@ -31,9 +38,23 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
     originalAckNumber?: string;
     revisionReason?: string;
     status?: string;
+    appliedDate?: string;
+    estCompletion?: string;
   }>();
 
   const storeDocuments = useRevisedProgressStore((s) => s.documents);
+  const authCustomer = useAuthStore((s) => s.customer);
+  const authUser = useAuthStore((s) => s.authenticatedUser);
+
+  const resolvedCustomerName =
+    params.customerName ||
+    params.businessName ||
+    authCustomer?.name ||
+    authUser?.name ||
+    (authCustomer as any)?.fullName ||
+    (authUser as any)?.fullName ||
+    "Valued Client";
+
   const isRevised = params.serviceType === "revised" || params.serviceTitle === "Revised ITR";
 
   const resolvedConfig: PostSubmissionConfig =
@@ -42,11 +63,12 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
       ? {
         moduleType: "revised-itr",
         referenceId: params.applicationId || "",
+        customerName: resolvedCustomerName,
+        serviceName: "Revised ITR",
         headerTitle: "Revised ITR",
-        headerSubtitle: "Application Received",
-        title: "Your Revised ITR application has been received.",
-        description:
-          "Your documents and revised tax information have been received. A Tax Executive will review them before preparing your return.",
+        headerSubtitle: "Application Status",
+        title: "Application Submitted!",
+        description: "Your Revised ITR application has been successfully filed with TaxEdge.",
         assessmentYear: params.assessmentYear || "AY 2025–26",
         formType: params.formType || "Revised ITR",
         incomeType: params.incomeType || "Revised Return Filing",
@@ -58,16 +80,19 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
         totalDocsCount: storeDocuments
           ? storeDocuments.length
           : params.totalDocsCount || "0",
-        status: params.status || "Received",
+        status: params.status || "Under Verification",
+        appliedDate: params.appliedDate,
+        estCompletion: params.estCompletion || "1-2 Business Days",
       }
       : {
         moduleType: "itr",
         referenceId: params.applicationId || "",
+        customerName: resolvedCustomerName,
+        serviceName: params.serviceTitle || "ITR Filing",
         headerTitle: params.serviceTitle || "ITR Filing",
-        headerSubtitle: "Application Received",
-        title: "Your application has been received!",
-        description:
-          "Your documents and tax information have been received. A Tax Executive will review them before preparing your return.",
+        headerSubtitle: "Application Status",
+        title: "Application Submitted!",
+        description: "Your ITR Filing application has been successfully filed with TaxEdge.",
         assessmentYear: params.assessmentYear || "AY 2025–26",
         formType: params.formType || "ITR Form",
         incomeType: params.incomeType || "Declared Income",
@@ -75,7 +100,9 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
         uploadedDocsCount: params.uploadedDocsCount || "0",
         totalDocsCount: params.totalDocsCount || "0",
         refundBank: params.refundBank || "Verified Primary Bank",
-        status: params.status || "Received",
+        status: params.status || "Under Verification",
+        appliedDate: params.appliedDate,
+        estCompletion: params.estCompletion || "1-2 Business Days",
       });
 
   return (
@@ -83,6 +110,8 @@ export const ApplicationSuccessScreen: React.FC<ApplicationSuccessScreenProps> =
       config={resolvedConfig}
       onTrackStatus={onTrackStatus}
       onDownloadAcknowledgement={onDownloadAcknowledgement}
+      onGoHome={onGoHome}
+      onContactSupport={onContactSupport}
     />
   );
 };

@@ -5,6 +5,7 @@ import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { BrandColors } from "@/shared/theme";
 import { GstApplicationStatusStep } from "@/modules/gst/gst-status/components/GstApplicationStatusStep/GstApplicationStatusStep";
 import { SubmissionResult } from "../../types/gstAmendmentTypes";
+import { formatAmendmentSubmissionDate } from "../../utils/gstAmendmentHelpers";
 import { formatSubmissionDate } from "@/shared/formatters/dateFormatter";
 import { useApplicationStore } from "@/store/applicationStore";
 import { styles } from "./GstAmendmentSuccess.styles";
@@ -42,7 +43,7 @@ export const GstAmendmentSuccess: React.FC<GstAmendmentSuccessProps> = ({
   };
 
   const appId = submissionResult.arn || submissionResult.appId || "Not available";
-  const formattedDate = formatSubmissionDate(submissionResult.date) || "Today";
+  const formattedDate = formatAmendmentSubmissionDate(submissionResult.date) || formatSubmissionDate(submissionResult.date) || "Today";
 
   // Lookup application details from store if present to get user's business name
   const existingApp = useApplicationStore

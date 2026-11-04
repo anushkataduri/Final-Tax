@@ -28,7 +28,12 @@ export interface ProgressStage {
 export interface BasePostSubmissionConfig {
   moduleType: SubmissionModuleType;
   referenceId: string;
+  customerName?: string;
+  businessName?: string;
+  serviceName?: string;
   submissionDate?: string;
+  appliedDate?: string;
+  estCompletion?: string;
   status?: string;
   title?: string;
   description?: string;
@@ -83,6 +88,7 @@ export interface CommonPostSubmissionScreenProps {
   config: PostSubmissionConfig;
   onTrackStatus?: () => void;
   onGoHome?: () => void;
+  onContactSupport?: () => void;
   onDownloadAcknowledgement?: () => void;
   onBack?: () => void;
 }

@@ -4,30 +4,99 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Alert,
   BackHandler,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import Svg, { Circle, Rect } from "react-native-svg";
 import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
-import { FilingProgressTracker } from "../../success/FilingProgressTracker";
+import { useApplicationStore } from "@/store/applicationStore";
 import {
   CommonPostSubmissionScreenProps,
+  PostSubmissionConfig,
   SummaryRowItem,
 } from "./postSubmission.types";
 import {
   styles,
   getContainerInsetsStyle,
   getScrollContentInsetsStyle,
-  getBottomBarInsetsStyle,
 } from "./CommonPostSubmissionScreen.styles";
+
+export const buildSummaryRows = (config: PostSubmissionConfig): SummaryRowItem[] => {
+  const rows: SummaryRowItem[] = [];
+  const todayFormatted = new Date().toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  switch (config.moduleType) {
+    case "revised-itr": {
+      const rawAy = config.assessmentYear || "";
+      const ay = rawAy ? (rawAy.startsWith("AY") ? rawAy : `AY ${rawAy}`) : "Current AY";
+      rows.push({ label: "Assessment Year", value: ay });
+      rows.push({ label: "Return Form", value: config.formType || "Revised ITR" });
+      rows.push({ label: "Filing Purpose", value: config.incomeType || "Revised Return Filing" });
+      if (config.revisionReason) {
+        rows.push({ label: "Revision Reason", value: config.revisionReason });
+      }
+      if (config.originalAckNumber) {
+        rows.push({ label: "Original Ack No.", value: config.originalAckNumber });
+      }
+      const upCount = config.uploadedDocsCount ?? 0;
+      const totCount = config.totalDocsCount ?? 0;
+      rows.push({ label: "Documents", value: `${upCount} of ${totCount} received` });
+      rows.push({ label: "Submission Date", value: config.submissionDate || todayFormatted });
+      rows.push({ label: "Status", value: config.status || "Received" });
+      break;
+    }
+    case "tds-refund": {
+      const rawAy = config.assessmentYear || "";
+      const ay = rawAy ? (rawAy.startsWith("AY") ? rawAy : `AY ${rawAy}`) : "Current AY";
+      rows.push({ label: "Service", value: config.serviceName || "TDS Refund" });
+      rows.push({ label: "Assessment Year", value: ay });
+      if (config.estimatedRefund !== undefined) {
+        const formattedRefund = String(config.estimatedRefund).startsWith("₹")
+          ? String(config.estimatedRefund)
+          : `₹${config.estimatedRefund}`;
+        rows.push({ label: "Estimated Refund", value: formattedRefund });
+      }
+      rows.push({ label: "Refund Bank", value: config.refundBank || "Verified Primary Bank" });
+      const upCount = config.uploadedDocsCount ?? 0;
+      const totCount = config.totalDocsCount ?? 0;
+      if (Number(totCount) > 0) {
+        rows.push({ label: "Documents", value: `${upCount} of ${totCount} received` });
+      }
+      rows.push({ label: "Applied Date", value: config.submissionDate || todayFormatted });
+      rows.push({ label: "Status", value: config.status || "Under Verification" });
+      break;
+    }
+    case "itr":
+    default: {
+      const rawAy = config.assessmentYear || "";
+      const ay = rawAy ? (rawAy.startsWith("AY") ? rawAy : `AY ${rawAy}`) : "Current AY";
+      rows.push({ label: "Assessment Year", value: ay });
+      rows.push({ label: "Return Form", value: config.formType || "ITR Form" });
+      rows.push({ label: "Income Sources", value: config.incomeType || "Declared Income" });
+      rows.push({ label: "Tax Regime", value: config.taxRegime || "New Tax Regime" });
+      const upCount = config.uploadedDocsCount ?? 0;
+      const totCount = config.totalDocsCount ?? 0;
+      rows.push({ label: "Documents", value: `${upCount} of ${totCount} received` });
+      rows.push({ label: "Refund Bank", value: config.refundBank || "Verified Primary Bank" });
+      rows.push({ label: "Submission Date", value: config.submissionDate || todayFormatted });
+      rows.push({ label: "Status", value: config.status || "Received" });
+      break;
+    }
+  }
+
+  return rows;
+};
 
 export const CommonPostSubmissionScreen: React.FC<CommonPostSubmissionScreenProps> = ({
   config,
   onTrackStatus,
   onGoHome,
+  onContactSupport,
   onDownloadAcknowledgement,
   onBack,
 }) => {
@@ -43,61 +112,8 @@ export const CommonPostSubmissionScreen: React.FC<CommonPostSubmissionScreenProp
     year: "numeric",
   });
 
-  // Safe Back Navigation: Never allow back-stepping into submitted wizard
-  const handleNavigateHome = useCallback(() => {
-    if (onGoHome) {
-      onGoHome();
-    } else {
-      router.replace("/(main)/home" as any);
-    }
-  }, [onGoHome, router]);
-
-  const handleBackPress = useCallback(() => {
-    if (onBack) {
-      onBack();
-    } else {
-      handleNavigateHome();
-    }
-  }, [onBack, handleNavigateHome]);
-
-  const handleTrackStatusPress = () => {
-    if (onTrackStatus) {
-      onTrackStatus();
-      return;
-    }
-    if (config.primaryCta?.onPress) {
-      config.primaryCta.onPress();
-      return;
-    }
-    const target = config.primaryCta?.destination || "/(main)/applications";
-    router.replace(target as any);
-  };
-
-  const handleDownloadPress = () => {
-    if (onDownloadAcknowledgement) {
-      onDownloadAcknowledgement();
-      return;
-    }
-    if (config.tertiaryCta?.onPress) {
-      config.tertiaryCta.onPress();
-      return;
-    }
-    Alert.alert(
-      "Application Receipt Downloaded",
-      `TaxEdge Application Receipt for ${referenceId || "your submission"} has been saved to your device.`
-    );
-  };
-
-  useEffect(() => {
-    const backSub = BackHandler.addEventListener("hardwareBackPress", () => {
-      handleBackPress();
-      return true;
-    });
-    return () => backSub.remove();
-  }, [handleBackPress]);
-
-  // Module-specific Defaults
-  const getHeaderTitle = (): string => {
+  const getServiceName = useCallback((): string => {
+    if (config.serviceName) return config.serviceName;
     if (config.headerTitle) return config.headerTitle;
     switch (config.moduleType) {
       case "revised-itr":
@@ -108,109 +124,72 @@ export const CommonPostSubmissionScreen: React.FC<CommonPostSubmissionScreenProp
       default:
         return "ITR Filing";
     }
-  };
+  }, [config.serviceName, config.headerTitle, config.moduleType]);
 
-  const getCelebrationTitle = (): string => {
-    if (config.title) return config.title;
-    switch (config.moduleType) {
-      case "revised-itr":
-        return "Your Revised ITR application has been received.";
-      case "tds-refund":
-        return "Your TDS Refund claim has been received!";
-      case "itr":
-      default:
-        return "Your application has been received!";
+  const serviceName = getServiceName();
+  const appliedDate = config.appliedDate || config.submissionDate || todayFormatted;
+  const estCompletion = config.estCompletion || "1-2 Business Days";
+  const statusText = config.status || "Under Verification";
+  const customerOrBusinessName =
+    config.customerName ||
+    config.businessName ||
+    "Valued Client";
+  const nameLabel = config.businessName ? "Business" : "Customer";
+
+  // Safe Back & Exit Navigation: Never allow back-stepping into completed wizard
+  const handleGoHome = useCallback(() => {
+    if (onGoHome) {
+      onGoHome();
+    } else if (config.secondaryCta?.onPress) {
+      config.secondaryCta.onPress();
+    } else {
+      router.replace("/(main)/home" as any);
     }
-  };
+  }, [onGoHome, config.secondaryCta, router]);
 
-  const getCelebrationSubtitle = (): string => {
-    if (config.description) return config.description;
-    switch (config.moduleType) {
-      case "revised-itr":
-        return "Your documents and revised tax information have been received. A Tax Executive will review them before preparing your return.";
-      case "tds-refund":
-        return "Your TDS refund claim and documents have been received. A Tax Executive will verify your deductions and file the refund claim.";
-      case "itr":
-      default:
-        return "Your documents and tax information have been received. A Tax Executive will review them before preparing your return.";
+  const handleBackPress = useCallback(() => {
+    if (onBack) {
+      onBack();
+    } else {
+      handleGoHome();
     }
-  };
+  }, [onBack, handleGoHome]);
 
-  // Build Summary Rows functionally based on configuration discriminated union
-  const buildSummaryRows = (): SummaryRowItem[] => {
-    const rows: SummaryRowItem[] = [];
-
-    switch (config.moduleType) {
-      case "revised-itr": {
-        const rawAy = config.assessmentYear || "";
-        const ay = rawAy ? (rawAy.startsWith("AY") ? rawAy : `AY ${rawAy}`) : "Current AY";
-        rows.push({ label: "Assessment Year", value: ay });
-        rows.push({ label: "Return Form", value: config.formType || "Revised ITR" });
-        rows.push({ label: "Filing Purpose", value: config.incomeType || "Revised Return Filing" });
-        if (config.revisionReason) {
-          rows.push({ label: "Revision Reason", value: config.revisionReason });
-        }
-        if (config.originalAckNumber) {
-          rows.push({ label: "Original Ack No.", value: config.originalAckNumber });
-        }
-        const upCount = config.uploadedDocsCount ?? 0;
-        const totCount = config.totalDocsCount ?? 0;
-        rows.push({ label: "Documents", value: `${upCount} of ${totCount} received` });
-        rows.push({ label: "Submission Date", value: config.submissionDate || todayFormatted });
-        rows.push({ label: "Status", value: config.status || "Received" });
-        break;
-      }
-      case "tds-refund": {
-        const rawAy = config.assessmentYear || "";
-        const ay = rawAy ? (rawAy.startsWith("AY") ? rawAy : `AY ${rawAy}`) : "Current AY";
-        rows.push({ label: "Service", value: config.serviceName || "TDS Refund" });
-        rows.push({ label: "Assessment Year", value: ay });
-        if (config.estimatedRefund !== undefined) {
-          const formattedRefund = String(config.estimatedRefund).startsWith("₹")
-            ? String(config.estimatedRefund)
-            : `₹${config.estimatedRefund}`;
-          rows.push({ label: "Estimated Refund", value: formattedRefund });
-        }
-        rows.push({ label: "Refund Bank", value: config.refundBank || "Verified Primary Bank" });
-        const upCount = config.uploadedDocsCount ?? 0;
-        const totCount = config.totalDocsCount ?? 0;
-        if (Number(totCount) > 0) {
-          rows.push({ label: "Documents", value: `${upCount} of ${totCount} received` });
-        }
-        rows.push({ label: "Applied Date", value: config.submissionDate || todayFormatted });
-        rows.push({ label: "Status", value: config.status || "Under Verification" });
-        break;
-      }
-      case "itr":
-      default: {
-        const rawAy = config.assessmentYear || "";
-        const ay = rawAy ? (rawAy.startsWith("AY") ? rawAy : `AY ${rawAy}`) : "Current AY";
-        rows.push({ label: "Assessment Year", value: ay });
-        rows.push({ label: "Return Form", value: config.formType || "ITR Form" });
-        rows.push({ label: "Income Sources", value: config.incomeType || "Declared Income" });
-        rows.push({ label: "Tax Regime", value: config.taxRegime || "New Tax Regime" });
-        const upCount = config.uploadedDocsCount ?? 0;
-        const totCount = config.totalDocsCount ?? 0;
-        rows.push({ label: "Documents", value: `${upCount} of ${totCount} received` });
-        rows.push({ label: "Refund Bank", value: config.refundBank || "Verified Primary Bank" });
-        rows.push({ label: "Submission Date", value: config.submissionDate || todayFormatted });
-        rows.push({ label: "Status", value: config.status || "Received" });
-        break;
-      }
+  const handleGoApplications = useCallback(() => {
+    if (onTrackStatus) {
+      onTrackStatus();
+      return;
     }
+    if (config.primaryCta?.onPress) {
+      config.primaryCta.onPress();
+      return;
+    }
+    if (referenceId) {
+      useApplicationStore.getState().setSelectedApplicationId(referenceId);
+      router.push(`/application/${encodeURIComponent(referenceId)}` as any);
+    } else {
+      const target = config.primaryCta?.destination || "/(main)/applications";
+      router.replace(target as any);
+    }
+  }, [onTrackStatus, config.primaryCta, referenceId, router]);
 
-    return rows;
-  };
+  const handleContactSupport = useCallback(() => {
+    if (onContactSupport) {
+      onContactSupport();
+    } else if (config.tertiaryCta?.onPress) {
+      config.tertiaryCta.onPress();
+    } else {
+      router.push("/chat/support" as any);
+    }
+  }, [onContactSupport, config.tertiaryCta, router]);
 
-  const summaryRows = buildSummaryRows();
-  const defaultNextSteps = [
-    "A Tax Executive will verify your documents against Income Tax Department records.",
-    "You will receive an in-app and SMS notification at each stage of verification.",
-    "You can track the live progress in your Applications tab at any time.",
-  ];
-  const nextSteps = config.nextSteps && config.nextSteps.length > 0 ? config.nextSteps : defaultNextSteps;
-
-  const hasTertiaryCta = Boolean(config.tertiaryCta !== null);
+  useEffect(() => {
+    const backSub = BackHandler.addEventListener("hardwareBackPress", () => {
+      handleBackPress();
+      return true;
+    });
+    return () => backSub.remove();
+  }, [handleBackPress]);
 
   return (
     <View style={[styles.container, getContainerInsetsStyle(insets.top)]}>
@@ -228,7 +207,9 @@ export const CommonPostSubmissionScreen: React.FC<CommonPostSubmissionScreenProp
         </TouchableOpacity>
 
         <View style={styles.headerTitleGroup}>
-          <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
+          <Text style={styles.headerTitle}>
+            {config.headerTitle || "Application Status"}
+          </Text>
           <Text style={styles.headerSubtitle}>
             {config.headerSubtitle || "Application Received"}
           </Text>
@@ -237,15 +218,14 @@ export const CommonPostSubmissionScreen: React.FC<CommonPostSubmissionScreenProp
         <View style={styles.headerRightSpacer} />
       </View>
 
-      {/* Main Content */}
+      {/* Main Scroll Content */}
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          getScrollContentInsetsStyle(insets.bottom, hasTertiaryCta),
+          getScrollContentInsetsStyle(insets.bottom, true),
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Guard against unconfirmed submissions */}
         {!isSubmissionConfirmed ? (
           <View style={styles.unconfirmedCard} testID="unconfirmed-submission-warning">
             <Ionicons name="alert-circle-outline" size={32} color="#DC2626" />
@@ -256,125 +236,107 @@ export const CommonPostSubmissionScreen: React.FC<CommonPostSubmissionScreenProp
             </Text>
           </View>
         ) : (
-          /* Celebration Card */
-          <View style={styles.celebrationCard}>
-            <View style={styles.badgeWrapper}>
-              <Svg width={140} height={90} viewBox="0 0 140 90" style={styles.confettiSvg}>
-                <Rect x={20} y={15} width={4} height={4} rx={1} fill="#F97316" transform="rotate(25, 20, 15)" />
-                <Circle cx={35} cy={30} r={2} fill="#0B1F3A" />
-                <Rect x={15} y={45} width={5} height={3} rx={1} fill="#16A34A" transform="rotate(-15, 15, 45)" />
-                <Circle cx={30} cy={65} r={2.5} fill="#F97316" />
-                <Rect x={115} y={15} width={4} height={4} rx={1} fill="#0B1F3A" transform="rotate(-30, 115, 15)" />
-                <Circle cx={105} cy={32} r={2} fill="#16A34A" />
-                <Rect x={120} y={45} width={5} height={3} rx={1} fill="#F97316" transform="rotate(20, 120, 45)" />
-                <Circle cx={110} cy={65} r={2.5} fill="#0B1F3A" />
-              </Svg>
-
-              <View style={styles.successOuterCircle}>
-                <View style={styles.successInnerCircle}>
-                  <Ionicons name="checkmark" size={30} color="#FFFFFF" />
-                </View>
+          <>
+            {/* Success Celebration Banner */}
+            <View style={styles.successBanner} testID="post-submission-success-banner">
+              <View style={styles.successIconCircle}>
+                <Ionicons name="checkmark" size={24} color="#FFFFFF" />
               </View>
-            </View>
-
-            <Text style={styles.celebrationTitle}>{getCelebrationTitle()}</Text>
-            <Text style={styles.celebrationSubtitle}>{getCelebrationSubtitle()}</Text>
-
-            <View style={styles.referenceIdCard}>
-              <Text style={styles.referenceIdLabel}>Application ID</Text>
-              <Text style={styles.referenceIdValue} numberOfLines={1} ellipsizeMode="tail">
-                {referenceId}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* 6-Stage Progress Tracker */}
-        <FilingProgressTracker isRevised={config.moduleType === "revised-itr"} />
-
-        {/* What We Have Summary Card */}
-        <View style={styles.summaryCard}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconContainer}>
-              <Ionicons name="document-text" size={16} color="#F97316" />
-            </View>
-            <Text style={styles.cardTitle}>What we have</Text>
-          </View>
-
-          {summaryRows.map((row, idx) => {
-            const isLast = idx === summaryRows.length - 1;
-            return (
-              <View
-                key={`${row.label}-${idx}`}
-                style={[styles.summaryRow, isLast && styles.summaryRowNoBorder]}
-              >
-                <Text style={styles.summaryLabel}>{row.label}</Text>
-                <Text style={styles.summaryValue} numberOfLines={2}>
-                  {row.value}
+              <View style={styles.successTextContainer}>
+                <Text style={styles.successTitle}>Application Submitted!</Text>
+                <Text style={styles.successSubtitle}>
+                  {config.description ||
+                    `Your ${serviceName} application has been successfully filed with TaxEdge.`}
                 </Text>
               </View>
-            );
-          })}
-        </View>
-
-        {/* What Happens Next Card */}
-        <View style={styles.nextStepsCard}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconContainer}>
-              <Ionicons name="notifications-outline" size={16} color="#0B1F3A" />
             </View>
-            <Text style={styles.cardTitle}>What happens next</Text>
-          </View>
 
-          {nextSteps.map((step, idx) => (
-            <View key={`step-${idx}`} style={styles.nextStepItem}>
-              <View style={styles.nextStepDot} />
-              <Text style={styles.nextStepText}>{step}</Text>
+            {/* Navy-Blue Application Status Hero Card */}
+            <View style={styles.heroCard} testID="post-submission-hero-card">
+              <View style={styles.heroTopRow}>
+                <Text style={styles.heroAppIdLabel}>APPLICATION ID</Text>
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusBadgeText}>{statusText}</Text>
+                </View>
+              </View>
+
+              <Text
+                style={styles.heroAppIdValue}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+              >
+                {referenceId}
+              </Text>
+
+              <View style={styles.heroDivider} />
+
+              <View style={styles.heroRow}>
+                <Text style={styles.rowLabel}>{nameLabel}</Text>
+                <Text style={styles.rowValue} numberOfLines={1}>
+                  {customerOrBusinessName}
+                </Text>
+              </View>
+
+              <View style={styles.heroDivider} />
+
+              <View style={styles.heroRow}>
+                <Text style={styles.rowLabel}>Service</Text>
+                <Text style={styles.rowValue} numberOfLines={1}>
+                  {serviceName}
+                </Text>
+              </View>
+
+              <View style={styles.heroDivider} />
+
+              <View style={styles.heroRow}>
+                <Text style={styles.rowLabel}>Applied On</Text>
+                <Text style={styles.rowValue}>{appliedDate}</Text>
+              </View>
+
+              <View style={styles.heroDivider} />
+
+              <View style={styles.heroRow}>
+                <Text style={styles.rowLabel}>Est. Completion</Text>
+                <Text style={styles.rowValue}>{estCompletion}</Text>
+              </View>
             </View>
-          ))}
-        </View>
-      </ScrollView>
+          </>
+        )}
 
-      {/* Sticky Bottom Actions */}
-      <View style={[styles.bottomBar, getBottomBarInsetsStyle(insets.bottom)]}>
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleTrackStatusPress}
-          style={styles.primaryButton}
-          testID="post-submission-primary-cta"
-        >
-          <Text style={styles.primaryButtonText}>
-            {config.primaryCta?.label || "Track My Application"}
-          </Text>
-          <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={handleNavigateHome}
-          style={styles.secondaryButton}
-          testID="post-submission-secondary-cta"
-        >
-          <Ionicons name="home-outline" size={18} color="#0B1F3A" />
-          <Text style={styles.secondaryButtonText}>
-            {config.secondaryCta?.label || "Go Home"}
-          </Text>
-        </TouchableOpacity>
-
-        {hasTertiaryCta && (
+        {/* Action Buttons Column */}
+        <View style={styles.actionButtonsCol}>
           <TouchableOpacity
+            style={styles.primaryHomeBtn}
             activeOpacity={0.85}
-            onPress={handleDownloadPress}
-            style={styles.tertiaryButton}
+            onPress={handleGoHome}
+            testID="post-submission-secondary-cta"
+          >
+            <Ionicons name="home" size={19} color="#FFFFFF" />
+            <Text style={styles.primaryHomeBtnText}>Go to Home Dashboard</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.secondaryAppBtn}
+            activeOpacity={0.8}
+            onPress={handleGoApplications}
+            testID="post-submission-primary-cta"
+          >
+            <Ionicons name="folder-outline" size={19} color="#083B75" />
+            <Text style={styles.secondaryAppBtnText}>Track in My Applications</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.contactSupportBtn}
+            activeOpacity={0.8}
+            onPress={handleContactSupport}
             testID="post-submission-tertiary-cta"
           >
-            <Ionicons name="download-outline" size={18} color="#F97316" />
-            <Text style={styles.tertiaryButtonText}>
-              {config.tertiaryCta?.label || "Download TaxEdge Application Receipt"}
-            </Text>
+            <Ionicons name="chatbubble-outline" size={18} color="#64748B" />
+            <Text style={styles.contactSupportBtnText}>Contact Support / CA</Text>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      </ScrollView>
     </View>
   );
 };

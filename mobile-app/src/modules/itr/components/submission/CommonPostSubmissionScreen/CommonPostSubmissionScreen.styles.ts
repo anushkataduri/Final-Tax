@@ -1,11 +1,5 @@
 import { StyleSheet, Platform, ViewStyle } from "react-native";
-import {
-  BrandColors,
-  BorderRadius,
-  BorderWidth,
-  Spacing,
-  Typography,
-} from "@/shared/theme";
+import { BrandColors, BorderRadius, BorderWidth, Spacing, Typography } from "@/shared/theme";
 
 export const styles = StyleSheet.create({
   container: {
@@ -13,12 +7,12 @@ export const styles = StyleSheet.create({
     backgroundColor: BrandColors.BACKGROUND,
   },
   header: {
-    minHeight: 58,
+    minHeight: 56,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: Spacing.base,
-    paddingVertical: 6,
+    paddingVertical: 8,
     backgroundColor: BrandColors.WHITE,
     borderBottomWidth: BorderWidth.thin,
     borderBottomColor: "#F1F5F9",
@@ -66,103 +60,176 @@ export const styles = StyleSheet.create({
     width: 38,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.base,
-    paddingTop: Spacing.sm,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 40,
   },
 
-  // Celebration Card
-  celebrationCard: {
-    backgroundColor: BrandColors.WHITE,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.base,
-    alignItems: "center",
-    marginBottom: Spacing.md,
-    borderWidth: BorderWidth.thin,
-    borderColor: "#E2E8F0",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#0B1F3A",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 2,
-      },
-      default: {},
-    }),
-  },
-  badgeWrapper: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: Spacing.sm,
-    width: 140,
-    height: 90,
-  },
-  confettiSvg: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-  },
-  successOuterCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#DCFCE7",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  successInnerCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#22C55E",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  celebrationTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: "#0B1F3A",
-    textAlign: "center",
-    marginBottom: 6,
-    letterSpacing: -0.3,
-  },
-  celebrationSubtitle: {
-    fontSize: Typography.fontSize.sm + 0.5,
-    fontWeight: Typography.fontWeight.regular,
-    color: "#64748B",
-    textAlign: "center",
-    lineHeight: 20,
-    marginBottom: Spacing.md,
-    paddingHorizontal: Spacing.sm,
-  },
-  referenceIdCard: {
+  // ── Success Celebration Banner ──────────────────────────────────────────
+  successBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F1F5F9",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-    borderRadius: BorderRadius.base,
-    borderWidth: BorderWidth.thin,
-    borderColor: "#CBD5E1",
-    gap: Spacing.xs,
+    backgroundColor: "#ECFDF5",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+    gap: 12,
   },
-  referenceIdLabel: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.semiBold,
-    color: "#64748B",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  successIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#10B981",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  referenceIdValue: {
-    fontSize: Typography.fontSize.sm + 1,
-    fontWeight: Typography.fontWeight.bold,
-    color: "#0B1F3A",
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+  successTextContainer: {
+    flex: 1,
+  },
+  successTitle: {
+    fontSize: 14.5,
+    fontWeight: "700",
+    color: "#065F46",
+  },
+  successSubtitle: {
+    fontSize: 12,
+    color: "#047857",
+    marginTop: 2,
+    lineHeight: 16,
   },
 
-  // Unconfirmed / Missing Submission Alert Card
+  // ── Navy-Blue Application Details Card ──────────────────────────────────
+  heroCard: {
+    backgroundColor: BrandColors.PRIMARY_BLUE,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 18,
+    shadowColor: "#083B75",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  heroTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  heroAppIdLabel: {
+    fontSize: 11.5,
+    color: "rgba(255, 255, 255, 0.75)",
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    flexShrink: 0,
+  },
+  heroAppIdValue: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: BrandColors.WHITE,
+    marginBottom: 14,
+    letterSpacing: 0.3,
+    flexShrink: 1,
+    fontFamily: Platform.select({ ios: "System", android: "sans-serif-medium" }),
+  },
+  statusBadge: {
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  statusBadgeText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: "#92400E",
+  },
+  heroDivider: {
+    height: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    marginVertical: 10,
+  },
+  heroRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  rowLabel: {
+    fontSize: 12.5,
+    color: "rgba(255, 255, 255, 0.75)",
+  },
+  rowValue: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: BrandColors.WHITE,
+    textAlign: "right",
+    flexShrink: 1,
+    marginLeft: 12,
+    fontFamily: Platform.select({ ios: "System", android: "sans-serif-medium" }),
+  },
+
+  // ── Navigation & Action Buttons ─────────────────────────────────────────
+  actionButtonsCol: {
+    gap: 12,
+    marginTop: 4,
+  },
+  primaryHomeBtn: {
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: BrandColors.PRIMARY_ORANGE,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    shadowColor: BrandColors.PRIMARY_ORANGE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  primaryHomeBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: BrandColors.WHITE,
+    fontFamily: Platform.select({ ios: "System", android: "sans-serif-medium" }),
+  },
+  secondaryAppBtn: {
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#EAF1FE",
+    borderWidth: 1,
+    borderColor: "rgba(8, 59, 117, 0.18)",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  secondaryAppBtnText: {
+    fontSize: 14.5,
+    fontWeight: "700",
+    color: BrandColors.PRIMARY_BLUE,
+    fontFamily: Platform.select({ ios: "System", android: "sans-serif-medium" }),
+  },
+  contactSupportBtn: {
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: BrandColors.WHITE,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  contactSupportBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#64748B",
+    fontFamily: Platform.select({ ios: "System", android: "sans-serif" }),
+  },
+
+  // ── Unconfirmed / Missing Submission Alert Card ─────────────────────────
   unconfirmedCard: {
     backgroundColor: "#FEF2F2",
     borderRadius: BorderRadius.lg,
@@ -186,173 +253,53 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Summary Card ("What we have")
-  summaryCard: {
-    backgroundColor: BrandColors.WHITE,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.base,
-    marginBottom: Spacing.md,
-    borderWidth: BorderWidth.thin,
-    borderColor: "#E2E8F0",
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-    paddingBottom: Spacing.xs,
-    borderBottomWidth: BorderWidth.thin,
-    borderBottomColor: "#F1F5F9",
-  },
-  cardIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: "#FFF7ED",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  cardTitle: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-    color: "#0B1F3A",
-  },
-  summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: BorderWidth.thin,
-    borderBottomColor: "#F1F5F9",
-  },
-  summaryRowNoBorder: {
-    borderBottomWidth: 0,
-  },
-  summaryLabel: {
-    fontSize: Typography.fontSize.sm,
-    color: "#64748B",
-    fontWeight: Typography.fontWeight.medium,
-  },
-  summaryValue: {
-    fontSize: Typography.fontSize.sm,
-    color: "#0B1F3A",
-    fontWeight: Typography.fontWeight.semiBold,
-    textAlign: "right",
-    maxWidth: "60%",
-  },
-
-  // What happens next card
-  nextStepsCard: {
-    backgroundColor: BrandColors.WHITE,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.base,
-    marginBottom: Spacing.md,
-    borderWidth: BorderWidth.thin,
-    borderColor: "#E2E8F0",
-  },
-  nextStepItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  nextStepDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: BrandColors.PRIMARY_ORANGE,
-    marginTop: 7,
-  },
-  nextStepText: {
-    flex: 1,
-    fontSize: Typography.fontSize.sm,
-    color: "#475569",
-    lineHeight: 20,
-  },
-
-  // Sticky Bottom Bar
+  // ── Legacy Compatibility Aliases ────────────────────────────────────────
   bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: BrandColors.WHITE,
-    paddingHorizontal: Spacing.base,
-    paddingTop: 10,
-    borderTopWidth: BorderWidth.thin,
-    borderTopColor: "#F1F5F9",
     gap: Spacing.sm,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#0B1F3A",
-        shadowOffset: { width: 0, height: -3 },
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 6,
-      },
-      default: {},
-    }),
+    paddingTop: 10,
+    backgroundColor: BrandColors.WHITE,
   },
   primaryButton: {
-    height: 50,
-    borderRadius: BorderRadius.base - 2,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: BrandColors.PRIMARY_ORANGE,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: Spacing.sm,
-    ...Platform.select({
-      ios: {
-        shadowColor: BrandColors.PRIMARY_ORANGE,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 3,
-      },
-      default: {},
-    }),
+    gap: 8,
   },
   primaryButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
     color: BrandColors.WHITE,
-    fontSize: Typography.fontSize.md + 0.5,
-    fontWeight: Typography.fontWeight.bold,
-    letterSpacing: 0.2,
   },
   secondaryButton: {
-    height: 48,
-    borderRadius: BorderRadius.base - 2,
-    backgroundColor: BrandColors.WHITE,
-    borderWidth: BorderWidth.regular,
-    borderColor: "#0B1F3A",
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#EAF1FE",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: Spacing.sm,
+    gap: 8,
   },
   secondaryButtonText: {
-    color: "#0B1F3A",
-    fontSize: Typography.fontSize.md,
-    fontWeight: Typography.fontWeight.bold,
+    fontSize: 14.5,
+    fontWeight: "700",
+    color: BrandColors.PRIMARY_BLUE,
   },
   tertiaryButton: {
-    height: 46,
-    borderRadius: BorderRadius.base - 2,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: BrandColors.WHITE,
-    borderWidth: BorderWidth.thin,
-    borderColor: BrandColors.PRIMARY_ORANGE,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: Spacing.sm,
+    gap: 8,
   },
   tertiaryButtonText: {
-    color: BrandColors.PRIMARY_ORANGE,
-    fontSize: Typography.fontSize.sm + 1,
-    fontWeight: Typography.fontWeight.semiBold,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#64748B",
   },
 });
 
@@ -361,7 +308,7 @@ export const getContainerInsetsStyle = (topInset: number): ViewStyle => ({
 });
 
 export const getScrollContentInsetsStyle = (bottomInset: number, hasTertiaryCta = true): ViewStyle => ({
-  paddingBottom: bottomInset + (hasTertiaryCta ? 190 : 135),
+  paddingBottom: bottomInset + (hasTertiaryCta ? 184 : 135),
 });
 
 export const getBottomBarInsetsStyle = (bottomInset: number): ViewStyle => ({

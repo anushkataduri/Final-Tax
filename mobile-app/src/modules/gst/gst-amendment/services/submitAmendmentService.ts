@@ -61,7 +61,7 @@ export async function submitAmendmentService(params: {
   createApplication: Function;
   addNotification: Function;
   markSubmitted: Function;
-  amendmentId?: number | null;
+  amendmentId?: number | string | null;
 }): Promise<SubmissionResult> {
   const {
     selectedSectionId,
@@ -80,20 +80,17 @@ export async function submitAmendmentService(params: {
 
   // 1. If amendment was not previously persisted to database, create it now
   if (!activeAmendmentId) {
-    try {
-      logger.debug("[submitAmendmentService] Persisting new amendment record before submit", { selectedSectionId, targetGstId });
-      const savedRecord = await gstAmendmentApi.saveAmendmentRecord(
-        selectedSectionId,
-        targetGstId,
-        formData,
-        supportingDoc
-      );
-      if (savedRecord?.id) {
-        activeAmendmentId = savedRecord.id;
-      }
-    } catch (saveErr) {
-      logger.warn("[submitAmendmentService] Preliminary record save notice:", { error: saveErr });
+    logger.debug("[submitAmendmentService] Persisting new amendment record before submit", { selectedSectionId, targetGstId });
+    const savedRecord = await gstAmendmentApi.saveAmendmentRecord(
+      selectedSectionId,
+      targetGstId,
+      formData,
+      supportingDoc
+    );
+    if (!savedRecord?.id) {
+      throw new Error("Failed to persist amendment record. No amendment ID returned by server.");
     }
+    activeAmendmentId = savedRecord.id;
   }
 
   // 2. Resolve push token from auth store
@@ -128,32 +125,33 @@ export async function submitAmendmentService(params: {
     const errMsg = getErrorMessage(subErr);
     if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
       logger.warn(`[submitAmendmentService] Stale amendment record not found on backend (404). Re-creating and retrying submit...`);
-      try {
-        const freshRecord = await gstAmendmentApi.saveAmendmentRecord(
-          selectedSectionId,
-          targetGstId,
-          formData,
-          supportingDoc
-        );
-        activeAmendmentId = freshRecord?.id ?? null;
-        await gstAmendmentApi.submitFinalAmendmentRecord(
-          selectedSectionId,
-          targetGstId,
-          activeAmendmentId,
-          pushToken || undefined
-        );
-        logger.info(`[submitAmendmentService] Re-created amendment (${selectedSectionId}) and submitted successfully.`);
-      } catch (retryErr) {
-        logger.warn("[submitAmendmentService] Re-creation and submit retry notice:", { error: retryErr });
+      const freshRecord = await gstAmendmentApi.saveAmendmentRecord(
+        selectedSectionId,
+        targetGstId,
+        formData,
+        supportingDoc
+      );
+      if (!freshRecord?.id) {
+        throw new Error("Failed to re-create amendment record on server.");
       }
+      activeAmendmentId = freshRecord.id;
+      await gstAmendmentApi.submitFinalAmendmentRecord(
+        selectedSectionId,
+        targetGstId,
+        activeAmendmentId,
+        pushToken || undefined
+      );
+      logger.info(`[submitAmendmentService] Re-created amendment (${selectedSectionId}) and submitted successfully.`);
     } else {
-      logger.warn("[submitAmendmentService] Backend submit call notice:", { error: subErr });
+      logger.error("[submitAmendmentService] Backend submit call failed:", { error: subErr });
+      throw subErr;
     }
   }
 
   markSubmitted();
 
   const isCore = selectedSection.type === "core";
+  const finalAppId = String(activeAmendmentId);
   const generatedArn = generateArn();
   const dateStr = new Date().toISOString();
 
@@ -185,19 +183,19 @@ export async function submitAmendmentService(params: {
     999,
     "Pending",
     false,
-    generatedArn
+    finalAppId
   );
 
   addNotification(
     "GST Amendment Filed",
-    `Your GST Amendment request for ${selectedSection.title} (ARN: ${generatedArn}) has been submitted successfully.`,
+    `Your GST Amendment request for ${selectedSection.title} (ID: ${finalAppId}, ARN: ${generatedArn}) has been submitted successfully.`,
     "gst"
   );
 
   return {
     arn: generatedArn,
     date: dateStr,
-    appId,
+    appId: finalAppId || appId,
     sectionTitle: selectedSection.title,
     isCore,
     gstin: targetGstId,
