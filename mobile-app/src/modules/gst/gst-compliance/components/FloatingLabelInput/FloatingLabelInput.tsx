@@ -10,6 +10,7 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/shared/hooks/useTheme";
 import { BrandColors } from "@/shared/theme";
+import { removeEmoji } from "@/modules/gst/utils/gstEmojiFilter";
 import {
   styles,
   getInputContainerDynamicStyle,
@@ -53,12 +54,18 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
   labelAbove = false,
   onFocus,
   onBlur,
+  onChangeText,
   style,
   ...rest
 }) => {
   const { isDark } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
+
+  const handleChangeText = (text: string) => {
+    const cleaned = removeEmoji(text);
+    if (onChangeText) onChangeText(cleaned);
+  };
 
   const hasValue = Boolean(value && value.toString().length > 0);
 
@@ -192,6 +199,7 @@ export const FloatingLabelInput: React.FC<FloatingLabelInputProps> = ({
         <TextInput
           ref={inputRef}
           value={value}
+          onChangeText={handleChangeText}
           onFocus={handleFocus}
           onBlur={handleBlur}
           multiline={multiline}

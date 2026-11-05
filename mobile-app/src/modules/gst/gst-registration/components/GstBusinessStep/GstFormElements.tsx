@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
+import { removeEmoji } from "@/modules/gst/utils/gstEmojiFilter";
 import { styles } from "./GstBusinessStep.styles";
  
 interface InputProps {
@@ -51,8 +52,9 @@ export const FormInput: React.FC<InputProps> = React.memo(({
   infoIcon,
 }) => {
   const handleChangeText = (text: string) => {
-    if (onChangeField && field) onChangeField(field, text);
-    else onChange?.(text);
+    const cleaned = removeEmoji(text);
+    if (onChangeField && field) onChangeField(field, cleaned);
+    else onChange?.(cleaned);
   };
   const handleBlur = () => {
     if (onBlurField && field) onBlurField(field);
@@ -203,7 +205,7 @@ export const FormSelect: React.FC<SelectProps> = React.memo(({
                   placeholder={searchPlaceholder}
                   placeholderTextColor="#94A3B8"
                   value={searchQuery}
-                  onChangeText={setSearchQuery}
+                  onChangeText={(val) => setSearchQuery(removeEmoji(val))}
                   autoCapitalize="words"
                   autoCorrect={false}
                   clearButtonMode="while-editing"

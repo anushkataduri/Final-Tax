@@ -5,7 +5,7 @@ import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { BrandColors } from "@/shared/theme";
 import { GstApplicationStatusStep } from "@/modules/gst/gst-status/components/GstApplicationStatusStep/GstApplicationStatusStep";
 import { SubmissionResult } from "../../types/gstAmendmentTypes";
-import { formatAmendmentSubmissionDate } from "../../utils/gstAmendmentHelpers";
+import { formatAmendmentSubmissionDate, isValidBusinessName } from "../../utils/gstAmendmentHelpers";
 import { formatSubmissionDate } from "@/shared/formatters/dateFormatter";
 import { useApplicationStore } from "@/store/applicationStore";
 import { styles } from "./GstAmendmentSuccess.styles";
@@ -50,10 +50,13 @@ export const GstAmendmentSuccess: React.FC<GstAmendmentSuccessProps> = ({
     .getState()
     .applications.find((a) => a.id === appId || a.formData?.arn === appId || a.id === submissionResult.appId);
 
-  const businessName =
-    existingApp?.formData?.applicantName ||
-    existingApp?.formData?.businessName ||
-    (submissionResult.gstin ? `GSTIN: ${submissionResult.gstin}` : "Registered Business");
+  const candidateName = [
+    submissionResult.businessName,
+    existingApp?.formData?.businessName,
+    existingApp?.formData?.applicantName,
+  ].find(isValidBusinessName);
+
+  const businessName = candidateName ? candidateName.trim() : "Registered Business";
 
   return (
     <View style={styles.successContainer}>

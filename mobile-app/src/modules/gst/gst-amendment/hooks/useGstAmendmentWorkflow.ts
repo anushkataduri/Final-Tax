@@ -27,6 +27,10 @@ import { useGstAmendmentDetails } from "./useGstAmendmentDetails";
 import { submitAmendmentService } from "../services/submitAmendmentService";
 import { persistAmendmentForReview } from "../services/persistAmendmentForReview";
 import { getErrorMessage } from "@/core/error-handling/errorMessage";
+import {
+  persistSupportingDocument,
+  verifyFileAccessible,
+} from "../utils/gstDocumentPersistence";
 
 const stripImageData = (data: any): any => {
   if (!data || typeof data !== "object") return data;
@@ -228,10 +232,12 @@ export function useGstAmendmentWorkflow() {
     }
   }, [clearError]);
 
-  const handleUploadSuccess = useCallback((doc: SupportingDoc) => {
+  const handleUploadSuccess = useCallback(async (doc: SupportingDoc) => {
+    // Persist document immediately into internal storage so it remains accessible
+    const persisted = await persistSupportingDocument(doc);
     setSectionDocs((prev) => ({
       ...prev,
-      [selectedSectionId]: doc,
+      [selectedSectionId]: persisted,
     }));
     clearError("supportingDoc");
   }, [clearError, selectedSectionId]);
@@ -252,13 +258,15 @@ export function useGstAmendmentWorkflow() {
       maxSizeBytes: 10 * 1024 * 1024,
     });
     if (doc) {
+      const persisted = await persistSupportingDocument({
+        uri: doc.uri,
+        name: doc.name,
+        size: doc.size,
+        mimeType: doc.mimeType,
+      });
       setSectionDocs((prev) => ({
         ...prev,
-        [selectedSectionId]: {
-          uri: doc.uri,
-          name: doc.name,
-          size: doc.size,
-        },
+        [selectedSectionId]: persisted,
       }));
       clearError("supportingDoc");
     }
@@ -267,13 +275,15 @@ export function useGstAmendmentWorkflow() {
   const handleScanFile = useCallback(async () => {
     const uri = await pickImageFromCamera(false);
     if (uri) {
+      const persisted = await persistSupportingDocument({
+        uri,
+        name: `Scan_${Date.now().toString().slice(-4)}.jpg`,
+        size: "1.4 MB",
+        mimeType: "image/jpeg",
+      });
       setSectionDocs((prev) => ({
         ...prev,
-        [selectedSectionId]: {
-          uri,
-          name: `Scan_${Date.now().toString().slice(-4)}.jpg`,
-          size: "1.4 MB",
-        },
+        [selectedSectionId]: persisted,
       }));
       clearError("supportingDoc");
     }
@@ -416,23 +426,9 @@ export function useGstAmendmentWorkflow() {
 
     // Live FileSystem accessibility check immediately before submission
     try {
-      let isMissing = false;
-      try {
-        const file = new ExpoFile(supportingDoc.uri);
-        if (typeof file.exists === "boolean") isMissing = !file.exists;
-      } catch {
-        try {
-          const info = await FileSystemLegacy.getInfoAsync(supportingDoc.uri);
-          if (info && typeof info.exists === "boolean") isMissing = !info.exists;
-        } catch {
-          // Proceed safely if URI scheme doesn't support local stat
-        }
-      }
-      if (isMissing) {
-        setSectionDocs((prev) => ({
-          ...prev,
-          [selectedSectionId]: null,
-        }));
+      const isAccessible = await verifyFileAccessible(supportingDoc.uri);
+      if (!isAccessible) {
+        // Critical: Do NOT clear sectionDocs. Preserve the selected document so the user doesn't lose it.
         Alert.alert(
           "Document Unavailable",
           "The attached proof file is no longer accessible on this device. Please re-attach the document before submitting."

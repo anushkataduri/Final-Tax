@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { View, Text } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/shared/hooks/useTheme";
 import { BrandColors } from "@/shared/theme";
@@ -69,11 +68,7 @@ export const RequestTypeSection: React.FC<RequestTypeSectionProps> = ({
 
   if (formData.requestType === "Reconciliation Support") {
     return (
-      <Animated.View
-        entering={FadeIn.duration(200)}
-        exiting={FadeOut.duration(150)}
-        style={styles.sectionContainer}
-      >
+      <View style={styles.sectionContainer}>
         <View style={[styles.card, isDark ? styles.cardDark : styles.cardLight]}>
           <View style={styles.sectionHeaderRow}>
             <View style={[styles.sectionIconBox, isDark && styles.sectionIconBoxDark]}>
@@ -164,17 +159,13 @@ export const RequestTypeSection: React.FC<RequestTypeSectionProps> = ({
           />
         </View>
         </View>
-      </Animated.View>
+      </View>
     );
   }
 
   // Notice Response Form
   return (
-    <Animated.View
-      entering={FadeIn.duration(200)}
-      exiting={FadeOut.duration(150)}
-      style={styles.sectionContainer}
-    >
+    <View style={styles.sectionContainer}>
       <View style={[styles.card, isDark ? styles.cardDark : styles.cardLight]}>
         <View style={styles.sectionHeaderRow}>
           <View style={[styles.sectionIconBox, isDark && styles.sectionIconBoxDark]}>
@@ -301,7 +292,7 @@ export const RequestTypeSection: React.FC<RequestTypeSectionProps> = ({
         />
       </View>
       </View>
-    </Animated.View>
+    </View>
   );
 };
 

@@ -112,8 +112,12 @@ export function GstComplianceScreen() {
 
   // Consistent screen initialization: on step transitions (Review <-> Form),
   // reset scroll position cleanly to the top without arbitrary delayed jumps.
+  const prevStepRef = useRef<number>(currentStep);
   useEffect(() => {
-    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    if (prevStepRef.current !== currentStep) {
+      prevStepRef.current = currentStep;
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }
   }, [currentStep]);
 
   const handleScrollField = useCallback((fieldName: string) => {

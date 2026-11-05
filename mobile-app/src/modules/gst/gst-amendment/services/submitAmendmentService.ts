@@ -9,7 +9,11 @@ import {
   SupportingDoc,
   SubmissionResult,
 } from "../types/gstAmendmentTypes";
-import { generateArn, buildComparisonSummaries } from "../utils/gstAmendmentHelpers";
+import {
+  generateArn,
+  buildComparisonSummaries,
+  resolveEffectiveBusinessName,
+} from "../utils/gstAmendmentHelpers";
 
 /** Metadata stored on the tracked "GST Amendment" application. */
 const buildAmendmentApplicationDetails = ({
@@ -22,6 +26,7 @@ const buildAmendmentApplicationDetails = ({
   comparison,
   supportingDoc,
   amendmentId,
+  effectiveBusinessName,
 }: {
   targetGstId: string;
   generatedArn: string;
@@ -32,6 +37,7 @@ const buildAmendmentApplicationDetails = ({
   comparison: ReturnType<typeof buildComparisonSummaries>;
   supportingDoc: SupportingDoc;
   amendmentId?: number | string | null;
+  effectiveBusinessName: string;
 }) => {
   const { currentValSummary, requestedValSummary, currentValDict, requestedValDict } = comparison;
   return {
@@ -40,7 +46,8 @@ const buildAmendmentApplicationDetails = ({
     section: selectedSection.title,
     amendmentCategory: isCore ? "Core (officer approval)" : "Non-core (auto-approved)",
     isCore: isCore ? "true" : "false",
-    applicantName: registeredDetails.legalBusinessName,
+    applicantName: effectiveBusinessName,
+    businessName: effectiveBusinessName,
     submissionDate: dateStr,
     currentValue: currentValSummary,
     requestedValue: requestedValSummary,
@@ -98,7 +105,7 @@ export async function submitAmendmentService(params: {
   try {
     const authState = useAuthStore.getState();
     pushToken =
-      authState.customer?.pushToken ||
+      (authState.customer as any)?.pushToken ||
       authState.authenticatedUser?.pushToken ||
       "";
   } catch (tokenErr) {
@@ -122,7 +129,7 @@ export async function submitAmendmentService(params: {
     );
     logger.info(`[submitAmendmentService] Amendment (${selectedSectionId}) submitted successfully to backend.`);
   } catch (subErr) {
-    const errMsg = getErrorMessage(subErr);
+    const errMsg = getErrorMessage(subErr) || "";
     if (errMsg.includes("404") || errMsg.toLowerCase().includes("not found")) {
       logger.warn(`[submitAmendmentService] Stale amendment record not found on backend (404). Re-creating and retrying submit...`);
       const freshRecord = await gstAmendmentApi.saveAmendmentRecord(
@@ -154,6 +161,11 @@ export async function submitAmendmentService(params: {
   const finalAppId = String(activeAmendmentId);
   const generatedArn = generateArn();
   const dateStr = new Date().toISOString();
+  const effectiveBusinessName = resolveEffectiveBusinessName(
+    selectedSectionId,
+    formData,
+    registeredDetails
+  );
 
   const appId = createApplication(
     "gst-amendment",
@@ -169,6 +181,7 @@ export async function submitAmendmentService(params: {
       comparison: buildComparisonSummaries(selectedSectionId, registeredDetails, formData),
       supportingDoc,
       amendmentId: activeAmendmentId,
+      effectiveBusinessName,
     }),
     supportingDoc
       ? [{
@@ -200,5 +213,6 @@ export async function submitAmendmentService(params: {
     isCore,
     gstin: targetGstId,
     estCompletion: isCore ? "15 Working Days" : "Immediate / 1 Working Day",
+    businessName: effectiveBusinessName,
   };
 }
