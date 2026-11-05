@@ -14,11 +14,13 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.taxedge.loan.msmeloan.dto.MsmeLoanApplicationDto;
 import com.taxedge.loan.msmeloan.dto.MsmeLoanDocumentItemResponse;
+import com.taxedge.loan.msmeloan.dto.MsmeLoanSubmissionRequestDto;
 import com.taxedge.loan.msmeloan.enums.MsmeDocumentType;
 import com.taxedge.loan.msmeloan.service.MsmeLoanApplicationService;
 import com.taxedge.loan.msmeloan.service.MsmeLoanDocumentService;
@@ -39,6 +41,15 @@ public class MsmeLoanApplicationController {
             @Valid @RequestBody MsmeLoanApplicationDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(service.saveApplication(dto));
+    }
+
+    @PostMapping(value = "application", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MsmeLoanApplicationDto> submit(
+            @Valid @RequestPart("application") MsmeLoanSubmissionRequestDto request,
+            @RequestPart(value = "udyamCertificate", required = false) MultipartFile udyamCertificate,
+            @RequestPart(value = "gstCertificate", required = false) MultipartFile gstCertificate) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(service.submitApplication(request, udyamCertificate, gstCertificate));
     }
 
     @PutMapping("application/update/{id}")

@@ -7,26 +7,25 @@ import com.taxedge.loan.vehicleloan.dto.VehicleLoanDocumentUploadDto;
 
 public interface VehicleLoanDocumentService {
 
-    VehicleLoanDocumentResponseDto uploadDocument(
-            String vehicleLoanId,
-            VehicleLoanDocumentUploadDto dto
-    );
+        VehicleLoanDocumentResponseDto uploadDocument(
+                        String vehicleLoanId,
+                        VehicleLoanDocumentUploadDto dto);
 
-    List<VehicleLoanDocumentResponseDto> getDocuments(
-            String vehicleLoanId
-    );
+        List<VehicleLoanDocumentResponseDto> getDocuments(
+                        String vehicleLoanId);
 
-    byte[] viewDocument(
-            String vehicleLoanId,
-            String documentType
-    );
+        byte[] viewDocument(
+                        String vehicleLoanId,
+                        String documentType);
 
-    void removeDocument(
-            String vehicleLoanId,
-            String documentType
-    );
+        void removeDocument(
+                        String vehicleLoanId,
+                        String documentType);
 
-    void validateRequiredDocuments(
-            String vehicleLoanId
-    );
+        void validateRequiredDocuments(
+                        String vehicleLoanId);
+
+        VehicleLoanDocumentResponseDto updateDocuments(
+                        String vehicleLoanId,
+                        VehicleLoanDocumentUploadDto dto);
 }

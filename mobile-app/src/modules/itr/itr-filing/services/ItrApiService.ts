@@ -1,4 +1,9 @@
 import { ItrFilingFormData } from "../types/itrFiling.types";
+import {
+  resolveItrMimeType,
+  getFileExtension,
+  resolveExtensionFromMime,
+} from "@/modules/itr/utils/itrDocumentUploadHelper";
 import { useAuthStore } from "@/modules/authentication/store/authStore";
 import { validateBankAccountNumber, validateIfsc } from "@/shared/validators/indianTaxValidators";
 import { tokenManager } from "@/core/authentication/tokenManager";
@@ -244,7 +249,7 @@ export const ItrApiService = {
       // Try via apiClient first
       try {
         return await apiClient.post<string>("/api/v1/itr/submit", undefined, { headers, params });
-      } catch (clientErr) {
+      } catch {
         // Fallback to fetchApi directly
         const baseUrl = await getBaseUrl();
         let url = `${baseUrl}/submit?itrId=${encodeURIComponent(cleanItrId)}`;
@@ -270,6 +275,8 @@ const populateFormDataWithDocuments = async (
     "doc-ais-tis": "aisTis",
     "doc-bank": "bankAccountStatement",
     "doc-salary-slips": "salaryPayslips",
+    "doc-capital-gains": "capitalGainsStatement",
+    "doc-business-turnover": "businessTurnover",
   };
 
   let hasUploadedAny = false;
@@ -281,19 +288,8 @@ const populateFormDataWithDocuments = async (
         const response = await fetch(doc.fileUri);
         const rawBlob = await response.blob();
 
-        let mimeType = doc.mimeType;
-        let extension = "pdf";
-
-        const lowerName = (doc.fileName || "").toLowerCase();
-        if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg")) {
-          mimeType = "image/jpeg";
-          extension = "jpg";
-        } else if (lowerName.endsWith(".png")) {
-          mimeType = "image/png";
-          extension = "png";
-        } else {
-          mimeType = mimeType || "application/pdf";
-        }
+        const extension = getFileExtension(doc.fileName) || resolveExtensionFromMime(doc.mimeType);
+        const mimeType = resolveItrMimeType(doc.fileName, doc.mimeType);
 
         const fileBlob = new Blob([rawBlob], { type: mimeType });
         const finalFileName = doc.fileName || `${doc.id}.${extension}`;

@@ -12,6 +12,20 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { ItrSelectableBank } from "../../itr-filing/types/itrFiling.types";
 import { validators } from "@/shared/validation/validators";
 import { styles } from "./BankSelectorModal.styles";
+import { sanitizeBankName, isValidBankName } from "./bankValidation";
+import {
+  sanitizeNameInput,
+  sanitizeNameOnBlur,
+  isValidName,
+} from "@/shared/validators/nameValidator";
+
+export {
+  sanitizeBankName,
+  isValidBankName,
+  sanitizeNameInput,
+  sanitizeNameOnBlur,
+  isValidName,
+};
 
 interface BankSelectorModalProps {
   visible: boolean;
@@ -41,8 +55,12 @@ const BankFormContent: React.FC<BankFormContentProps> = ({
   onUpdateBank,
   onClose,
 }) => {
-  const [bankName, setBankName] = useState(initialBank?.bankName || "");
-  const [branchName, setBranchName] = useState(initialBank?.branchName || "");
+  const [bankName, setBankName] = useState(
+    initialBank?.bankName ? sanitizeBankName(initialBank.bankName) : ""
+  );
+  const [branchName, setBranchName] = useState(
+    initialBank?.branchName ? sanitizeNameInput(initialBank.branchName) : ""
+  );
   const [accountNumber, setAccountNumber] = useState(initialBank?.accountNumber || "");
   const [ifscCode, setIfscCode] = useState(initialBank?.ifscCode || "");
   const [ifscError, setIfscError] = useState<string | null>(null);
@@ -51,6 +69,14 @@ const BankFormContent: React.FC<BankFormContentProps> = ({
   const accountType: "Savings" | "Current" = initialBank?.accountType || "Savings";
 
   const isEditing = Boolean(initialBank);
+
+  const handleBankNameChange = (val: string) => {
+    setBankName(sanitizeBankName(val));
+  };
+
+  const handleBranchNameChange = (val: string) => {
+    setBranchName(sanitizeNameInput(val));
+  };
 
   const handleIfscChange = (val: string) => {
     const clean = val.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -61,8 +87,8 @@ const BankFormContent: React.FC<BankFormContentProps> = ({
   };
 
   const handleSaveBank = () => {
-    const cleanBankName = bankName.trim();
-    const cleanBranchName = branchName.trim();
+    const cleanBankName = sanitizeNameOnBlur(bankName);
+    const cleanBranchName = sanitizeNameOnBlur(branchName);
     const cleanAccountNum = accountNumber.trim();
     const cleanIfsc = ifscCode.trim().toUpperCase();
 
@@ -74,10 +100,18 @@ const BankFormContent: React.FC<BankFormContentProps> = ({
       return;
     }
 
-    if (cleanBankName.length < 2 || !/^[a-zA-Z0-9\s&.-]{2,100}$/.test(cleanBankName)) {
+    if (!isValidBankName(cleanBankName)) {
       Alert.alert(
         "Invalid Bank Name",
         "Please enter a valid bank name (at least 2 characters long)."
+      );
+      return;
+    }
+
+    if (cleanBranchName && !isValidName(cleanBranchName, 2, 60)) {
+      Alert.alert(
+        "Invalid Branch Name",
+        "Please enter a valid branch name (English letters and single spaces only, at least 2 characters long)."
       );
       return;
     }
@@ -183,7 +217,8 @@ const BankFormContent: React.FC<BankFormContentProps> = ({
               placeholder="e.g. State Bank of India or HDFC Bank"
               placeholderTextColor="#94A3B8"
               value={bankName}
-              onChangeText={(val) => setBankName(val.replace(/[^A-Za-z0-9\s&.-]/g, ""))}
+              onChangeText={handleBankNameChange}
+              onBlur={() => setBankName(sanitizeNameOnBlur(bankName))}
               maxLength={60}
             />
           </View>
@@ -200,7 +235,8 @@ const BankFormContent: React.FC<BankFormContentProps> = ({
               placeholder="e.g. Indiranagar Branch"
               placeholderTextColor="#94A3B8"
               value={branchName}
-              onChangeText={setBranchName}
+              onChangeText={handleBranchNameChange}
+              onBlur={() => setBranchName(sanitizeNameOnBlur(branchName))}
               maxLength={60}
             />
           </View>

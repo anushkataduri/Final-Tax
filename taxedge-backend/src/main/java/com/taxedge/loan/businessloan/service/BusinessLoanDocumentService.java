@@ -1,6 +1,8 @@
 package com.taxedge.loan.businessloan.service;
 
 import com.taxedge.loan.businessloan.dto.BusinessLoanDocumentDto;
+import com.taxedge.loan.businessloan.dto.BusinessLoanDocumentContent;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface BusinessLoanDocumentService {
 
@@ -11,4 +13,10 @@ public interface BusinessLoanDocumentService {
     BusinessLoanDocumentDto getDocuments(String loanApplicationId);
 
     void deleteDocuments(String loanApplicationId);
+
+    void uploadDraftDocument(String loanApplicationId, String documentId, MultipartFile file);
+
+    void removeDraftDocument(String loanApplicationId, String documentId);
+
+    BusinessLoanDocumentContent getDraftDocument(String loanApplicationId, String documentId);
 }

@@ -8,10 +8,17 @@ import { pickDocumentFromDrive } from "@/shared/utils/driveDocumentUploader";
 import { UploadSourceModal } from "@/modules/itr/tds/components/documents/UploadSourceModal";
 import { RemoveConfirmModal } from "@/modules/itr/tds/components/documents/RemoveConfirmModal";
 import { ViewDocumentModal } from "@/modules/itr/tds/components/documents/ViewDocumentModal";
+import {
+  ITR_ALLOWED_EXTENSIONS,
+  resolveItrMimeType,
+  resolveExtensionFromMime,
+  getFileExtension,
+  isItrSupportedFile,
+} from "@/modules/itr/utils/itrDocumentUploadHelper";
 
 import { styles } from "./SharedItrDocumentCard.styles";
 
-const DEFAULT_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "doc", "docx", "xls", "xlsx", "json"];
+const DEFAULT_EXTENSIONS = [...ITR_ALLOWED_EXTENSIONS];
 const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
 
 export interface SharedDocumentItem {
@@ -90,16 +97,17 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
     defaultName: string
   ) => {
     const fileName = asset.name || defaultName;
-    const extension = fileName.split(".").pop()?.toLowerCase() || "";
+    const extension = getFileExtension(fileName);
+    const resolvedExt = extension || resolveExtensionFromMime(asset.mimeType);
 
     const effectiveAllowed = allowedExtensions || DEFAULT_EXTENSIONS;
-    const isValidFormat = effectiveAllowed.includes(extension);
+    const isValidFormat =
+      isItrSupportedFile(fileName, asset.mimeType) &&
+      (effectiveAllowed as readonly string[]).includes(resolvedExt);
 
     if (!isValidFormat) {
-      const allowedStr = allowedExtensions
-        ? effectiveAllowed.map((e) => e.toUpperCase()).join(", ")
-        : "PDF, JPG, PNG, DOC, DOCX, XLS, XLSX, JSON";
-      onUploadError(`Unsupported file (.${extension || "unknown"}). Accepted: ${allowedStr}`);
+      const allowedStr = effectiveAllowed.map((e) => e.toUpperCase()).join(", ");
+      onUploadError(`Unsupported file (.${extension || resolvedExt || "unknown"}). Accepted: ${allowedStr}`);
       return;
     }
 
@@ -110,16 +118,19 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
       return;
     }
 
+    const resolvedMime = resolveItrMimeType(fileName, asset.mimeType);
+    const resolvedName = fileName.includes(".") ? fileName : `${fileName}.${resolvedExt}`;
+
     const sizeInMb = asset.size
       ? `${(asset.size / (1024 * 1024)).toFixed(2)} MB`
       : "2.4 MB";
 
     onUploadSuccess(item.id, {
       uri: asset.uri,
-      name: fileName,
+      name: resolvedName,
       size: sizeInMb,
-      mimeType: asset.mimeType,
-      fileTypeLabel: extension.toUpperCase() || "FILE",
+      mimeType: resolvedMime,
+      fileTypeLabel: (extension || resolvedExt).toUpperCase() || "FILE",
     });
   };
 
@@ -141,11 +152,12 @@ export const SharedItrDocumentCard: React.FC<SharedItrDocumentCardProps> = ({
           return;
         }
 
+        const resolvedMime = resolveItrMimeType(picked.name, picked.mimeType);
         onUploadSuccess(item.id, {
           uri: picked.uri,
           name: picked.name,
           size: picked.size,
-          mimeType: picked.mimeType,
+          mimeType: resolvedMime,
           fileTypeLabel: picked.fileTypeLabel,
         });
       }

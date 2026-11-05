@@ -12,11 +12,16 @@ import { BrandColors, Colors, Spacing } from "@/shared/theme";
 import { BiometricPromptModal } from "@/shared/components/BiometricPromptModal";
 import { UniversalDatePicker } from "@/shared/components/UniversalDatePicker";
 import { KeyboardAwareScrollView } from "@/shared/components/KeyboardAwareFormLayout";
+import { FocusAwareStatusBar } from "@/shared/components/FocusAwareStatusBar";
 import { styles } from "./RegisterScreen.styles";
 import { useCreateProfile } from "@/components/screens/create-profile/useCreateProfile";
 import { FieldLabel, FormField, GenderPickerModal, StatePickerModal } from "@/components/screens/create-profile/CreateProfileModals";
 import { PROFILE_FIELD_LIMITS } from "@/shared/validators/profileValidators";
 import { CUSTOMER_TYPE_OPTIONS } from "@/components/screens/create-profile/types";
+
+/** Height of the title row, and of the curve below it that must stay clear of the title. */
+const HEADER_ROW_HEIGHT = 44;
+const HEADER_CURVE_DEPTH = 44;
 
 export function RegisterScreen() {
   const insets = useSafeAreaInsets();
@@ -86,22 +91,28 @@ export function RegisterScreen() {
 
   // The keyboard gap is added by KeyboardAwareScrollView, measured from what the keyboard covers.
   const scrollBottomPadding = Math.max(insets.bottom + Spacing.xl, 40);
+  // The curved header grows with the phone's status bar (notch, Dynamic Island, Android cut-outs), so the
+  // title always sits on the dark band, above where the curve dips, on every device.
+  const headerTop = Math.max(insets.top + Spacing.xs, Spacing.lg);
+  const headerHeight = headerTop + HEADER_ROW_HEIGHT + HEADER_CURVE_DEPTH;
 
   return (
     <View style={[styles.container, { backgroundColor: BrandColors.BACKGROUND }]}>
-      <View style={styles.waveHeaderWrapper}>
-        <Svg height={125} width="100%" viewBox="0 0 375 125" style={StyleSheet.absoluteFill} preserveAspectRatio="none">
+      {/* White clock and battery icons on the dark header, on iOS and Android alike. */}
+      <FocusAwareStatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <View style={[styles.waveHeaderWrapper, { height: headerHeight }]}>
+        <Svg height={headerHeight} width="100%" viewBox="0 0 375 125" style={StyleSheet.absoluteFill} preserveAspectRatio="none">
           <Path d="M0,0 L375,0 L375,85 C310,120 230,115 140,95 C60,78 20,92 0,100 Z" fill={BrandColors.PRIMARY_BLUE_DARK} />
           <Path d="M260,0 C295,30 335,46 375,48 L375,0 Z" fill={BrandColors.PRIMARY_ORANGE} />
         </Svg>
-        <View style={[styles.waveHeaderContent, { paddingTop: Math.max(insets.top + Spacing.xs, Spacing.lg) }]}>
+        <View style={[styles.waveHeaderContent, { paddingTop: headerTop }]}>
           <View style={styles.headerRow}>
             {currentStep === 2 && (
               <TouchableOpacity activeOpacity={0.7} onPress={handleBack} style={styles.backBtnWhite} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                 <Ionicons name="arrow-back" size={24} color={BrandColors.WHITE} />
               </TouchableOpacity>
             )}
-            <Text style={styles.headerTitleWhite}>Create Account</Text>
+            <Text style={styles.headerTitleWhite} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>Create Account</Text>
           </View>
         </View>
       </View>

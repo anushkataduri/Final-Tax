@@ -98,24 +98,59 @@ public class VehicleLoanDocumentServiceImpl implements VehicleLoanDocumentServic
     public void validateRequiredDocuments(String vehicleLoanId) {
         getOwnedApplication(vehicleLoanId);
         documentRepository.findByVehicleLoanApplication_VehicleLoanId(vehicleLoanId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Required documents are missing"));
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Required documents are missing"));
+    }
+
+    @Override
+    @Transactional
+    public VehicleLoanDocumentResponseDto updateDocuments(
+            String vehicleLoanId,
+            VehicleLoanDocumentUploadDto dto) {
+
+        VehicleLoanApplication application = getOwnedApplication(vehicleLoanId);
+        assertApplicationEditable(application);
+
+        VehicleLoanDocument document = getDocument(vehicleLoanId);
+
+        if (dto == null || dto.toMap().values().stream()
+                .noneMatch(file -> file != null && !file.isEmpty())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "At least one document file is required");
+        }
+
+        dto.toMap().forEach((type, file) -> {
+            if (file != null && !file.isEmpty()) {
+                try {
+                    document.setFileContent(type, file.getBytes());
+                } catch (IOException e) {
+                    throw new ResponseStatusException(
+                            HttpStatus.INTERNAL_SERVER_ERROR, "Failed to read file", e);
+                }
+            }
+        });
+
+        return documentMapper.toResponseDto(documentRepository.save(document));
     }
 
     private VehicleLoanApplication getOwnedApplication(String vehicleLoanId) {
         return applicationRepository
                 .findByVehicleLoanIdAndCustomer_CustId(vehicleLoanId, currentCustomerId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vehicle loan application not found: " + vehicleLoanId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Vehicle loan application not found: " + vehicleLoanId));
     }
 
     private VehicleLoanDocument getDocument(String vehicleLoanId) {
         return documentRepository
                 .findByVehicleLoanApplication_VehicleLoanId(vehicleLoanId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Documents not found for this vehicle loan"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Documents not found for this vehicle loan"));
     }
 
     private void assertApplicationEditable(VehicleLoanApplication application) {
         if (application.getApplicationStatus() == VehicleLoanApplicationStatus.SUBMITTED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Application has already been submitted and cannot be edited");
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Application has already been submitted and cannot be edited");
         }
     }
 

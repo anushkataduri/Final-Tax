@@ -12,6 +12,7 @@ import com.taxedge.loan.businessloan.dto.BusinessLoanBankingDto;
 import com.taxedge.loan.businessloan.entity.BusinessLoanApplication;
 import com.taxedge.loan.businessloan.entity.BusinessLoanBanking;
 import com.taxedge.loan.businessloan.mapper.BusinessLoanBankingMapper;
+import com.taxedge.loan.businessloan.enums.LoanApplicationStatus;
 import com.taxedge.loan.businessloan.repository.BusinessLoanApplicationRepository;
 import com.taxedge.loan.businessloan.repository.BusinessLoanBankingRepository;
 import com.taxedge.loan.businessloan.service.BusinessLoanBankingService;
@@ -34,12 +35,17 @@ public class BusinessLoanBankingServiceImpl implements BusinessLoanBankingServic
     @Transactional
     public String saveBanking(BusinessLoanBankingDto dto) {
 
-        BusinessLoanApplication application = getOwnedApplication(dto.getLoanApplicationId());
+        BusinessLoanApplication application = getDraftApplication(dto.getLoanApplicationId());
 
-        BusinessLoanBanking entity = mapper.toEntity(dto);
+        BusinessLoanBanking entity = repository.findByLoanApplication_Id(application.getId())
+                .orElseGet(() -> mapper.toEntity(dto));
+        if (entity.getId() != null) {
+            mapper.updateFromDto(dto, entity);
+        }
         entity.setLoanApplication(application);
 
         repository.save(entity);
+        touch(application);
         log.info("Banking details saved for application {}", application.getId());
 
         return application.getId();
@@ -49,10 +55,11 @@ public class BusinessLoanBankingServiceImpl implements BusinessLoanBankingServic
     @Transactional
     public String updateBanking(String loanApplicationId, BusinessLoanBankingDto dto) {
 
-        getOwnedApplication(loanApplicationId);
+        BusinessLoanApplication application = getDraftApplication(loanApplicationId);
         BusinessLoanBanking entity = findOrThrow(loanApplicationId);
 
         mapper.updateFromDto(dto, entity);
+        touch(application);
 
         log.info("Banking details updated for application {}", loanApplicationId);
         return loanApplicationId;
@@ -77,6 +84,24 @@ public class BusinessLoanBankingServiceImpl implements BusinessLoanBankingServic
         return applicationRepository.findByIdAndCustomer_CustId(loanApplicationId.trim(), currentCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Loan application not found: " + loanApplicationId));
+    }
+
+    private BusinessLoanApplication getDraftApplication(String loanApplicationId) {
+        if (!StringUtils.hasText(loanApplicationId)) {
+            throw new IllegalArgumentException("Loan application ID is required");
+        }
+        BusinessLoanApplication application = applicationRepository.findByIdAndCustomer_CustIdForUpdate(
+                        loanApplicationId.trim(), currentCustomerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Loan application not found"));
+        if (application.getStatus() != LoanApplicationStatus.DRAFT) {
+            throw new IllegalStateException("Banking details can only be changed on a draft");
+        }
+        return application;
+    }
+
+    private void touch(BusinessLoanApplication application) {
+        application.setLastActivityAt(java.time.LocalDateTime.now());
+        applicationRepository.save(application);
     }
 
     private String currentCustomerId() {

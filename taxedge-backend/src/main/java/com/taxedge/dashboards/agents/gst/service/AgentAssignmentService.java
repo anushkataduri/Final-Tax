@@ -2,7 +2,7 @@ package com.taxedge.dashboards.agents.gst.service;
 
 public interface AgentAssignmentService {
 
-    String assignApplication(String id, Long agentId, String applicationType);
+    String assignGstApplication(String id, Long agentId, String applicationType);
 
     void assignGstRegistration(String businessGstId, Long agentId);
 

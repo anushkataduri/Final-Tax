@@ -6,6 +6,7 @@ import {
   validateIfsc,
   validateBankAccountNumber,
 } from "../validators/indianTaxValidators";
+import { getNameValidationError } from "../validators/nameValidator";
 import { validateGstinFull } from "@/modules/gst/utils/gstValidation";
 
 export type ValidationRule<T = any> = (value: T) => string | null;
@@ -37,13 +38,9 @@ export const validators = {
     return null;
   },
 
-  /** Name field validation */
+  /** Name field validation (Strict English letters & single spaces) */
   name: (fieldName = "Name"): ValidationRule<string | undefined> => (value) => {
-    if (!value || String(value).trim() === "") return `${fieldName} is required`;
-    const clean = String(value).trim();
-    if (clean.length < 2) return `${fieldName} must be at least 2 characters`;
-    if (!/^[\p{L}\s.'-]+$/u.test(clean)) return `${fieldName} contains invalid characters`;
-    return null;
+    return getNameValidationError(value, fieldName);
   },
 
   /** PAN validation */

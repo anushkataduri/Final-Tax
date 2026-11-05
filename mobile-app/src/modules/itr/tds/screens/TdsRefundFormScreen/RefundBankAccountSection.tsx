@@ -5,6 +5,7 @@ import { cleanAccountNumber } from "../../utils/tdsValidation";
 import { CustomerFormErrors } from "../../validation/tdsCustomerSchema";
 import { styles } from "./TdsRefundFormScreen.styles";
 import { TdsFormInputRefs, UpdateBankField, SectionHeader } from "./TdsRefundFormSections.types";
+import { sanitizeNameInput, sanitizeNameOnBlur } from "@/shared/validators/nameValidator";
 
 interface RefundBankAccountSectionProps {
   bank: BankRefundDetails;
@@ -24,7 +25,7 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
   onBlurField,
 }) => (
   <View style={styles.sectionCard}>
-    <SectionHeader number={3} title="Refund Bank Account" />
+    <SectionHeader number={2} title="Refund Bank Account" />
 
     {/* Account Holder Name */}
     <View style={styles.fieldGroup}>
@@ -37,8 +38,13 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
         placeholder="Enter account holder name"
         placeholderTextColor="#94A3B8"
         value={bank.accountHolderName}
-        onChangeText={(t) => updateBank("accountHolderName", t.replace(/[^A-Za-z\s]/g, ""))}
-        onBlur={() => onBlurField?.("bank.accountHolderName")}
+        onChangeText={(t) => updateBank("accountHolderName", sanitizeNameInput(t))}
+        onBlur={() => {
+          if (bank.accountHolderName) {
+            updateBank("accountHolderName", sanitizeNameOnBlur(bank.accountHolderName));
+          }
+          onBlurField?.("bank.accountHolderName");
+        }}
         maxLength={50}
         returnKeyType="next"
         onSubmitEditing={() => accNumRef.current?.focus()}
@@ -128,8 +134,14 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
           placeholder="Enter Bank Name"
           placeholderTextColor="#94A3B8"
           value={bank.bankName}
-          onChangeText={(val) => updateBank("bankName", val)}
-          onBlur={() => onBlurField?.("bank.bankName")}
+          onChangeText={(val) => updateBank("bankName", sanitizeNameInput(val))}
+          onBlur={() => {
+            if (bank.bankName) {
+              updateBank("bankName", sanitizeNameOnBlur(bank.bankName));
+            }
+            onBlurField?.("bank.bankName");
+          }}
+          maxLength={60}
         />
         {errors["bank.bankName"] && (
           <Text style={styles.errorText}>{errors["bank.bankName"]}</Text>
@@ -144,7 +156,13 @@ export const RefundBankAccountSection: React.FC<RefundBankAccountSectionProps> =
           placeholder="Enter Branch"
           placeholderTextColor="#94A3B8"
           value={bank.branchName}
-          onChangeText={(val) => updateBank("branchName", val)}
+          onChangeText={(val) => updateBank("branchName", sanitizeNameInput(val))}
+          onBlur={() => {
+            if (bank.branchName) {
+              updateBank("branchName", sanitizeNameOnBlur(bank.branchName));
+            }
+          }}
+          maxLength={60}
         />
       </View>
     </View>

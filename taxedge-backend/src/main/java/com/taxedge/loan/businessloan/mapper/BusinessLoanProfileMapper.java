@@ -24,6 +24,12 @@ public interface BusinessLoanProfileMapper {
     @Mapping(target = "createdAt", ignore = true)
     void updateFromDto(BusinessLoanProfileDto dto, @MappingTarget BusinessLoanProfile entity);
 
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "loanApplication", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    void replaceDraftFromDto(BusinessLoanProfileDto dto, @MappingTarget BusinessLoanProfile entity);
+
     @Mapping(target = "loanApplicationId", source = "loanApplication.id")
     BusinessLoanProfileDto toDto(BusinessLoanProfile entity);
 }

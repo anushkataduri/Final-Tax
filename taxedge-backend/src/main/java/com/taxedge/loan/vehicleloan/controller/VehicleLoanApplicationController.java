@@ -42,10 +42,6 @@ public class VehicleLoanApplicationController {
     private final VehicleLoanApplicationService applicationService;
     private final VehicleLoanDocumentService documentService;
 
-    // ==========================================
-    // 2-TABLE ARCHITECTURE (MATCHING PROPERTY LOAN)
-    // ==========================================
-
     @PostMapping("application")
     public ResponseEntity<VehicleLoanResponse> createApplication(
             @Valid @RequestBody VehicleLoanCreateRequest request) {
@@ -118,23 +114,16 @@ public class VehicleLoanApplicationController {
         return ResponseEntity.noContent().build();
     }
 
-    // ==========================================
-    // KYC DETAILS
-    // ==========================================
-
     @GetMapping("/kyc/{customerId}")
     public ResponseEntity<VehicleLoanKycResponseDto> getKycDetails(
             @PathVariable String customerId) {
         String authCustId = currentCustomerId();
-        if (StringUtils.hasText(customerId) && !"me".equalsIgnoreCase(customerId.trim()) && !customerId.trim().equals(authCustId)) {
+        if (StringUtils.hasText(customerId) && !"me".equalsIgnoreCase(customerId.trim())
+                && !customerId.trim().equals(authCustId)) {
             throw new AccessDeniedException("Access denied: You cannot view KYC details of another customer");
         }
         return ResponseEntity.ok(applicationService.getKycDetails(authCustId));
     }
-
-    // ==========================================
-    // LEGACY ALIASES (FOR BACKWARD COMPATIBILITY)
-    // ==========================================
 
     @PostMapping("/applications")
     public ResponseEntity<VehicleLoanResponse> startApplicationLegacy(
@@ -178,6 +167,15 @@ public class VehicleLoanApplicationController {
             @PathVariable String detailsId,
             @ModelAttribute VehicleLoanDocumentUploadDto dto) {
         return ResponseEntity.ok(documentService.uploadDocument(vehicleLoanId, dto));
+    }
+
+    @PutMapping(value = "/application/{id}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<VehicleLoanDocumentResponseDto> updateDocuments(
+            @PathVariable("id") String vehicleLoanId,
+            @ModelAttribute VehicleLoanDocumentUploadDto dto) {
+
+        return ResponseEntity.ok(
+                documentService.updateDocuments(vehicleLoanId, dto));
     }
 
     @DeleteMapping("/applications/{vehicleLoanId}/vehicle-details/{detailsId}/documents/{documentType}")

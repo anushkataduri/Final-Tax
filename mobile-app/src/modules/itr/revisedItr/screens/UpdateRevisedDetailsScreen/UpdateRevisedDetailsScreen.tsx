@@ -16,6 +16,7 @@ import { RevisedItrHeader } from "../../components/common";
 import { RevisedFormField } from "../../components/update";
 import { DEFAULT_REVISED_FORM_FIELDS } from "../../mock/revisedItrData";
 import { RevisedFormFields } from "../../types/revisedItr.types";
+import { formatIndianAmount } from "@/shared/formatters/currencyFormatter";
 import { useKeyboard } from "@/shared/hooks/useKeyboard";
 import { validators } from "@/shared/validation/validators";
 import {
@@ -267,12 +268,12 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
             <RevisedFormField
               label="Salary / Business income"
               value={form.salaryBusinessIncome}
-              originalValue={`₹${originalValues.salaryBusinessIncome}`}
+              originalValue={originalValues.salaryBusinessIncome ? `₹${formatIndianAmount(originalValues.salaryBusinessIncome)}` : undefined}
               changeValue={getChange(originalValues.salaryBusinessIncome, form.salaryBusinessIncome)}
-              onChangeText={(val) => handleChange("salaryBusinessIncome", val.replace(/[^0-9]/g, ""))}
-                maxLength={12}
-                keyboardType="number-pad"
+              onChangeText={(val) => handleChange("salaryBusinessIncome", val)}
+              maxLength={12}
               isMandatory
+              isAmount
               placeholder="Enter revised income"
               error={errors.salaryBusinessIncome}
             />
@@ -280,11 +281,11 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
             <RevisedFormField
               label="Other income"
               value={form.otherIncome}
-              originalValue={`₹${originalValues.otherIncome}`}
+              originalValue={originalValues.otherIncome ? `₹${formatIndianAmount(originalValues.otherIncome)}` : undefined}
               changeValue={getChange(originalValues.otherIncome, form.otherIncome)}
-              onChangeText={(val) => handleChange("otherIncome", val.replace(/[^0-9]/g, ""))}
-                maxLength={12}
-                keyboardType="number-pad"
+              onChangeText={(val) => handleChange("otherIncome", val)}
+              maxLength={12}
+              isAmount
               placeholder="Enter revised income"
               error={errors.otherIncome}
             />
@@ -301,33 +302,33 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
             <RevisedFormField
               label="80C deduction"
               value={form.sec80c}
-              originalValue={`₹${originalValues.sec80c}`}
+              originalValue={originalValues.sec80c ? `₹${formatIndianAmount(originalValues.sec80c)}` : undefined}
               changeValue={getChange(originalValues.sec80c, form.sec80c)}
-              onChangeText={(val) => handleChange("sec80c", val.replace(/[^0-9]/g, ""))}
-                maxLength={12}
-                keyboardType="number-pad"
+              onChangeText={(val) => handleChange("sec80c", val)}
+              maxLength={12}
+              isAmount
               placeholder="Enter amount"
             />
 
             <RevisedFormField
               label="80D deduction"
               value={form.sec80d}
-              originalValue={`₹${originalValues.sec80d}`}
+              originalValue={originalValues.sec80d ? `₹${formatIndianAmount(originalValues.sec80d)}` : undefined}
               changeValue={getChange(originalValues.sec80d, form.sec80d)}
-              onChangeText={(val) => handleChange("sec80d", val.replace(/[^0-9]/g, ""))}
-                maxLength={12}
-                keyboardType="number-pad"
+              onChangeText={(val) => handleChange("sec80d", val)}
+              maxLength={12}
+              isAmount
               placeholder="Enter amount"
             />
 
             <RevisedFormField
               label="Home loan interest"
               value={form.homeLoanInterest}
-              originalValue={`₹${originalValues.homeLoanInterest}`}
+              originalValue={originalValues.homeLoanInterest ? `₹${formatIndianAmount(originalValues.homeLoanInterest)}` : undefined}
               changeValue={getChange(originalValues.homeLoanInterest, form.homeLoanInterest)}
-              onChangeText={(val) => handleChange("homeLoanInterest", val.replace(/[^0-9]/g, ""))}
-                maxLength={12}
-                keyboardType="number-pad"
+              onChangeText={(val) => handleChange("homeLoanInterest", val)}
+              maxLength={12}
+              isAmount
               placeholder="Enter amount"
             />
           </View>
@@ -371,12 +372,12 @@ export const UpdateRevisedDetailsScreen: React.FC = () => {
             <RevisedFormField
               label="Taxable income"
               value={form.taxableIncome}
-              originalValue={`₹${originalValues.taxableIncome}`}
+              originalValue={originalValues.taxableIncome ? `₹${formatIndianAmount(originalValues.taxableIncome)}` : undefined}
               changeValue={getChange(originalValues.taxableIncome, form.taxableIncome)}
-              onChangeText={(val) => handleChange("taxableIncome", val.replace(/[^0-9]/g, ""))}
-                maxLength={12}
-                keyboardType="number-pad"
+              onChangeText={(val) => handleChange("taxableIncome", val)}
+              maxLength={12}
               isMandatory
+              isAmount
               placeholder="Enter taxable income"
               error={errors.taxableIncome}
             />

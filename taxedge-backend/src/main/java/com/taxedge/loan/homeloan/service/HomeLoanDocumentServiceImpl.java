@@ -31,28 +31,76 @@ public class HomeLoanDocumentServiceImpl implements HomeLoanDocumentService {
     private final HomeLoanDocumentRepository documentRepository;
     private final HomeLoanRequirementApplicationRepository applicationRepository;
 
-    private static final List<String> ALL_DOCUMENT_TYPES = List.of(
-            "propertyOwnershipDocument",
-            "bankStatementIncomeDocument",
-            "propertyQuotationBuilderDocument",
-            "additionalPropertyDocument",
-            "constructionDocument",
-            "sanctionedBuildingPlan",
-            "constructionCostEstimate",
-            "renovationCostEstimate",
-            "contractorQuotation",
-            "existingLoanStatement",
-            "propertyDocumentCopy",
-            "foreclosureOutstandingStatement"
+    private record DocumentDef(String type, String name, String description, boolean required) {}
+
+    private static final List<DocumentDef> ALL_DEFINITIONS = List.of(
+            new DocumentDef("propertyOwnershipDocument", "Property Ownership Document", "Property ownership document file", true),
+            new DocumentDef("bankStatementIncomeDocument", "Bank Statement / Income Document", "Bank statement / income proof", true),
+            new DocumentDef("propertyQuotationBuilderDocument", "Property Quotation / Builder Document", "Quotation from builder", false),
+            new DocumentDef("additionalPropertyDocument", "Additional Property Document", "Additional property doc (optional)", false),
+            new DocumentDef("constructionDocument", "Construction Document", "Construction doc (optional)", false),
+            new DocumentDef("sanctionedBuildingPlan", "Sanctioned Building Plan", "Sanctioned plan (optional)", false),
+            new DocumentDef("constructionCostEstimate", "Construction Cost Estimate", "Construction cost estimate (optional)", false),
+            new DocumentDef("renovationCostEstimate", "Renovation Cost Estimate", "Renovation estimate (optional)", false),
+            new DocumentDef("contractorQuotation", "Contractor Quotation", "Contractor quotation (optional)", false),
+            new DocumentDef("existingLoanStatement", "Existing Loan Statement", "Statement of existing loan (optional)", false),
+            new DocumentDef("propertyDocumentCopy", "Property Document Copy", "Copy of property doc (optional)", false),
+            new DocumentDef("foreclosureOutstandingStatement", "Foreclosure Outstanding Statement", "Foreclosure statement (optional)", false)
     );
+
+    private List<DocumentDef> getDefinitionsForPurpose(HomeLoanRequirementPurpose purpose) {
+        if (purpose == null) {
+            return ALL_DEFINITIONS;
+        }
+        return switch (purpose) {
+            case PURCHASE_NEW_HOME -> List.of(
+                    new DocumentDef("propertyOwnershipDocument", "Property Ownership Document", "Property ownership document file", true),
+                    new DocumentDef("bankStatementIncomeDocument", "Bank Statement / Income Document", "Bank statement / income proof", true),
+                    new DocumentDef("propertyQuotationBuilderDocument", "Property Quotation / Builder Document", "Quotation from builder", true),
+                    new DocumentDef("additionalPropertyDocument", "Additional Property Document", "Additional property doc (optional)", false)
+            );
+            case PURCHASE_RESALE_HOME -> List.of(
+                    new DocumentDef("propertyOwnershipDocument", "Property Ownership Document", "Property ownership document file", true),
+                    new DocumentDef("bankStatementIncomeDocument", "Bank Statement / Income Document", "Bank statement / income proof", true),
+                    new DocumentDef("propertyDocumentCopy", "Property Document Copy", "Copy of property doc (optional)", true),
+                    new DocumentDef("additionalPropertyDocument", "Additional Property Document", "Additional property doc (optional)", false)
+            );
+            case CONSTRUCT_HOUSE -> List.of(
+                    new DocumentDef("propertyOwnershipDocument", "Property Ownership Document", "Property ownership document file", true),
+                    new DocumentDef("bankStatementIncomeDocument", "Bank Statement / Income Document", "Bank statement / income proof", true),
+                    new DocumentDef("constructionDocument", "Construction Document", "Construction doc (optional)", true),
+                    new DocumentDef("sanctionedBuildingPlan", "Sanctioned Building Plan", "Sanctioned plan (optional)", true),
+                    new DocumentDef("constructionCostEstimate", "Construction Cost Estimate", "Construction cost estimate (optional)", true),
+                    new DocumentDef("contractorQuotation", "Contractor Quotation", "Contractor quotation (optional)", false),
+                    new DocumentDef("additionalPropertyDocument", "Additional Property Document", "Additional property doc (optional)", false)
+            );
+            case HOME_RENOVATION -> List.of(
+                    new DocumentDef("propertyOwnershipDocument", "Property Ownership Document", "Property ownership document file", true),
+                    new DocumentDef("bankStatementIncomeDocument", "Bank Statement / Income Document", "Bank statement / income proof", true),
+                    new DocumentDef("renovationCostEstimate", "Renovation Cost Estimate", "Renovation estimate (optional)", true),
+                    new DocumentDef("contractorQuotation", "Contractor Quotation", "Contractor quotation (optional)", true),
+                    new DocumentDef("additionalPropertyDocument", "Additional Property Document", "Additional property doc (optional)", false)
+            );
+            case BALANCE_TRANSFER -> List.of(
+                    new DocumentDef("propertyOwnershipDocument", "Property Ownership Document", "Property ownership document file", true),
+                    new DocumentDef("bankStatementIncomeDocument", "Bank Statement / Income Document", "Bank statement / income proof", true),
+                    new DocumentDef("existingLoanStatement", "Existing Loan Statement", "Statement of existing loan (optional)", true),
+                    new DocumentDef("foreclosureOutstandingStatement", "Foreclosure Outstanding Statement", "Foreclosure statement (optional)", true),
+                    new DocumentDef("propertyDocumentCopy", "Property Document Copy", "Copy of property doc (optional)", false),
+                    new DocumentDef("additionalPropertyDocument", "Additional Property Document", "Additional property doc (optional)", false)
+            );
+        };
+    }
 
     @Override
     @Transactional(readOnly = true)
     public List<HomeLoanDocumentRequirementDto> getDocumentRequirements(HomeLoanRequirementPurpose loanPurpose) {
-        return ALL_DOCUMENT_TYPES.stream()
-                .map(docType -> HomeLoanDocumentRequirementDto.builder()
-                        .documentType(docType)
-                        .documentName(docType)
+        return getDefinitionsForPurpose(loanPurpose).stream()
+                .map(def -> HomeLoanDocumentRequirementDto.builder()
+                        .documentType(def.type())
+                        .documentName(def.name())
+                        .description(def.description())
+                        .required(def.required())
                         .uploaded(false)
                         .build())
                 .toList();
@@ -139,19 +187,24 @@ public class HomeLoanDocumentServiceImpl implements HomeLoanDocumentService {
     }
 
     private HomeLoanDocumentResponseDto toResponse(HomeLoanDocument document) {
+        HomeLoanRequirementApplication app = document.getHomeLoanApplication();
+        HomeLoanRequirementPurpose purpose = app != null ? app.getLoanPurpose() : null;
+
         List<HomeLoanDocumentRequirementDto> requirements = new ArrayList<>();
-        for (String docType : ALL_DOCUMENT_TYPES) {
-            byte[] content = document.getContent(docType);
+        for (DocumentDef def : getDefinitionsForPurpose(purpose)) {
+            byte[] content = document.getContent(def.type());
             requirements.add(HomeLoanDocumentRequirementDto.builder()
-                    .documentType(docType)
-                    .documentName(docType)
+                    .documentType(def.type())
+                    .documentName(def.name())
+                    .description(def.description())
+                    .required(def.required())
                     .uploaded(content != null && content.length > 0)
                     .build());
         }
 
         return HomeLoanDocumentResponseDto.builder()
                 .documentId(document.getDocumentId())
-                .homeLoanId(document.getHomeLoanApplication().getHomeLoanId())
+                .homeLoanId(app != null ? app.getHomeLoanId() : null)
                 .documents(requirements)
                 .build();
     }

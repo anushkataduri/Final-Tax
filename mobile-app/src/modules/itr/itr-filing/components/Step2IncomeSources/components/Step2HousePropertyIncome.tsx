@@ -1,9 +1,10 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import { IncomeHousePropertyData } from "../../../types/itrFiling.types";
 import { styles } from "../Step2IncomeSources.styles";
+import { AmountTextInput } from "@/shared/components/AmountTextInput";
 
 interface Step2HousePropertyIncomeProps {
   data: IncomeHousePropertyData;
@@ -89,16 +90,12 @@ export const Step2HousePropertyIncome: React.FC<Step2HousePropertyIncomeProps> =
               </View>
               <View style={styles.inputBox}>
                 <Text style={styles.currencyPrefix}>₹</Text>
-                <TextInput
+                <AmountTextInput
                   style={styles.textInput}
-                  keyboardType="decimal-pad"
-                  placeholder="e.g. 240000"
+                  placeholder="e.g. 2,40,000"
                   placeholderTextColor="#94A3B8"
                   value={data.annualRentReceived}
-                  onChangeText={(val) => {
-                    const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                    onUpdate({ annualRentReceived: clean });
-                  }}
+                  onChangeText={(raw) => onUpdate({ annualRentReceived: raw })}
                   maxLength={15}
                 />
               </View>
@@ -111,16 +108,12 @@ export const Step2HousePropertyIncome: React.FC<Step2HousePropertyIncomeProps> =
               </View>
               <View style={styles.inputBox}>
                 <Text style={styles.currencyPrefix}>₹</Text>
-                <TextInput
+                <AmountTextInput
                   style={styles.textInput}
-                  keyboardType="decimal-pad"
-                  placeholder="e.g. 10000 (0 if none)"
+                  placeholder="e.g. 10,000 (0 if none)"
                   placeholderTextColor="#94A3B8"
                   value={data.municipalTaxesPaid}
-                  onChangeText={(val) => {
-                    const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                    onUpdate({ municipalTaxesPaid: clean });
-                  }}
+                  onChangeText={(raw) => onUpdate({ municipalTaxesPaid: raw })}
                   maxLength={15}
                 />
               </View>
@@ -135,16 +128,12 @@ export const Step2HousePropertyIncome: React.FC<Step2HousePropertyIncomeProps> =
           </View>
           <View style={styles.inputBox}>
             <Text style={styles.currencyPrefix}>₹</Text>
-            <TextInput
+            <AmountTextInput
               style={styles.textInput}
-              keyboardType="decimal-pad"
-              placeholder="e.g. 50000 (0 if no loan)"
+              placeholder="e.g. 50,000 (0 if no loan)"
               placeholderTextColor="#94A3B8"
               value={data.homeLoanInterest}
-              onChangeText={(val) => {
-                const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                onUpdate({ homeLoanInterest: clean });
-              }}
+              onChangeText={(raw) => onUpdate({ homeLoanInterest: raw })}
               maxLength={15}
             />
           </View>

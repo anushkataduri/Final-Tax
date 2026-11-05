@@ -93,6 +93,31 @@ public class BusinessLoanDocument {
     @Column(name = "business_expansion_document_file", columnDefinition = "bytea")
     private byte[] businessExpansionDocumentFile;
 
+    @Column(name = "pan_card_file_name", length = 255)
+    private String panCardFileName;
+    @Column(name = "pan_card_content_type", length = 150)
+    private String panCardContentType;
+    @Column(name = "business_registration_file_name", length = 255)
+    private String businessRegistrationFileName;
+    @Column(name = "business_registration_content_type", length = 150)
+    private String businessRegistrationContentType;
+    @Column(name = "bank_statements_file_name", length = 255)
+    private String bankStatementsFileName;
+    @Column(name = "bank_statements_content_type", length = 150)
+    private String bankStatementsContentType;
+    @Column(name = "business_expansion_file_name", length = 255)
+    private String businessExpansionFileName;
+    @Column(name = "business_expansion_content_type", length = 150)
+    private String businessExpansionContentType;
+    @Column(name = "gst_certificate_file_name", length = 255)
+    private String gstCertificateFileName;
+    @Column(name = "gst_certificate_content_type", length = 150)
+    private String gstCertificateContentType;
+    @Column(name = "profit_loss_statement_file_name", length = 255)
+    private String profitLossStatementFileName;
+    @Column(name = "profit_loss_statement_content_type", length = 150)
+    private String profitLossStatementContentType;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

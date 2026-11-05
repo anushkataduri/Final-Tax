@@ -29,6 +29,7 @@ import { useProfileManager } from "@/components/screens/profile/useProfileManage
 import { PersonalDetailsModal } from "@/components/screens/profile/PersonalDetailsModal";
 import { KycDetailsModal } from "@/components/screens/profile/KycDetailsModal";
 import { ProfileSectionModal, type ProfileModalType } from "@/components/screens/profile/ProfileSectionModal";
+import { formatProfileCode } from "@/components/screens/profile/ProfileModalHeader";
 import { useAuthStore } from "@/store/authStore";
 import { isPlaceholderCustomerName } from "@/modules/authentication/store/authStore.helpers";
 import { SECTIONS, type MenuRow, type RowAction } from "./profileSections.config";
@@ -191,7 +192,7 @@ export function ProfileScreen() {
             <View style={styles.pill}>
               <Text style={styles.pillText}>
                 {isProfileComplete
-                  ? (personalDetails?.customerType || customer?.customerType || "Individual")
+                  ? (formatProfileCode(personalDetails?.customerType || customer?.customerType) || "Individual")
                   : "Profile Incomplete"}
               </Text>
             </View>

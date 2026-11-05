@@ -71,12 +71,33 @@ public class PropertyLoanController {
     }
 
     @PostMapping(value = "application/{id}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<PropertyLoanDocumentItemResponse> uploadDocument(
+    public ResponseEntity<?> uploadDocuments(
             @PathVariable String id,
-            @RequestParam("documentType") PropertyDocumentType documentType,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam(value = "documentType", required = false) PropertyDocumentType documentType,
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            org.springframework.web.multipart.MultipartHttpServletRequest request) {
+
+        if (documentType != null && file != null && !file.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(documentService.uploadDocument(id, documentType, file));
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(documentService.uploadDocument(id, documentType, file));
+                .body(documentService.uploadDocuments(id, request.getFileMap()));
+    }
+
+    @PutMapping(value = "application/{id}/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateDocuments(
+            @PathVariable String id,
+            @RequestParam(value = "documentType", required = false) PropertyDocumentType documentType,
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            org.springframework.web.multipart.MultipartHttpServletRequest request) {
+
+        if (documentType != null && file != null && !file.isEmpty()) {
+            return ResponseEntity.ok(documentService.uploadDocument(id, documentType, file));
+        }
+
+        return ResponseEntity.ok(documentService.uploadDocuments(id, request.getFileMap()));
     }
 
     @GetMapping("application/{id}/documents")

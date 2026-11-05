@@ -16,12 +16,20 @@ public interface BusinessLoanDocumentMapper {
     @Mapping(target = "documentId", ignore = true)
     @Mapping(target = "loanApplication", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "gstCertificateFileName", ignore = true)
+    @Mapping(target = "gstCertificateContentType", ignore = true)
+    @Mapping(target = "profitLossStatementFileName", ignore = true)
+    @Mapping(target = "profitLossStatementContentType", ignore = true)
     BusinessLoanDocument toEntity(BusinessLoanDocumentDto dto);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "documentId", ignore = true)
     @Mapping(target = "loanApplication", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "gstCertificateFileName", ignore = true)
+    @Mapping(target = "gstCertificateContentType", ignore = true)
+    @Mapping(target = "profitLossStatementFileName", ignore = true)
+    @Mapping(target = "profitLossStatementContentType", ignore = true)
     void updateFromDto(BusinessLoanDocumentDto dto, @MappingTarget BusinessLoanDocument entity);
 
     @Mapping(target = "loanApplicationId", source = "loanApplication.id")

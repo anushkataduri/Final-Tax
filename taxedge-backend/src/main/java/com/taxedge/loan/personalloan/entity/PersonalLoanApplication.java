@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import com.taxedge.customer.entity.Customer;
 import com.taxedge.loan.personalloan.enums.ExistingLoanStatus;
 import com.taxedge.loan.personalloan.enums.LoanApplicationStatus;
+import com.taxedge.loan.personalloan.enums.NatureOfBusiness;
+import com.taxedge.loan.personalloan.enums.PersonalLoanJobType;
 import com.taxedge.loan.personalloan.enums.PersonalLoanPurpose;
 import com.taxedge.loan.personalloan.helper.PersonalLoanHelper;
 
@@ -60,7 +62,8 @@ public class PersonalLoanApplication {
     private String employerName;
 
     @Column(name = "job_type", length = 50)
-    private String jobType;
+    @Enumerated(EnumType.STRING)
+    private PersonalLoanJobType jobType;
 
     @Column(name = "work_experience", length = 50)
     private String workExperience;
@@ -72,7 +75,8 @@ public class PersonalLoanApplication {
     private String businessOrProfessionName;
 
     @Column(name = "nature_of_business", length = 50)
-    private String natureOfBusiness;
+    @Enumerated(EnumType.STRING)
+    private NatureOfBusiness natureOfBusiness;
 
     @Column(name = "average_monthly_income", precision = 15, scale = 2)
     private BigDecimal averageMonthlyIncome;

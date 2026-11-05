@@ -21,8 +21,8 @@ export const formStyles = {
   profileScroll: {
     flexGrow: 1,
   },
+  /* Height is set on the screen from the status-bar inset, so the curve fits every device. */
   waveHeaderWrapper: {
-    height: 125,
     width: "100%" as const,
     position: "relative" as const,
   },
@@ -45,6 +45,8 @@ export const formStyles = {
     justifyContent: "center" as const,
   },
   headerTitleWhite: {
+    // Keeps to one line even with large system text sizes (common on iPhones), instead of running into the curve.
+    maxWidth: "80%" as const,
     fontSize: Typography.fontSize.hero,
     fontWeight: Typography.fontWeight.extraBold,
     color: BrandColors.WHITE,

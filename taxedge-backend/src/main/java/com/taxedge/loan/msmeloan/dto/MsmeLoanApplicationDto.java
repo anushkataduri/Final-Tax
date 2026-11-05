@@ -3,6 +3,7 @@ package com.taxedge.loan.msmeloan.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.taxedge.loan.msmeloan.enums.MsmeBusinessActivity;
 import com.taxedge.loan.msmeloan.enums.MsmeConstitution;
 import com.taxedge.loan.personalloan.enums.LoanApplicationStatus;
@@ -30,7 +31,9 @@ public class MsmeLoanApplicationDto {
     private String businessName;
 
     private MsmeConstitution constitution;
+    private String constitutionOther;
     private MsmeBusinessActivity businessActivity;
+    private String businessActivityOther;
 
     @NotNull(message = "Requested loan amount is required")
     @DecimalMin(value = "50000.00", message = "Requested loan amount must be at least 50000")
@@ -38,7 +41,17 @@ public class MsmeLoanApplicationDto {
 
     private Integer tenureMonths;
     private BigDecimal annualTurnover;
+
+    @JsonAlias("operatingDuration")
     private String yearsInBusiness;
+
+    private String establishmentDate;
+    private OperatingAddress operatingAddress;
+    private String numberOfEmployees;
+    private String ownershipType;
+    private String ownershipTypeOther;
+    private String udyamStatus;
+    private String gstStatus;
 
     @Size(max = 30)
     private String udyamRegistrationNumber;
@@ -61,4 +74,19 @@ public class MsmeLoanApplicationDto {
     private LoanApplicationStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    @lombok.Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class OperatingAddress {
+        private String houseNumber;
+
+        private String street;
+
+        private String city;
+
+        private String state;
+
+        private String pincode;
+    }
 }

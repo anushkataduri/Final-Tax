@@ -51,9 +51,15 @@ public class MsmeLoanApplication {
     @Column(name = "constitution", length = 30)
     private MsmeConstitution constitution;
 
+    @Column(name = "constitution_other", length = 50)
+    private String constitutionOther;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "business_activity", length = 30)
     private MsmeBusinessActivity businessActivity;
+
+    @Column(name = "business_activity_other", length = 60)
+    private String businessActivityOther;
 
     @Column(name = "requested_loan_amount", precision = 15, scale = 2)
     private BigDecimal requestedLoanAmount;
@@ -66,6 +72,39 @@ public class MsmeLoanApplication {
 
     @Column(name = "years_in_business", length = 50)
     private String yearsInBusiness;
+
+    @Column(name = "establishment_date", length = 10)
+    private String establishmentDate;
+
+    @Column(name = "operating_address_house_number", length = 100)
+    private String operatingAddressHouseNumber;
+
+    @Column(name = "operating_address_street", length = 120)
+    private String operatingAddressStreet;
+
+    @Column(name = "operating_address_city", length = 50)
+    private String operatingAddressCity;
+
+    @Column(name = "operating_address_state", length = 100)
+    private String operatingAddressState;
+
+    @Column(name = "operating_address_pincode", length = 6)
+    private String operatingAddressPincode;
+
+    @Column(name = "number_of_employees", length = 10)
+    private String numberOfEmployees;
+
+    @Column(name = "ownership_type", length = 40)
+    private String ownershipType;
+
+    @Column(name = "ownership_type_other", length = 50)
+    private String ownershipTypeOther;
+
+    @Column(name = "udyam_status", length = 30)
+    private String udyamStatus;
+
+    @Column(name = "gst_status", length = 30)
+    private String gstStatus;
 
     @Column(name = "udyam_registration_number", length = 30)
     private String udyamRegistrationNumber;

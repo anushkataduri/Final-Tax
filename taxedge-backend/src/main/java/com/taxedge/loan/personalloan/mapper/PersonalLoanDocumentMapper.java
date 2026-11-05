@@ -25,5 +25,12 @@ public interface PersonalLoanDocumentMapper {
     void updateFromDto(PersonalLoanDocumentDto dto, @MappingTarget PersonalLoanDocument entity);
 
     @Mapping(target = "loanApplicationId", source = "loanApplication.id")
+    @Mapping(target = "panCardFile", ignore = true)
+    @Mapping(target = "aadhaarCardFile", ignore = true)
+    @Mapping(target = "addressProofFile", ignore = true)
+    @Mapping(target = "photographFile", ignore = true)
+    @Mapping(target = "bankStatementsFile", ignore = true)
+    @Mapping(target = "salarySlipsFile", ignore = true)
+    @Mapping(target = "itrAcknowledgmentFile", ignore = true)
     PersonalLoanDocumentDto toDto(PersonalLoanDocument entity);
 }

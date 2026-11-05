@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TextInput } from "react-native";
+import { AmountTextInput } from "@/shared/components/AmountTextInput";
 import { styles } from "./RevisedFormField.styles";
 
 interface RevisedFormFieldProps {
@@ -14,6 +15,7 @@ interface RevisedFormFieldProps {
   maxLength?: number;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   error?: string;
+  isAmount?: boolean;
 }
 
 export const RevisedFormField: React.FC<RevisedFormFieldProps> = ({
@@ -28,6 +30,7 @@ export const RevisedFormField: React.FC<RevisedFormFieldProps> = ({
   maxLength,
   autoCapitalize = "none",
   error,
+  isAmount = false,
 }) => {
   return (
     <View style={styles.container}>
@@ -49,16 +52,27 @@ export const RevisedFormField: React.FC<RevisedFormFieldProps> = ({
           {originalValue ? (
             <Text style={styles.inputSubLabel}>Revised</Text>
           ) : null}
-          <TextInput
-            style={[styles.input, error ? styles.errorInput : null]}
-            value={value}
-            onChangeText={onChangeText}
-            placeholder={placeholder}
-            placeholderTextColor="#94A3B8"
-            keyboardType={keyboardType}
-            maxLength={maxLength}
-            autoCapitalize={autoCapitalize}
-          />
+          {isAmount ? (
+            <AmountTextInput
+              style={[styles.input, error ? styles.errorInput : null]}
+              value={value}
+              onChangeText={onChangeText}
+              placeholder={placeholder}
+              placeholderTextColor="#94A3B8"
+              maxLength={maxLength}
+            />
+          ) : (
+            <TextInput
+              style={[styles.input, error ? styles.errorInput : null]}
+              value={value}
+              onChangeText={onChangeText}
+              placeholder={placeholder}
+              placeholderTextColor="#94A3B8"
+              keyboardType={keyboardType}
+              maxLength={maxLength}
+              autoCapitalize={autoCapitalize}
+            />
+          )}
         </View>
 
         {changeValue ? (

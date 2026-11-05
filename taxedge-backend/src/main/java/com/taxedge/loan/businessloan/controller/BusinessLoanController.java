@@ -1,7 +1,11 @@
 package com.taxedge.loan.businessloan.controller;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.ContentDisposition;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.taxedge.loan.businessloan.dto.BusinessLoanApplicationDto;
 import com.taxedge.loan.businessloan.dto.BusinessLoanBankingDto;
 import com.taxedge.loan.businessloan.dto.BusinessLoanDocumentDto;
+import com.taxedge.loan.businessloan.dto.BusinessLoanDraftDto;
 import com.taxedge.loan.businessloan.dto.BusinessLoanProfileDto;
 import com.taxedge.loan.businessloan.service.BusinessLoanApplicationService;
 import com.taxedge.loan.businessloan.service.BusinessLoanBankingService;
@@ -41,6 +46,18 @@ public class BusinessLoanController {
     public ResponseEntity<String> save(@RequestBody BusinessLoanApplicationDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(service.saveApplication(dto));
+    }
+
+    @GetMapping("/application/draft/current")
+    public ResponseEntity<BusinessLoanDraftDto> getCurrentDraft() {
+        return service.getCurrentDraft()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("application/{id}/submit")
+    public ResponseEntity<String> submitDraft(@PathVariable String id) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.submitDraft(id));
     }
 
     @DeleteMapping("application/{id}")
@@ -112,5 +129,40 @@ public class BusinessLoanController {
     @GetMapping("documents/{loanApplicationId}")
     public ResponseEntity<BusinessLoanDocumentDto> getdocuments(@PathVariable String loanApplicationId) {
         return ResponseEntity.ok(documentservice.getDocuments(loanApplicationId));
+    }
+
+    @PutMapping(value = "documents/{loanApplicationId}/{documentId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> uploadDraftDocument(
+            @PathVariable String loanApplicationId,
+            @PathVariable String documentId,
+            @org.springframework.web.bind.annotation.RequestPart("file") MultipartFile file) {
+        documentservice.uploadDraftDocument(loanApplicationId, documentId, file);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("documents/{loanApplicationId}/{documentId}")
+    public ResponseEntity<Void> removeDraftDocument(
+            @PathVariable String loanApplicationId,
+            @PathVariable String documentId) {
+        documentservice.removeDraftDocument(loanApplicationId, documentId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("documents/{loanApplicationId}/{documentId}")
+    public ResponseEntity<byte[]> downloadDraftDocument(
+            @PathVariable String loanApplicationId,
+            @PathVariable String documentId) {
+        var file = documentservice.getDraftDocument(loanApplicationId, documentId);
+        MediaType contentType;
+        try {
+            contentType = MediaType.parseMediaType(file.getContentType());
+        } catch (IllegalArgumentException ex) {
+            contentType = MediaType.APPLICATION_OCTET_STREAM;
+        }
+        return ResponseEntity.ok()
+                .contentType(contentType)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(file.getFileName()).build().toString())
+                .body(file.getContent());
     }
 }

@@ -41,8 +41,15 @@ public class VehicleLoanExceptionHandler {
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponse> handleConflict(DataIntegrityViolationException exception) {
-        return response(HttpStatus.CONFLICT, "Vehicle loan operation conflicts with existing records");
+    public ResponseEntity<ErrorResponse> handleConflict(
+            DataIntegrityViolationException exception) {
+
+        log.error("Vehicle loan database constraint violation:", exception);
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse(
+                        "Database constraint violation: " + exception.getMostSpecificCause().getMessage(),
+                        HttpStatus.CONFLICT.value()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
@@ -59,11 +66,13 @@ public class VehicleLoanExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidRequest(Exception exception) {
         log.warn("Invalid vehicle loan request: {}", exception.getMessage());
         String message = exception.getMessage();
-        if (exception instanceof MethodArgumentNotValidException manve && manve.getBindingResult().getFieldError() != null) {
+        if (exception instanceof MethodArgumentNotValidException manve
+                && manve.getBindingResult().getFieldError() != null) {
             message = manve.getBindingResult().getFieldError().getDefaultMessage();
         } else if (exception instanceof HttpMessageNotReadableException notReadable) {
             Throwable mostSpecific = notReadable.getMostSpecificCause();
-            message = (mostSpecific != null && mostSpecific.getMessage() != null) ? mostSpecific.getMessage() : notReadable.getMessage();
+            message = (mostSpecific != null && mostSpecific.getMessage() != null) ? mostSpecific.getMessage()
+                    : notReadable.getMessage();
         }
         return response(HttpStatus.BAD_REQUEST, message);
     }

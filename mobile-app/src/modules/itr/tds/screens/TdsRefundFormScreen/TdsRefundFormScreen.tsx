@@ -14,7 +14,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
 import { UniversalDraftModal } from "@/shared/components/UniversalDraftModal";
 import {
-  PersonalInfoSection,
   BusinessDetailsSection,
   RefundBankAccountSection,
   TdsFormInputRefs,
@@ -29,10 +28,6 @@ export const TdsRefundFormScreen: React.FC = () => {
   const {
     formData,
     errors,
-    isProfileLoading,
-    profileFetchError,
-    fetchAndPopulateProfile,
-    handleSaveProfile,
     updateBusiness,
     updateBank,
     handleIfscChange,
@@ -111,16 +106,6 @@ export const TdsRefundFormScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <PersonalInfoSection
-          personal={formData.personal}
-          errors={errors}
-          isLoading={isProfileLoading}
-          errorMessage={profileFetchError}
-          onRetry={fetchAndPopulateProfile}
-          onSaveProfile={handleSaveProfile}
-          onBlurField={handleBlurField}
-        />
-
         <BusinessDetailsSection
           business={formData.business}
           errors={errors}

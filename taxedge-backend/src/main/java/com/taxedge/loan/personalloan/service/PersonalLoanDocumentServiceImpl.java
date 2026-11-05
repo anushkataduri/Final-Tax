@@ -64,6 +64,11 @@ public class PersonalLoanDocumentServiceImpl implements PersonalLoanDocumentServ
         allFiles.forEach((type, file) -> {
             try {
                 entity.setFileContent(type, file.getBytes());
+                entity.setFileMetadata(
+                        type,
+                        file.getOriginalFilename(),
+                        file.getContentType(),
+                        file.getSize());
             } catch (IOException e) {
                 throw new RuntimeException("Failed to read file: " + type, e);
             }
@@ -112,6 +117,7 @@ public class PersonalLoanDocumentServiceImpl implements PersonalLoanDocumentServ
 
         PersonalLoanDocument entity = findOrThrow(loanApplicationId);
         entity.setFileContent(fileType, null);
+        entity.clearFileMetadata(fileType);
         repository.save(entity);
         log.info("Deleted document {} for personal loan application {}", fileType, loanApplicationId);
     }

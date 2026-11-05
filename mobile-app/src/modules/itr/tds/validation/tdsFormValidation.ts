@@ -1,5 +1,6 @@
 import { TdsFormData, TdsFormErrors, TdsFormFieldKey } from "../types/tdsForm.types";
 import { describePanError } from "@/shared/validators/indianTaxValidators";
+import { isValidName } from "@/shared/validators/nameValidator";
 const TAN_REGEX = /^[A-Z]{4}[0-9]{5}[A-Z]{1}$/;
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 const ACCOUNT_REGEX = /^\d{9,18}$/;
@@ -47,7 +48,9 @@ const validateSingleField = (
 
     case "deductorName":
       if (!value) return "Employer / Deductor Name is required";
-      if (value.length < 2) return "Please enter a valid company or bank name";
+      if (!isValidName(value, 2, 100)) {
+        return "Employer / Deductor Name must contain English letters and single spaces only";
+      }
       return undefined;
 
     case "deductorTan":
@@ -68,7 +71,9 @@ const validateSingleField = (
 
     case "bankName":
       if (!value) return "Bank name is required";
-      if (value.length < 2) return "Enter a valid bank name (e.g. HDFC Bank)";
+      if (!isValidName(value, 2, 100)) {
+        return "Bank name must contain English letters and single spaces only";
+      }
       return undefined;
 
     case "accountNumber":

@@ -12,6 +12,7 @@ import com.taxedge.loan.businessloan.dto.BusinessLoanProfileDto;
 import com.taxedge.loan.businessloan.entity.BusinessLoanApplication;
 import com.taxedge.loan.businessloan.entity.BusinessLoanProfile;
 import com.taxedge.loan.businessloan.mapper.BusinessLoanProfileMapper;
+import com.taxedge.loan.businessloan.enums.LoanApplicationStatus;
 import com.taxedge.loan.businessloan.repository.BusinessLoanApplicationRepository;
 import com.taxedge.loan.businessloan.repository.BusinessLoanProfileRepository;
 import com.taxedge.security.jwt.JwtPrincipal;
@@ -33,12 +34,17 @@ public class BusinessLoanProfileServiceImpl implements BusinessLoanProfileServic
     @Transactional
     public String saveProfile(BusinessLoanProfileDto dto) {
 
-        BusinessLoanApplication application = getOwnedApplication(dto.getLoanApplicationId());
+        BusinessLoanApplication application = getDraftApplication(dto.getLoanApplicationId());
 
-        BusinessLoanProfile entity = mapper.toEntity(dto);
+        BusinessLoanProfile entity = repository.findByLoanApplication_Id(application.getId())
+                .orElseGet(() -> mapper.toEntity(dto));
+        if (entity.getId() != null) {
+            mapper.replaceDraftFromDto(dto, entity);
+        }
         entity.setLoanApplication(application);
 
         repository.save(entity);
+        touch(application);
         log.info("Business profile saved for application {}", application.getId());
 
         return application.getId();
@@ -48,10 +54,11 @@ public class BusinessLoanProfileServiceImpl implements BusinessLoanProfileServic
     @Transactional
     public String updateProfile(String loanApplicationId, BusinessLoanProfileDto dto) {
 
-        getOwnedApplication(loanApplicationId);
+        BusinessLoanApplication application = getDraftApplication(loanApplicationId);
         BusinessLoanProfile entity = findOrThrow(loanApplicationId);
 
         mapper.updateFromDto(dto, entity);
+        touch(application);
 
         log.info("Business profile updated for application {}", loanApplicationId);
         return loanApplicationId;
@@ -76,6 +83,24 @@ public class BusinessLoanProfileServiceImpl implements BusinessLoanProfileServic
         return applicationRepository.findByIdAndCustomer_CustId(loanApplicationId.trim(), currentCustomerId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Loan application not found: " + loanApplicationId));
+    }
+
+    private BusinessLoanApplication getDraftApplication(String loanApplicationId) {
+        if (!StringUtils.hasText(loanApplicationId)) {
+            throw new IllegalArgumentException("Loan application ID is required");
+        }
+        BusinessLoanApplication application = applicationRepository.findByIdAndCustomer_CustIdForUpdate(
+                        loanApplicationId.trim(), currentCustomerId())
+                .orElseThrow(() -> new ResourceNotFoundException("Loan application not found"));
+        if (application.getStatus() != LoanApplicationStatus.DRAFT) {
+            throw new IllegalStateException("Business profile can only be changed on a draft");
+        }
+        return application;
+    }
+
+    private void touch(BusinessLoanApplication application) {
+        application.setLastActivityAt(java.time.LocalDateTime.now());
+        applicationRepository.save(application);
     }
 
     private String currentCustomerId() {

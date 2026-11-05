@@ -9,9 +9,9 @@ import {
   isValidIfsc,
   isValidAccountNumber,
   isValidDob,
-  parsePositiveNumber,
 } from "../utils/tdsValidation";
 import { validatePan, validateEmail } from "@/shared/validators/indianTaxValidators";
+import { isValidName } from "@/shared/validators/nameValidator";
 
 export type CustomerFormErrors = Record<string, string>;
 
@@ -25,6 +25,8 @@ export function validatePersonalDetails(personal: PersonalDetails): {
     errors["fullName"] = "Full Name is required";
   } else if (personal.fullName.trim().length < 3) {
     errors["fullName"] = "Enter a valid full name";
+  } else if (!isValidName(personal.fullName.trim(), 2, 100)) {
+    errors["fullName"] = "Full Name must contain English letters and single spaces only";
   }
 
   if (!personal.pan || !personal.pan.trim()) {
@@ -93,7 +95,7 @@ export function validateBusinessDetails(business: any): {
     const alphaCount = (trimmed.match(/[a-zA-Z]/g) || []).length;
     if (alphaCount < 3) {
       errors["legalName"] = "Legal Name must contain at least 3 letters";
-    } else if (/[^a-zA-Z0-9\s.\-&']/.test(trimmed)) {
+    } else if (!isValidName(trimmed, 2, 100)) {
       errors["legalName"] = "Legal Name contains invalid characters or emojis";
     }
   }
@@ -129,7 +131,7 @@ export function validateCustomerIncomeForm(data: TdsCustomerIncomeFormData): {
   errors: CustomerFormErrors;
 } {
   const errors: CustomerFormErrors = {};
-  const { personal, business, bank, income } = data;
+  const { personal, business, bank } = data;
 
   // --- 1. PERSONAL DETAILS ---
   const personalValidation = validatePersonalDetails(personal);
@@ -152,6 +154,8 @@ export function validateCustomerIncomeForm(data: TdsCustomerIncomeFormData): {
   // --- 2. BANK DETAILS ---
   if (!bank.accountHolderName || !bank.accountHolderName.trim()) {
     errors["bank.accountHolderName"] = "Account Holder Name is required";
+  } else if (!isValidName(bank.accountHolderName.trim(), 2, 50)) {
+    errors["bank.accountHolderName"] = "Account Holder Name must contain English letters and single spaces only";
   }
 
   if (!bank.accountNumber || !bank.accountNumber.trim()) {
@@ -174,6 +178,12 @@ export function validateCustomerIncomeForm(data: TdsCustomerIncomeFormData): {
 
   if (!bank.bankName || !bank.bankName.trim()) {
     errors["bank.bankName"] = "Bank Name is required";
+  } else if (!isValidName(bank.bankName.trim(), 2, 60)) {
+    errors["bank.bankName"] = "Bank Name must contain English letters and single spaces only";
+  }
+
+  if (bank.branchName && bank.branchName.trim() && !isValidName(bank.branchName.trim(), 2, 60)) {
+    errors["bank.branchName"] = "Branch Name must contain English letters and single spaces only";
   }
 
 

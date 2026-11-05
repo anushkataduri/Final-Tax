@@ -22,6 +22,12 @@ public class BusinessLoanProfileDto {
     private String loanApplicationId;
 
     private String firmName;
+    private String establishmentDate;
+    private String businessAddress;
+    private String businessActivity;
+    private String businessActivityOther;
+    private String businessConstitutionOther;
+    private String pincode;
     private BusinessConstitution businessConstitution;
     private String gstin;
     private Boolean hasUdyamRegistration;

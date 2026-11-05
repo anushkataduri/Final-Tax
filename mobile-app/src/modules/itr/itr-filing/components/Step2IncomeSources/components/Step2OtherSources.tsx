@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
+import { AmountTextInput } from "@/shared/components/AmountTextInput";
 import { IncomeOtherSourcesData } from "../../../types/itrFiling.types";
 import { styles } from "../Step2IncomeSources.styles";
 
@@ -106,16 +107,12 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
             </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
-              <TextInput
+              <AmountTextInput
                 style={styles.textInput}
-                keyboardType="decimal-pad"
-                placeholder="e.g. 10000 (0 if none)"
+                placeholder="e.g. 10,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.savingsInterest}
-                onChangeText={(val) => {
-                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                  onUpdateOtherSources({ savingsInterest: clean });
-                }}
+                onChangeText={(val) => onUpdateOtherSources({ savingsInterest: val })}
                 maxLength={15}
               />
             </View>
@@ -128,16 +125,12 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
             </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
-              <TextInput
+              <AmountTextInput
                 style={styles.textInput}
-                keyboardType="decimal-pad"
-                placeholder="e.g. 25000 (0 if none)"
+                placeholder="e.g. 25,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.fdInterest}
-                onChangeText={(val) => {
-                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                  onUpdateOtherSources({ fdInterest: clean });
-                }}
+                onChangeText={(val) => onUpdateOtherSources({ fdInterest: val })}
                 maxLength={15}
               />
             </View>
@@ -152,16 +145,12 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
             </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
-              <TextInput
+              <AmountTextInput
                 style={styles.textInput}
-                keyboardType="decimal-pad"
-                placeholder="e.g. 5000 (0 if none)"
+                placeholder="e.g. 5,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.dividendIncome}
-                onChangeText={(val) => {
-                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                  onUpdateOtherSources({ dividendIncome: clean });
-                }}
+                onChangeText={(val) => onUpdateOtherSources({ dividendIncome: val })}
                 maxLength={15}
               />
             </View>
@@ -174,16 +163,12 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
             </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
-              <TextInput
+              <AmountTextInput
                 style={styles.textInput}
-                keyboardType="decimal-pad"
                 placeholder="e.g. 0 if none"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.familyPension}
-                onChangeText={(val) => {
-                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                  onUpdateOtherSources({ familyPension: clean });
-                }}
+                onChangeText={(val) => onUpdateOtherSources({ familyPension: val })}
                 maxLength={15}
               />
             </View>
@@ -198,16 +183,12 @@ export const OtherSourcesIncomeForm: React.FC<OtherSourcesFormProps> = ({
             </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
-              <TextInput
+              <AmountTextInput
                 style={styles.textInput}
-                keyboardType="decimal-pad"
                 placeholder="e.g. 0 if none"
                 placeholderTextColor="#94A3B8"
                 value={otherSources.otherIncome}
-                onChangeText={(val) => {
-                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                  onUpdateOtherSources({ otherIncome: clean });
-                }}
+                onChangeText={(val) => onUpdateOtherSources({ otherIncome: val })}
                 maxLength={15}
               />
             </View>

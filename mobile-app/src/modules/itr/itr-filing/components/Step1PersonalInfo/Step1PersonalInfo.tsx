@@ -4,8 +4,6 @@ import {
   Text,
   TouchableOpacity,
   Alert,
-  TextInput,
-  Modal,
   ActivityIndicator,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -19,68 +17,15 @@ import {
   FilingType,
 } from "../../types/itrFiling.types";
 import { getSupportedAssessmentYears } from "../../../taxRules";
-import { BankSelectorModal } from "../../../components/BankSelectorModal";
+import { BankSelectorModal, isValidBankName } from "../../../components/BankSelectorModal";
 import { useITRStore } from "../../../store/itrStore";
 import { styles } from "./Step1PersonalInfo.styles";
 import { Step1PriorItrImport } from "./components/Step1PriorItrImport";
 import { Step1TaxpayerIdentityCard } from "./components/Step1TaxpayerIdentityCard";
 import { validators } from "@/shared/validation/validators";
-
-interface Step1PersonalInfoProps {
-  isLoading?: boolean;
-  isEditing?: boolean;
-  personalInfo: ItrPersonalInfo;
-  onUpdatePersonalInfo: (info: Partial<ItrPersonalInfo>) => void;
-  bankDetails: ItrBankDetails;
-  bankAccountsList: ItrSelectableBank[];
-  onSelectRefundBank: (bankId: string) => void;
-  onAddBankAccount: (bank: ItrSelectableBank) => void;
-  onUpdateBankAccount?: (bank: ItrSelectableBank) => void;
-  priorItrNotice: ItrPriorFilingAndNotice;
-  onUpdatePriorItrNotice: (data: Partial<ItrPriorFilingAndNotice>) => void;
-  onImportPriorItrData: (selectedKeys: {
-    income?: boolean;
-    deductions?: boolean;
-    losses?: boolean;
-    bank?: boolean;
-    filing?: boolean;
-  }) => void;
-  onContinue: () => void;
-  onUpdateAndContinue?: () => void;
-}
-
-const RESIDENTIAL_STATUS_OPTIONS: { id: ResidentialStatus; label: string }[] = [
-  { id: "Resident", label: "Resident" },
-  { id: "NRI", label: "Non-Resident (NRI)" },
-  { id: "RNOR", label: "Resident but NOR" },
-];
-
-const FILING_TYPES: { id: FilingType; title: string; section: string; sub: string }[] = [
-  {
-    id: "139_1_original",
-    title: "Original Return",
-    section: "u/s 139(1)",
-    sub: "Filing on or before statutory due date.",
-  },
-  {
-    id: "139_4_belated",
-    title: "Belated Return",
-    section: "u/s 139(4)",
-    sub: "Filing after statutory due date with applicable late fees.",
-  },
-  {
-    id: "139_5_revised",
-    title: "Revised Return",
-    section: "u/s 139(5)",
-    sub: "Correct omission or error in previously filed return.",
-  },
-  {
-    id: "139_8a_updated",
-    title: "Updated Return (ITR-U)",
-    section: "u/s 139(8A)",
-    sub: "Filing within 24 months from the end of relevant AY.",
-  },
-];
+import { isValidName } from "@/shared/validators/nameValidator";
+import { RESIDENTIAL_STATUS_OPTIONS, FILING_TYPES } from "./Step1PersonalInfo.constants";
+import { Step1PersonalInfoProps } from "./Step1PersonalInfo.types";
 
 export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
   isLoading = false,
@@ -112,6 +57,22 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
   const supportedAYs = getSupportedAssessmentYears();
 
   const handleValidateAndContinue = () => {
+    if (!personalInfo.name || !personalInfo.name.trim()) {
+      Alert.alert(
+        "Full Legal Name Required",
+        "Please provide your full legal name in your profile to proceed with ITR Filing."
+      );
+      return;
+    }
+
+    if (!isValidName(personalInfo.name.trim(), 2, 100)) {
+      Alert.alert(
+        "Invalid Full Legal Name",
+        "Full Legal Name in your profile contains invalid characters or punctuation. Please ensure it contains English letters and single spaces only."
+      );
+      return;
+    }
+
     if (!personalInfo.assessmentYear) {
       Alert.alert(
         "Assessment Year Required",
@@ -140,6 +101,22 @@ export const Step1PersonalInfo: React.FC<Step1PersonalInfoProps> = ({
       Alert.alert(
         "Missing Refund Bank Account",
         "Please select or add a bank account to receive direct income tax refund credit."
+      );
+      return;
+    }
+
+    if (!isValidBankName(bankDetails.bankName.trim())) {
+      Alert.alert(
+        "Invalid Bank Name",
+        "Please select or add a valid bank name (English letters and single spaces only, at least 2 characters long)."
+      );
+      return;
+    }
+
+    if (bankDetails.branchName && !isValidName(bankDetails.branchName.trim(), 2, 60)) {
+      Alert.alert(
+        "Invalid Branch Name",
+        "The selected branch name contains invalid characters. Please ensure it contains English letters and single spaces only."
       );
       return;
     }

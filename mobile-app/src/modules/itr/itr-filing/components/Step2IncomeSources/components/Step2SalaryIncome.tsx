@@ -4,6 +4,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { styles } from "../Step2IncomeSources.styles";
 import { IncomeSalaryData } from "../../../types/itrFiling.types";
 import { BrandColors } from "@/shared/theme";
+import { AmountTextInput } from "@/shared/components/AmountTextInput";
+import { sanitizeNameInput, sanitizeNameOnBlur } from "@/shared/validators/nameValidator";
 
 interface Props {
   data: IncomeSalaryData;
@@ -113,12 +115,16 @@ export const Step2SalaryIncome: React.FC<Props> = ({ data, onUpdate, onPressInfo
               value={data.employerName}
               onChangeText={(val) =>
                 onUpdate({
-                  employerName: val
-                    .replace(/[^a-zA-Z0-9\s&.'-]/g, "")
-                    .trimStart()
-                    .replace(/  +/g, " "),
+                  employerName: sanitizeNameInput(val),
                 })
               }
+              onBlur={() => {
+                if (data.employerName) {
+                  onUpdate({
+                    employerName: sanitizeNameOnBlur(data.employerName),
+                  });
+                }
+              }}
               maxLength={100}
             />
           </View>
@@ -133,16 +139,12 @@ export const Step2SalaryIncome: React.FC<Props> = ({ data, onUpdate, onPressInfo
             </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
-              <TextInput
+              <AmountTextInput
                 style={styles.textInput}
-                keyboardType="decimal-pad"
-                placeholder="e.g. 850000"
+                placeholder="e.g. 8,50,000"
                 placeholderTextColor="#94A3B8"
                 value={data.grossSalary}
-                onChangeText={(val) => {
-                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                  onUpdate({ grossSalary: clean });
-                }}
+                onChangeText={(raw) => onUpdate({ grossSalary: raw })}
                 maxLength={15}
               />
             </View>
@@ -156,16 +158,12 @@ export const Step2SalaryIncome: React.FC<Props> = ({ data, onUpdate, onPressInfo
             </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
-              <TextInput
+              <AmountTextInput
                 style={styles.textInput}
-                keyboardType="decimal-pad"
-                placeholder="e.g. 50000 (0 if none)"
+                placeholder="e.g. 50,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={data.allowances}
-                onChangeText={(val) => {
-                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                  onUpdate({ allowances: clean });
-                }}
+                onChangeText={(raw) => onUpdate({ allowances: raw })}
                 maxLength={15}
               />
             </View>
@@ -180,16 +178,12 @@ export const Step2SalaryIncome: React.FC<Props> = ({ data, onUpdate, onPressInfo
           </View>
           <View style={styles.inputBox}>
             <Text style={styles.currencyPrefix}>₹</Text>
-            <TextInput
+            <AmountTextInput
               style={styles.textInput}
-              keyboardType="decimal-pad"
-              placeholder="e.g. 45000 (0 if none)"
+              placeholder="e.g. 45,000 (0 if none)"
               placeholderTextColor="#94A3B8"
               value={data.tdsDeducted}
-              onChangeText={(val) => {
-                const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                onUpdate({ tdsDeducted: clean });
-              }}
+              onChangeText={(raw) => onUpdate({ tdsDeducted: raw })}
               maxLength={15}
             />
           </View>

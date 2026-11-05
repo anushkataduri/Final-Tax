@@ -39,7 +39,11 @@ public class HomeLoanExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleConflict(DataIntegrityViolationException exception) {
-        return response(HttpStatus.CONFLICT, "Home loan application conflicts with an existing record");
+        log.error("Database integrity violation: {}", exception.getMessage(), exception);
+        String message = exception.getMostSpecificCause() != null
+                ? exception.getMostSpecificCause().getMessage()
+                : "Database integrity violation";
+        return response(HttpStatus.CONFLICT, message);
     }
 
     @ExceptionHandler({

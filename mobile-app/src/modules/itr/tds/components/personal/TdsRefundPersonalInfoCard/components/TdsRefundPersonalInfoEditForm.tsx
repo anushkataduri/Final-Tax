@@ -15,6 +15,7 @@ import {
   cleanMobile,
   cleanPinCode,
 } from "../../../../utils/tdsValidation";
+import { sanitizeNameInput, sanitizeNameOnBlur } from "@/shared/validators/nameValidator";
 import { styles } from "../TdsRefundPersonalInfoCard.styles";
 
 export interface TdsRefundPersonalInfoEditFormProps {
@@ -58,8 +59,13 @@ export const TdsRefundPersonalInfoEditForm: React.FC<TdsRefundPersonalInfoEditFo
             placeholder="Enter full name"
             placeholderTextColor="#94A3B8"
             value={editForm.fullName}
-            onChangeText={(t) => updateEditField("fullName", t.replace(/[^A-Za-z\s]/g, ""))}
-            onBlur={() => onBlurField?.("fullName")}
+            onChangeText={(t) => updateEditField("fullName", sanitizeNameInput(t))}
+            onBlur={() => {
+              if (editForm.fullName) {
+                updateEditField("fullName", sanitizeNameOnBlur(editForm.fullName));
+              }
+              onBlurField?.("fullName");
+            }}
             maxLength={50}
           />
           {editErrors.fullName && (

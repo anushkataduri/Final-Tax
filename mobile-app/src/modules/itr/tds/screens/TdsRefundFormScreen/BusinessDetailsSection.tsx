@@ -5,6 +5,7 @@ import { BusinessDetails } from "../../types/customerIncome.types";
 import { styles } from "./TdsRefundFormScreen.styles";
 import { SectionHeader } from "./TdsRefundFormSections.types";
 import { TdsDocumentCard } from "../../components/documents";
+import { sanitizeNameInput, sanitizeNameOnBlur } from "@/shared/validators/nameValidator";
 
 interface BusinessDetailsSectionProps {
   business: BusinessDetails;
@@ -28,7 +29,7 @@ export const BusinessDetailsSection: React.FC<BusinessDetailsSectionProps> = ({
   onBlurField,
 }) => (
   <View style={styles.sectionCard}>
-    <SectionHeader number={2} title="Business Details" />
+    <SectionHeader number={1} title="Business Details" />
 
     {/* Legal Name */}
     <View style={styles.fieldGroup}>
@@ -40,8 +41,13 @@ export const BusinessDetailsSection: React.FC<BusinessDetailsSectionProps> = ({
         placeholder="Enter Legal Name"
         placeholderTextColor="#94A3B8"
         value={business.legalName}
-        onChangeText={(t) => updateBusiness("legalName", t.replace(/[^a-zA-Z0-9\s.\-&']/g, ""))}
-        onBlur={() => onBlurField?.("business.legalName")}
+        onChangeText={(t) => updateBusiness("legalName", sanitizeNameInput(t))}
+        onBlur={() => {
+          if (business.legalName) {
+            updateBusiness("legalName", sanitizeNameOnBlur(business.legalName));
+          }
+          onBlurField?.("business.legalName");
+        }}
         maxLength={100}
       />
       {errors["business.legalName"] && (

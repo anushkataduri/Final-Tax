@@ -46,7 +46,7 @@ public class AgentAssignmentServiceImpl implements AgentAssignmentService {
 
     @Override
     @Transactional
-    public String assignApplication(String id, Long agentId, String applicationType) {
+    public String assignGstApplication(String id, Long agentId, String applicationType) {
         log.info("Assigning application [{}] of type [{}] to agent [{}]", id, applicationType, agentId);
 
 

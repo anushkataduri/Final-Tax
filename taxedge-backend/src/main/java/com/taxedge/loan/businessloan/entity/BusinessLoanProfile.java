@@ -46,6 +46,24 @@ public class BusinessLoanProfile {
     @Column(name = "firm_name", length = 200)
     private String firmName;
 
+    @Column(name = "establishment_date", length = 10)
+    private String establishmentDate;
+
+    @Column(name = "business_address", length = 200)
+    private String businessAddress;
+
+    @Column(name = "business_activity", length = 80)
+    private String businessActivity;
+
+    @Column(name = "business_activity_other", length = 120)
+    private String businessActivityOther;
+
+    @Column(name = "business_constitution_other", length = 120)
+    private String businessConstitutionOther;
+
+    @Column(name = "pincode", length = 6)
+    private String pincode;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "business_constitution", length = 30)
     private BusinessConstitution businessConstitution;

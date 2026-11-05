@@ -2,7 +2,7 @@ package com.taxedge.dashboards.agents.itr.service;
 
 public interface ItrAgentAssignmentService {
 
-    String assignApplication(String id, Long agentId, String applicationType);
+    String assignItrApplication(String id, Long agentId, String applicationType);
 
     void assignTdsRefund(String refundId, Long agentId);
 

@@ -52,6 +52,15 @@ public class BusinessLoanApplication {
     @Column(name = "loan_amount", precision = 15, scale = 2)
     private BigDecimal loanAmount;
 
+    @Column(name = "project_cost", precision = 15, scale = 2)
+    private BigDecimal projectCost;
+
+    @Column(name = "loan_purpose_other", length = 120)
+    private String loanPurposeOther;
+
+    @Column(name = "loan_purpose_description", length = 1000)
+    private String loanPurposeDescription;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "loan_purpose", length = 40)
     private LoanPurpose loanPurpose;
@@ -61,6 +70,12 @@ public class BusinessLoanApplication {
 
     @Column(name = "annual_turnover")
     private BigDecimal annualTurnover;
+
+    @Column(name = "monthly_sales", precision = 15, scale = 2)
+    private BigDecimal monthlySales;
+
+    @Column(name = "monthly_expenses", precision = 15, scale = 2)
+    private BigDecimal monthlyExpenses;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "existing_loan_status", length = 30)
@@ -75,13 +90,21 @@ public class BusinessLoanApplication {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "last_activity_at", nullable = false)
+    private LocalDateTime lastActivityAt;
+
     @PrePersist
     void onCreate() {
         if (this.id == null) {
             this.id = BusinessLoanHelper.generateLoanApplicationId();
         }
         this.createdAt = LocalDateTime.now();
+        this.lastActivityAt = this.createdAt;
         this.status = LoanApplicationStatus.DRAFT;
-        
+    }
+
+    @jakarta.persistence.PreUpdate
+    void onUpdate() {
+        this.lastActivityAt = LocalDateTime.now();
     }
 }

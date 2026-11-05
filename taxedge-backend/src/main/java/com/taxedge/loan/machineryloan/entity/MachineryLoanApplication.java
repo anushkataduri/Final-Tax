@@ -6,7 +6,9 @@ import java.time.LocalDateTime;
 import com.taxedge.customer.entity.Customer;
 import com.taxedge.loan.machineryloan.enums.BusinessConstitution;
 import com.taxedge.loan.machineryloan.enums.BusinessVintage;
+import com.taxedge.loan.machineryloan.enums.MachineryCondition;
 import com.taxedge.loan.machineryloan.enums.MachineryLoanApplicationStatus;
+import com.taxedge.loan.machineryloan.enums.MachineryPurchaseType;
 import com.taxedge.loan.machineryloan.enums.MachineryType;
 import com.taxedge.loan.machineryloan.helper.MachineryLoanHelper;
 
@@ -53,6 +55,29 @@ public class MachineryLoanApplication {
     @Enumerated(EnumType.STRING)
     @Column(name = "machinery_type", length = 40)
     private MachineryType machineryType;
+
+    @Column(name = "machinery_type_other", length = 80)
+    private String machineryTypeOther;
+
+    @Column(name = "machinery_name", length = 100)
+    private String machineryName;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "machinery_condition", length = 30)
+    private MachineryCondition machineryCondition;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "purchase_type", length = 40)
+    private MachineryPurchaseType purchaseType;
+
+    @Column(name = "purchase_type_other", length = 80)
+    private String purchaseTypeOther;
+
+    @Column(name = "approximate_machinery_cost", precision = 15, scale = 2)
+    private BigDecimal approximateMachineryCost;
+
+    @Column(name = "dealer_name", length = 100)
+    private String dealerName;
 
     @Column(name = "tenure_months")
     private Integer tenureMonths;

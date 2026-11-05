@@ -32,6 +32,8 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/customer/**",
                     "/otp/**",
+                    "/api/v1/otps/**",
+                    "/api/v1/otp/**",
                     "/auth/**",
                     "/api/v1/auth/**",
                     "/api/v1/admin/**",

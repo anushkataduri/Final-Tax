@@ -65,6 +65,69 @@ public class PersonalLoanDocument {
     @Column(name = "itr_acknowledgment_file", columnDefinition = "bytea")
     private byte[] itrAcknowledgmentFile;
 
+    @Column(name = "pan_card_file_name", columnDefinition = "text")
+    private String panCardFileName;
+
+    @Column(name = "pan_card_file_content_type", length = 255)
+    private String panCardFileContentType;
+
+    @Column(name = "pan_card_file_size")
+    private Long panCardFileSize;
+
+    @Column(name = "aadhaar_card_file_name", columnDefinition = "text")
+    private String aadhaarCardFileName;
+
+    @Column(name = "aadhaar_card_file_content_type", length = 255)
+    private String aadhaarCardFileContentType;
+
+    @Column(name = "aadhaar_card_file_size")
+    private Long aadhaarCardFileSize;
+
+    @Column(name = "address_proof_file_name", columnDefinition = "text")
+    private String addressProofFileName;
+
+    @Column(name = "address_proof_file_content_type", length = 255)
+    private String addressProofFileContentType;
+
+    @Column(name = "address_proof_file_size")
+    private Long addressProofFileSize;
+
+    @Column(name = "photograph_file_name", columnDefinition = "text")
+    private String photographFileName;
+
+    @Column(name = "photograph_file_content_type", length = 255)
+    private String photographFileContentType;
+
+    @Column(name = "photograph_file_size")
+    private Long photographFileSize;
+
+    @Column(name = "bank_statements_file_name", columnDefinition = "text")
+    private String bankStatementsFileName;
+
+    @Column(name = "bank_statements_file_content_type", length = 255)
+    private String bankStatementsFileContentType;
+
+    @Column(name = "bank_statements_file_size")
+    private Long bankStatementsFileSize;
+
+    @Column(name = "salary_slips_file_name", columnDefinition = "text")
+    private String salarySlipsFileName;
+
+    @Column(name = "salary_slips_file_content_type", length = 255)
+    private String salarySlipsFileContentType;
+
+    @Column(name = "salary_slips_file_size")
+    private Long salarySlipsFileSize;
+
+    @Column(name = "itr_acknowledgment_file_name", columnDefinition = "text")
+    private String itrAcknowledgmentFileName;
+
+    @Column(name = "itr_acknowledgment_file_content_type", length = 255)
+    private String itrAcknowledgmentFileContentType;
+
+    @Column(name = "itr_acknowledgment_file_size")
+    private Long itrAcknowledgmentFileSize;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -87,6 +150,51 @@ public class PersonalLoanDocument {
             case "salaryslips" -> this.salarySlipsFile = bytes;
             case "itracknowledgment" -> this.itrAcknowledgmentFile = bytes;
         }
+    }
+
+    public void setFileMetadata(String type, String fileName, String contentType, Long fileSize) {
+        if (type == null) return;
+        switch (type.toLowerCase()) {
+            case "pancardfile" -> {
+                this.panCardFileName = fileName;
+                this.panCardFileContentType = contentType;
+                this.panCardFileSize = fileSize;
+            }
+            case "aadhaarcard" -> {
+                this.aadhaarCardFileName = fileName;
+                this.aadhaarCardFileContentType = contentType;
+                this.aadhaarCardFileSize = fileSize;
+            }
+            case "addressproof" -> {
+                this.addressProofFileName = fileName;
+                this.addressProofFileContentType = contentType;
+                this.addressProofFileSize = fileSize;
+            }
+            case "photograph" -> {
+                this.photographFileName = fileName;
+                this.photographFileContentType = contentType;
+                this.photographFileSize = fileSize;
+            }
+            case "bankstatements" -> {
+                this.bankStatementsFileName = fileName;
+                this.bankStatementsFileContentType = contentType;
+                this.bankStatementsFileSize = fileSize;
+            }
+            case "salaryslips" -> {
+                this.salarySlipsFileName = fileName;
+                this.salarySlipsFileContentType = contentType;
+                this.salarySlipsFileSize = fileSize;
+            }
+            case "itracknowledgment" -> {
+                this.itrAcknowledgmentFileName = fileName;
+                this.itrAcknowledgmentFileContentType = contentType;
+                this.itrAcknowledgmentFileSize = fileSize;
+            }
+        }
+    }
+
+    public void clearFileMetadata(String type) {
+        setFileMetadata(type, null, null, null);
     }
 
     public byte[] getFileContent(String type) {

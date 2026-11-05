@@ -11,6 +11,7 @@ import {
   CustomerFormErrors,
   validatePersonalDetails,
 } from "../../../validation/tdsCustomerSchema";
+import { sanitizeNameOnBlur } from "@/shared/validators/nameValidator";
 import { styles } from "./TdsRefundPersonalInfoCard.styles";
 import { TdsRefundPersonalInfoEditForm } from "./components/TdsRefundPersonalInfoEditForm";
 
@@ -132,7 +133,11 @@ export const TdsRefundPersonalInfoCard: React.FC<
   };
 
   const handleSave = async () => {
-    const validation = validatePersonalDetails(editForm);
+    const sanitizedForm: PersonalDetails = {
+      ...editForm,
+      fullName: sanitizeNameOnBlur(editForm.fullName),
+    };
+    const validation = validatePersonalDetails(sanitizedForm);
     if (!validation.isValid) {
       setEditErrors(validation.errors);
       return;
@@ -140,7 +145,7 @@ export const TdsRefundPersonalInfoCard: React.FC<
 
     try {
       setIsSaving(true);
-      await onSaveProfile(editForm);
+      await onSaveProfile(sanitizedForm);
       setIsEditing(false);
       setEditErrors({});
     } catch {

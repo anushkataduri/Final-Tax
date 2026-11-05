@@ -76,10 +76,6 @@ public class ContactAmendmentServiceImpl implements ContactAmendmentService {
         }
 
         if (resolvedCustId == null && gstId != null && !gstId.trim().isEmpty()) {
-            Optional<Business> businessOpt = businessRepository.findById(gstId.trim());
-            if (businessOpt.isPresent() && businessOpt.get().getCustomer() != null) {
-                return businessOpt.get().getCustomer();
-            }
             if (customerRepository.existsById(gstId.trim())) {
                 resolvedCustId = gstId.trim();
             }
@@ -91,7 +87,6 @@ public class ContactAmendmentServiceImpl implements ContactAmendmentService {
 
         final String finalCustId = resolvedCustId;
         return customerRepository.findById(finalCustId)
-                .or(() -> customerRepository.findByMobileNumber(finalCustId))
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + finalCustId));
     }
 

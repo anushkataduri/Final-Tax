@@ -41,7 +41,7 @@ public class MachineryLoanDocumentServiceImpl implements MachineryLoanDocumentSe
         entity.setMachineryLoanApplication(application);
 
         repository.save(entity);
-        log.info("Documents stored for machinery loan [{}]", machineryLoanId);
+        log.info("Machinery loan documents stored");
 
         return machineryLoanId;
     }
@@ -54,7 +54,7 @@ public class MachineryLoanDocumentServiceImpl implements MachineryLoanDocumentSe
 
         mapper.updateFromDto(dto, entity);
 
-        log.info("Documents updated for machinery loan [{}]", machineryLoanId);
+        log.info("Machinery loan documents updated");
         return machineryLoanId;
     }
 
@@ -70,7 +70,7 @@ public class MachineryLoanDocumentServiceImpl implements MachineryLoanDocumentSe
             throw new ResourceNotFoundException("Documents not found for machinery loan: " + machineryLoanId);
         }
         repository.deleteByMachineryLoanApplication_Id(machineryLoanId);
-        log.info("Deleted documents for machinery loan [{}]", machineryLoanId);
+        log.info("Machinery loan documents deleted");
     }
 
     private MachineryLoanDocument findOrThrow(String machineryLoanId) {

@@ -27,15 +27,29 @@ public class BusinessLoanApplicationDto {
 
     private BigDecimal loanAmount;
 
+    private BigDecimal projectCost;
+
+    private String loanPurposeOther;
+
+    private String loanPurposeDescription;
+
     private LoanPurpose loanPurpose;
 
     private Integer tenureMonths;
 
     private BigDecimal annualTurnover;
 
+    private BigDecimal monthlySales;
+
+    private BigDecimal monthlyExpenses;
+
     private ExistingLoanStatus existingLoanStatus;
 
     private LoanApplicationStatus status;
 
     private LocalDateTime createdAt;
+
+    private LocalDateTime lastActivityAt;
+
+    private BusinessLoanProfileDto businessProfile;
 }

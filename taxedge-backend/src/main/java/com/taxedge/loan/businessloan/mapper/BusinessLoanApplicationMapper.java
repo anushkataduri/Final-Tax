@@ -17,6 +17,7 @@ public interface BusinessLoanApplicationMapper {
     @Mapping(target = "customer", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "lastActivityAt", ignore = true)
     BusinessLoanApplication toEntity(BusinessLoanApplicationDto dto);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -24,9 +25,21 @@ public interface BusinessLoanApplicationMapper {
     @Mapping(target = "customer", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "lastActivityAt", ignore = true)
     void updateFromDto(BusinessLoanApplicationDto dto,
                        @MappingTarget BusinessLoanApplication entity);
 
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "lastActivityAt", ignore = true)
+    void replaceDraftFromDto(BusinessLoanApplicationDto dto,
+                             @MappingTarget BusinessLoanApplication entity);
+
     @Mapping(target = "custId", source = "customer.custId")
+    @Mapping(target = "businessProfile", ignore = true)
+    @Mapping(target = "lastActivityAt", source = "lastActivityAt")
     BusinessLoanApplicationDto toDto(BusinessLoanApplication entity);
 }

@@ -10,7 +10,8 @@ public enum MsmeConstitution {
     LLP("Limited Liability Partnership (LLP)"),
     PVT_LTD("Private Limited Company"),
     PUBLIC_LTD("Public Limited Company"),
-    ONE_PERSON_COMPANY("One Person Company");
+    ONE_PERSON_COMPANY("One Person Company"),
+    OTHER("Other");
 
     private final String displayName;
 

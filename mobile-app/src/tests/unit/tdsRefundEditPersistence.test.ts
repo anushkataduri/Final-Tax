@@ -171,7 +171,7 @@ describe("TDS Refund Edit-Mode Data Hydration & Persistence (12 Scenarios)", () 
   it("Scenario 3 & 4: Update Personal Information -> return to review -> verify updated values reflect", () => {
     const updatedPersonal = {
       ...INITIAL_BASE_FORM.personal,
-      fullName: "Prakash S. Sharma",
+      fullName: "Prakash S Sharma",
       city: "Mysuru",
       pinCode: "570001",
     };
@@ -184,7 +184,7 @@ describe("TDS Refund Edit-Mode Data Hydration & Persistence (12 Scenarios)", () 
       personal: updatedPersonal,
     };
 
-    assert.equal(mergedForm.personal.fullName, "Prakash S. Sharma");
+    assert.equal(mergedForm.personal.fullName, "Prakash S Sharma");
     assert.equal(mergedForm.personal.city, "Mysuru");
     assert.equal(mergedForm.personal.pinCode, "570001");
     // Verify other sections untouched

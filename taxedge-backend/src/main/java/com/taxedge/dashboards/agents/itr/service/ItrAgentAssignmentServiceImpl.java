@@ -29,7 +29,7 @@ public class ItrAgentAssignmentServiceImpl implements ItrAgentAssignmentService 
 
     @Override
     @Transactional
-    public String assignApplication(String id, Long agentId, String applicationType) {
+    public String assignItrApplication(String id, Long agentId, String applicationType) {
         log.info("Assigning ITR application [{}] of type [{}] to agent [{}]", id, applicationType, agentId);
 
         return switch (applicationType) {

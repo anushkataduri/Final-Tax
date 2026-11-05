@@ -33,47 +33,56 @@ public class HomeLoanDocument {
     @Column(name = "document_id", nullable = false, unique = true, length = 50)
     private String documentId;
 
-
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "home_loan_id", nullable = false, unique = true)
     private HomeLoanRequirementApplication homeLoanApplication;
 
-   
-    @Column(name = "property_ownership_document")
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "property_ownership_document", columnDefinition = "bytea")
     private byte[] propertyOwnershipDocument;
 
-    @Column(name = "bank_statement_income_document")
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "bank_statement_income_document", columnDefinition = "bytea")
     private byte[] bankStatementIncomeDocument;
 
-    @Column(name = "property_quotation_builder_document")
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "property_quotation_builder_document", columnDefinition = "bytea")
     private byte[] propertyQuotationBuilderDocument;
 
-    @Column(name = "additional_property_document")
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "additional_property_document", columnDefinition = "bytea")
     private byte[] additionalPropertyDocument;
 
-    @Column(name = "construction_document")
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "construction_document", columnDefinition = "bytea")
     private byte[] constructionDocument;
 
-    @Column(name = "sanctioned_building_plan")
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "sanctioned_building_plan", columnDefinition = "bytea")
     private byte[] sanctionedBuildingPlan;
 
-    @Column(name = "construction_cost_estimate")
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "construction_cost_estimate", columnDefinition = "bytea")
     private byte[] constructionCostEstimate;
 
-    
-    @Column(name = "renovation_cost_estimate")
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "renovation_cost_estimate", columnDefinition = "bytea")
     private byte[] renovationCostEstimate;
 
-    @Column(name = "contractor_quotation")
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "contractor_quotation", columnDefinition = "bytea")
     private byte[] contractorQuotation;
 
-    @Column(name = "existing_loan_statement")
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "existing_loan_statement", columnDefinition = "bytea")
     private byte[] existingLoanStatement;
 
-    @Column(name = "property_document_copy")
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "property_document_copy", columnDefinition = "bytea")
     private byte[] propertyDocumentCopy;
 
-    @Column(name = "foreclosure_outstanding_statement")
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "foreclosure_outstanding_statement", columnDefinition = "bytea")
     private byte[] foreclosureOutstandingStatement;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -87,7 +96,8 @@ public class HomeLoanDocument {
     }
 
     public byte[] getContent(String documentType) {
-        if (documentType == null) return null;
+        if (documentType == null)
+            return null;
         return switch (documentType) {
             case "propertyOwnershipDocument" -> propertyOwnershipDocument;
             case "bankStatementIncomeDocument" -> bankStatementIncomeDocument;
@@ -106,7 +116,8 @@ public class HomeLoanDocument {
     }
 
     public void setContent(String documentType, byte[] content) {
-        if (documentType == null) return;
+        if (documentType == null)
+            return;
         switch (documentType) {
             case "propertyOwnershipDocument" -> this.propertyOwnershipDocument = content;
             case "bankStatementIncomeDocument" -> this.bankStatementIncomeDocument = content;

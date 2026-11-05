@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandColors } from "@/shared/theme";
+import { AmountTextInput } from "@/shared/components/AmountTextInput";
 import {
   IncomeBusinessData,
   IncomeCapitalGainsData,
@@ -133,7 +134,7 @@ export const BusinessIncomeForm: React.FC<BusinessFormProps> = ({
               color={business.businessType === "not_sure" ? BrandColors.PRIMARY_ORANGE : "#64748B"}
             />
             <View style={styles.schemeRadioTextCol}>
-              <Text style={styles.schemeRadioTitle}>I'm Not Sure</Text>
+              <Text style={styles.schemeRadioTitle}>{"I'm Not Sure"}</Text>
               <Text style={styles.schemeRadioSub}>TaxEdge CA will review and select the best option</Text>
             </View>
           </TouchableOpacity>
@@ -147,16 +148,12 @@ export const BusinessIncomeForm: React.FC<BusinessFormProps> = ({
             </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
-              <TextInput
+              <AmountTextInput
                 style={styles.textInput}
-                keyboardType="decimal-pad"
-                placeholder="e.g. 2500000"
+                placeholder="e.g. 25,00,000"
                 placeholderTextColor="#94A3B8"
                 value={business.grossTurnover}
-                onChangeText={(val) => {
-                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                  onUpdateBusiness({ grossTurnover: clean });
-                }}
+                onChangeText={(raw) => onUpdateBusiness({ grossTurnover: raw })}
                 maxLength={15}
               />
             </View>
@@ -169,16 +166,12 @@ export const BusinessIncomeForm: React.FC<BusinessFormProps> = ({
             </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
-              <TextInput
+              <AmountTextInput
                 style={styles.textInput}
-                keyboardType="decimal-pad"
-                placeholder="e.g. 200000 (0 if none)"
+                placeholder="e.g. 2,00,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={business.declaredProfit}
-                onChangeText={(val) => {
-                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                  onUpdateBusiness({ declaredProfit: clean });
-                }}
+                onChangeText={(raw) => onUpdateBusiness({ declaredProfit: raw })}
                 maxLength={15}
               />
             </View>
@@ -339,16 +332,12 @@ export const CapitalGainsIncomeForm: React.FC<CapitalGainsFormProps> = ({
             </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
-              <TextInput
+              <AmountTextInput
                 style={styles.textInput}
-                keyboardType="decimal-pad"
-                placeholder="e.g. 30000 (0 if none)"
+                placeholder="e.g. 30,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={capitalGains.shortTermGains}
-                onChangeText={(val) => {
-                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                  onUpdateCapitalGains({ shortTermGains: clean });
-                }}
+                onChangeText={(raw) => onUpdateCapitalGains({ shortTermGains: raw })}
                 maxLength={15}
               />
             </View>
@@ -361,16 +350,12 @@ export const CapitalGainsIncomeForm: React.FC<CapitalGainsFormProps> = ({
             </View>
             <View style={styles.inputBox}>
               <Text style={styles.currencyPrefix}>₹</Text>
-              <TextInput
+              <AmountTextInput
                 style={styles.textInput}
-                keyboardType="decimal-pad"
-                placeholder="e.g. 50000 (0 if none)"
+                placeholder="e.g. 50,000 (0 if none)"
                 placeholderTextColor="#94A3B8"
                 value={capitalGains.longTermGains}
-                onChangeText={(val) => {
-                  const clean = val.replace(/[^0-9.]/g, "").replace(/(\.\d*)\..*/, "$1");
-                  onUpdateCapitalGains({ longTermGains: clean });
-                }}
+                onChangeText={(raw) => onUpdateCapitalGains({ longTermGains: raw })}
                 maxLength={15}
               />
             </View>
