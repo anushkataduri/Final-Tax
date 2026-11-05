@@ -3,7 +3,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "../../..");
 const WORKFLOW_HOOK_FILE = path.join(
   ROOT,
@@ -30,28 +33,28 @@ const BACKEND_SERVICE_DIR = path.join(
   "../taxedge-backend/src/main/java/com/taxedge/gst/amendment/service"
 );
 
-test("Test 1: useGstAmendmentWorkflow fixes Expo SDK 54 FileSystem runtime crash", () => {
+test("Test 1: useGstAmendmentWorkflow fixes Expo SDK 54 FileSystem runtime crash and document persistence", () => {
   const content = fs.readFileSync(WORKFLOW_HOOK_FILE, "utf-8");
 
   assert.match(
     content,
-    /import\s*\{\s*File\s+as\s+ExpoFile\s*\}\s*from\s*["']expo-file-system["']/,
-    "Modern File API must be imported from expo-file-system"
+    /verifyFileAccessible/,
+    "Workflow must verify file accessibility safely using verifyFileAccessible"
   );
   assert.match(
     content,
-    /import\s*\*\s*as\s+FileSystemLegacy\s+from\s*["']expo-file-system\/legacy["']/,
-    "Legacy FileSystem must be imported from expo-file-system/legacy"
+    /persistSupportingDocument/,
+    "Workflow must persist supporting documents immediately"
   );
   assert.doesNotMatch(
     content,
     /FileSystem\.getInfoAsync\(/,
     "Raw FileSystem.getInfoAsync from non-legacy expo-file-system must not be called"
   );
-  assert.match(
+  assert.doesNotMatch(
     content,
-    /new\s+ExpoFile\(supportingDoc\.uri\)/,
-    "Must verify file existence using new ExpoFile"
+    /setSectionDocs\(\(?prev\)?\s*=>\s*\(\{\s*\.\.\.prev,\s*\[selectedSectionId\]:\s*null\s*\}\)\);/,
+    "Must NOT destructively nullify sectionDocs when submission check encounters an issue"
   );
 });
 

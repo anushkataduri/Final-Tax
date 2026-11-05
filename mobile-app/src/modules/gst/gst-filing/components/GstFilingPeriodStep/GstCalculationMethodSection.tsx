@@ -6,6 +6,7 @@ import {
   formatIndianNumberInput,
   toRawNumericString,
 } from "@/shared/formatters/currencyFormatter";
+import { removeEmoji } from "@/modules/gst/utils/gstEmojiFilter";
 import { styles } from "@/modules/gst/gst-filing/components/GstFilingPeriodStep/GstFilingPeriodStep.styles";
 
 interface GstCalculationMethodSectionProps {
@@ -110,7 +111,7 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
               onBlur={() => onBlurField?.("taxableSales")}
               onChangeText={(val) =>
                 onChange({
-                  taxableSales: toRawNumericString(val),
+                  taxableSales: toRawNumericString(removeEmoji(val)),
                   calculationMethod: "manual_estimates",
                 })
               }
@@ -134,7 +135,7 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
               onBlur={() => onBlurField?.("taxablePurchases")}
               onChangeText={(val) =>
                 onChange({
-                  taxablePurchases: toRawNumericString(val),
+                  taxablePurchases: toRawNumericString(removeEmoji(val)),
                   calculationMethod: "manual_estimates",
                 })
               }
@@ -158,7 +159,7 @@ export const GstCalculationMethodSection: React.FC<GstCalculationMethodSectionPr
               onBlur={() => onBlurField?.("eligibleItc")}
               onChangeText={(val) =>
                 onChange({
-                  eligibleItc: toRawNumericString(val),
+                  eligibleItc: toRawNumericString(removeEmoji(val)),
                   calculationMethod: "manual_estimates",
                 })
               }

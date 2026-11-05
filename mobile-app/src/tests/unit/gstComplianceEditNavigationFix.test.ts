@@ -103,7 +103,7 @@ test("GstComplianceScreen: source file wires showBack and onBackPress to isEditM
   );
 });
 
-test("RequestTypeSection: downward sliding animation removed in favor of smooth fade in/out", () => {
+test("RequestTypeSection: removes reanimated fading in favor of instant native stable card rendering", () => {
   const f1 = path.resolve(
     process.cwd(),
     "src/modules/gst/gst-compliance/components/RequestTypeSection/RequestTypeSection.tsx"
@@ -127,8 +127,8 @@ test("RequestTypeSection: downward sliding animation removed in favor of smooth 
       `File ${f} should not use FadeOutUp which causes upward sliding`
     );
     assert.ok(
-      content.includes("FadeIn.duration(200)"),
-      `File ${f} should use FadeIn for smooth fade transition`
+      !content.includes("react-native-reanimated"),
+      `File ${f} should not use react-native-reanimated transitions which cause white card flickering when entering edit mode`
     );
   }
 });

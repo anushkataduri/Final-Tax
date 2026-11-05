@@ -220,7 +220,7 @@ export const GstBusinessStep: React.FC<Props> = ({
       {renderSelect("businessType", "Constitution of Business *", "Select business type", BUSINESS_TYPES)}
       {renderSelect("natureOfBusiness", "Nature of Business *", "Select nature of business", NATURE_OF_BUSINESS)}
       {renderDatePicker("businessStartDate", "Date of Commencement of Business *", { maximumDate: new Date() })}
-      {renderInput("businessPan", "Business PAN *", "Enter PAN (e.g., ABCDP1234F)", { autoCapitalize: "characters", maxLength: 10, transform: sanitizeAlphanumericUpper })}
+      {renderInput("businessPan", "Business PAN *", "Enter PAN (e.g., ABCPE1234F)", { autoCapitalize: "characters", maxLength: 10, transform: sanitizeAlphanumericUpper })}
     </SectionCard>
   );
 
