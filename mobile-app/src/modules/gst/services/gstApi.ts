@@ -302,6 +302,50 @@ export const gstApi = {
     if (pushToken) params.pushToken = pushToken;
     return apiClient.post<string>("/api/v1/gst/submit", undefined, { headers, params });
   },
+
+  getMyApplications: async (custId?: string) => {
+    const token = await tokenManager.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const resolvedCustId = custId || (await resolveCustomerId());
+    const path = resolvedCustId
+      ? `/api/v1/gst/my-applications/${encodeURIComponent(resolvedCustId)}`
+      : "/api/v1/gst/my-applications";
+    return apiClient.get<import("./gstApplicationMapper").GstBackendApplicationDto[]>(path, { headers });
+  },
+
+  getMyFilingApplications: async (custId?: string) => {
+    const token = await tokenManager.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const resolvedCustId = custId || (await resolveCustomerId());
+    const path = resolvedCustId
+      ? `/api/v1/gst/my-applications/filing/${encodeURIComponent(resolvedCustId)}`
+      : "/api/v1/gst/my-applications/filing";
+    return apiClient.get<import("./gstFilingApplicationMapper").GstFilingBackendDto[]>(path, { headers });
+  },
+
+  getMyComplianceApplications: async (custId?: string) => {
+    const token = await tokenManager.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const resolvedCustId = custId || (await resolveCustomerId());
+    const path = resolvedCustId
+      ? `/api/v1/gst/my-applications/compliance/${encodeURIComponent(resolvedCustId)}`
+      : "/api/v1/gst/my-applications/compliance";
+    return apiClient.get<import("./gstComplianceApplicationMapper").GstComplianceBackendDto[]>(path, { headers });
+  },
+
+  getMyAmendmentApplications: async (custId?: string) => {
+    const token = await tokenManager.getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const resolvedCustId = custId || (await resolveCustomerId());
+    const path = resolvedCustId
+      ? `/api/v1/gst/my-applications/amendment/${encodeURIComponent(resolvedCustId)}`
+      : "/api/v1/gst/my-applications/amendment";
+    return apiClient.get<import("./gstAmendmentApplicationMapper").GstAmendmentBackendDto[]>(path, { headers });
+  },
 };
 
 export default gstApi;

@@ -23,36 +23,152 @@ function getAuthHeaders(): Record<string, string> {
 import { extractApplicationsFromResponse } from "../utils/applicationResponseParser";
 import { appendFilePart } from "@/shared/utils/formDataFile";
 import { sanitizeMessageText } from "../utils/chatAttachmentUtils";
+import { gstApi } from "@/modules/gst/services/gstApi";
+import { mapGstBackendToApplication, type GstBackendApplicationDto } from "@/modules/gst/services/gstApplicationMapper";
+import { mapGstFilingBackendToApplication, type GstFilingBackendDto } from "@/modules/gst/services/gstFilingApplicationMapper";
+import { mapGstComplianceBackendToApplication, type GstComplianceBackendDto } from "@/modules/gst/services/gstComplianceApplicationMapper";
+import { mapGstAmendmentBackendToApplication, type GstAmendmentBackendDto } from "@/modules/gst/services/gstAmendmentApplicationMapper";
+import { itrApi } from "@/modules/itr/services/itrApi";
+import { mapItrFilingBackendToApplication, type ItrFilingBackendDto } from "@/modules/itr/services/itrFilingApplicationMapper";
+import { mapRevisedItrBackendToApplication, type RevisedItrBackendDto } from "@/modules/itr/services/revisedItrApplicationMapper";
+import { mapTdsRefundBackendToApplication, type TdsRefundBackendDto } from "@/modules/itr/services/tdsRefundApplicationMapper";
 export { extractApplicationsFromResponse };
 
 export const applicationService = {
   getApplications: async (): Promise<Application[]> => {
     const headers = getAuthHeaders();
+    let genericList: Application[] = [];
+
+    // 1. Fetch Generic Applications if endpoint available
     try {
       const result = await apiClient.get<unknown>("/applications", { headers });
       const list = extractApplicationsFromResponse(result);
-      return list.map((app) => ({
+      genericList = list.map((app) => ({
         ...app,
         documents: Array.isArray(app?.documents) ? app.documents : [],
         timeline: Array.isArray(app?.timeline) ? app.timeline : [],
         chatHistory: Array.isArray(app?.chatHistory) ? app.chatHistory : [],
       }));
     } catch (err: unknown) {
-      if (err instanceof ApiError && (err.statusCode === 204 || err.statusCode === 404)) {
-        return [];
+      if (!(err instanceof ApiError && (err.statusCode === 204 || err.statusCode === 404))) {
+        const errMsg = getErrorMessage(err);
+        if (
+          !errMsg ||
+          (!errMsg.includes("404") &&
+            !errMsg.toLowerCase().includes("not found") &&
+            !errMsg.toLowerCase().includes("no applications") &&
+            !errMsg.toLowerCase().includes("no static resource"))
+        ) {
+          logger.debug("[applicationService] /applications endpoint error:", { error: errMsg });
+        }
       }
-      const errMsg = getErrorMessage(err);
-      if (
-        errMsg &&
-        (errMsg.includes("404") ||
-          errMsg.toLowerCase().includes("not found") ||
-          errMsg.toLowerCase().includes("no applications") ||
-          errMsg.toLowerCase().includes("no static resource"))
-      ) {
-        return [];
-      }
-      throw err;
     }
+
+    // 2. Fetch Live GST Applications from backend
+    let gstList: Application[] = [];
+    try {
+      const gstDtos = await gstApi.getMyApplications();
+      if (Array.isArray(gstDtos)) {
+        gstList = gstDtos.map((dto: GstBackendApplicationDto) => mapGstBackendToApplication(dto));
+      }
+    } catch (gstErr: unknown) {
+      logger.debug("[applicationService] Failed to fetch GST applications from backend:", {
+        error: getErrorMessage(gstErr),
+      });
+    }
+
+    // 3. Fetch Live GST Filing Applications from backend
+    let filingList: Application[] = [];
+    try {
+      const filingDtos = await gstApi.getMyFilingApplications();
+      if (Array.isArray(filingDtos)) {
+        filingList = filingDtos.map((dto: GstFilingBackendDto) => mapGstFilingBackendToApplication(dto));
+      }
+    } catch (filingErr: unknown) {
+      logger.debug("[applicationService] Failed to fetch GST filing applications from backend:", {
+        error: getErrorMessage(filingErr),
+      });
+    }
+
+    // 4. Fetch Live GST Compliance Applications from backend
+    let complianceList: Application[] = [];
+    try {
+      const complianceDtos = await gstApi.getMyComplianceApplications();
+      if (Array.isArray(complianceDtos)) {
+        complianceList = complianceDtos.map((dto: GstComplianceBackendDto) =>
+          mapGstComplianceBackendToApplication(dto)
+        );
+      }
+    } catch (complianceErr: unknown) {
+      logger.debug("[applicationService] Failed to fetch GST compliance applications from backend:", {
+        error: getErrorMessage(complianceErr),
+      });
+    }
+
+    // 5. Fetch Live GST Amendment Applications from backend
+    let amendmentList: Application[] = [];
+    try {
+      const amendmentDtos = await gstApi.getMyAmendmentApplications();
+      if (Array.isArray(amendmentDtos)) {
+        amendmentList = amendmentDtos.map((dto: GstAmendmentBackendDto) =>
+          mapGstAmendmentBackendToApplication(dto)
+        );
+      }
+    } catch (amendmentErr: unknown) {
+      logger.debug("[applicationService] Failed to fetch GST amendment applications from backend:", {
+        error: getErrorMessage(amendmentErr),
+      });
+    }
+
+    // 6. Fetch Live ITR Filing Applications from backend
+    let itrFilingList: Application[] = [];
+    try {
+      const itrDtos = await itrApi.getMyItrFilingApplications();
+      if (Array.isArray(itrDtos)) {
+        itrFilingList = itrDtos.map((dto: ItrFilingBackendDto) => mapItrFilingBackendToApplication(dto));
+      }
+    } catch (itrErr: unknown) {
+      logger.debug("[applicationService] Failed to fetch ITR filing applications from backend:", {
+        error: getErrorMessage(itrErr),
+      });
+    }
+
+    // 7. Fetch Live Revised ITR Applications from backend
+    let revisedItrList: Application[] = [];
+    try {
+      const revisedDtos = await itrApi.getMyRevisedItrApplications();
+      if (Array.isArray(revisedDtos)) {
+        revisedItrList = revisedDtos.map((dto: RevisedItrBackendDto) => mapRevisedItrBackendToApplication(dto));
+      }
+    } catch (revisedErr: unknown) {
+      logger.debug("[applicationService] Failed to fetch Revised ITR applications from backend:", {
+        error: getErrorMessage(revisedErr),
+      });
+    }
+
+    // 8. Fetch Live TDS Refund Applications from backend
+    let tdsRefundList: Application[] = [];
+    try {
+      const tdsDtos = await itrApi.getMyTdsRefundApplications();
+      if (Array.isArray(tdsDtos)) {
+        tdsRefundList = tdsDtos.map((dto: TdsRefundBackendDto) => mapTdsRefundBackendToApplication(dto));
+      }
+    } catch (tdsErr: unknown) {
+      logger.debug("[applicationService] Failed to fetch TDS Refund applications from backend:", {
+        error: getErrorMessage(tdsErr),
+      });
+    }
+
+    return [
+      ...gstList,
+      ...filingList,
+      ...complianceList,
+      ...amendmentList,
+      ...itrFilingList,
+      ...revisedItrList,
+      ...tdsRefundList,
+      ...genericList,
+    ];
   },
 
   getApplicationById: async (id: string): Promise<Application | null> => {

@@ -102,13 +102,11 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
     set({ isLoading: true, error: null });
     const cleanMobile = getActiveCustomerMobile();
     try {
-      const [remoteResult, localAppsResult, draftsResult] = await Promise.allSettled([
+      const [remoteResult, draftsResult] = await Promise.allSettled([
         applicationService.getApplications(),
-        getPersistedApplications(cleanMobile),
         getCustomerDrafts(cleanMobile),
       ]);
 
-      const localApps = localAppsResult.status === "fulfilled" ? localAppsResult.value : [];
       const customerDrafts = draftsResult.status === "fulfilled" ? draftsResult.value : [];
       let remoteApps: Application[] = [];
       let remoteError: string | null = null;
@@ -134,63 +132,14 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
         }
       }
 
-      const INVALID_LOOKUP_KEYS = new Set([
-        "", "0", "-", "N/A", "NA", "NONE", "NULL", "UNDEFINED", "PENDING", "DEFAULT", "DRAFT", "CUST-DEFAULT"
-      ]);
-
-      const isValidLookupKey = (key?: unknown): boolean => {
-        if (typeof key !== "string" && typeof key !== "number") return false;
-        const str = String(key).trim();
-        return str.length >= 3 && !INVALID_LOOKUP_KEYS.has(str.toUpperCase());
-      };
-
-      const mergedMap = new Map<string, Application>();
-
-      const getAppLookupKeys = (app: Application): string[] => [
-        app.id,
-        app.formData?.arn ? String(app.formData.arn).trim() : "",
-        app.formData?.gstId ? String(app.formData.gstId).trim() : "",
-        app.formData?.createdGstId ? String(app.formData.createdGstId).trim() : "",
-        app.formData?.applicationId ? String(app.formData.applicationId).trim() : "",
-      ].filter(isValidLookupKey);
-
-      const findExistingKey = (app: Application): string | null => {
-        const appKeys = getAppLookupKeys(app);
-        if (appKeys.length === 0) return null;
-        const match = Array.from(mergedMap.entries()).find(([key, existing]) => {
-          const isServiceMatch = Boolean(app.serviceId && existing.serviceId && app.serviceId === existing.serviceId);
-          const isCategoryMatch = Boolean(app.category && existing.category && app.category === existing.category);
-          if (!isServiceMatch && !isCategoryMatch) return false;
-
-          if (appKeys.includes(key)) return true;
-          const existingKeys = getAppLookupKeys(existing);
-          return appKeys.some((k) => existingKeys.includes(k));
-        });
-        return match ? match[0] : null;
-      };
-
-      localApps.reduce((map, app) => {
-        const matchedKey = findExistingKey(app);
-        if (matchedKey) {
-          map.set(matchedKey, { ...map.get(matchedKey)!, ...app });
-        } else {
-          map.set(app.id, app);
-        }
-        return map;
-      }, mergedMap);
-
-      remoteApps.reduce((map, app) => {
-        const matchedKey = findExistingKey(app);
-        if (matchedKey) {
-          map.set(matchedKey, { ...map.get(matchedKey)!, ...app });
-        } else {
-          map.set(app.id, app);
-        }
-        return map;
-      }, mergedMap);
+      // Pure backend for submitted cards
+      const submittedMap = new Map<string, Application>();
+      remoteApps.forEach((app) => {
+        submittedMap.set(app.id, app);
+      });
 
       const submittedServiceIds = new Set(
-        Array.from(mergedMap.values())
+        Array.from(submittedMap.values())
           .filter((a) => a.status !== "Draft")
           .map((a) => a.serviceId)
       );
@@ -199,11 +148,14 @@ export const useApplicationStore = create<ApplicationState>((set) => ({
         .map((draft) => draftToApplication(draft as Record<string, unknown>, cleanMobile))
         .filter((draftApp) => !submittedServiceIds.has(draftApp.serviceId));
 
-      const combinedApps = [...Array.from(mergedMap.values()), ...draftApplications].map((app) => ({
+      const combinedApps = [...Array.from(submittedMap.values()), ...draftApplications].map((app) => ({
         ...app,
         documents: extractAllApplicationDocuments(app, app.documents),
       }));
+
+      // Update in-memory store with pure backend applications
       set({ applications: combinedApps, isLoading: false, error: combinedApps.length > 0 ? null : remoteError });
+      savePersistedApplications(cleanMobile, Array.from(submittedMap.values()));
     } catch (err: unknown) {
       const localApps = await getPersistedApplications(cleanMobile);
       const customerDrafts = await getCustomerDrafts(cleanMobile).catch(() => []);
